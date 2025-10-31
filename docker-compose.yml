@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  gmail-agent:
+    build: .
+    container_name: gmail-licitacion-agent
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
