@@ -812,8 +812,7 @@ function updateStatItemsActiveState() {
             (currentStatus === 'pending' && statItem.classList.contains('pending')) ||
             (currentStatus === 'approved' && statItem.classList.contains('approved')) ||
             (currentStatus === 'rejected' && statItem.classList.contains('rejected')) ||
-            (currentStatus === '' && !statItem.classList.contains('pending') && 
-             !statItem.classList.contains('approved') && !statItem.classList.contains('rejected'));
+            (currentStatus === ''); // Show all stats when no filter
         
         if (isActive) {
             statItem.style.opacity = '1';
