@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Make stat items clickable for filtering
+    setupStatClickHandlers();
+
     // Setup town checkbox dropdown
     const townToggle = document.getElementById('townFilterToggle');
     const townMenu = document.getElementById('townFilterMenu');
@@ -88,6 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function handleFilterChange() {
+    // Update stat items visual feedback
+    updateStatItemsActiveState();
+    
     if (isCalendarView) {
         calendarDataLoaded = false;
         loadCalendarEvents();
@@ -741,6 +747,84 @@ async function loadStats() {
     } catch (error) {
         console.error('Error loading stats:', error);
     }
+}
+
+/**
+ * Setup click handlers for stat items to filter by status
+ */
+function setupStatClickHandlers() {
+    const statsBar = document.getElementById('statsBar');
+    if (!statsBar) return;
+
+    const statItems = statsBar.querySelectorAll('.stat-item');
+    
+    statItems.forEach(statItem => {
+        // Make stat items look clickable
+        statItem.style.cursor = 'pointer';
+        statItem.style.userSelect = 'none';
+        
+        statItem.addEventListener('click', () => {
+            const statusFilter = document.getElementById('statusFilter');
+            if (!statusFilter) return;
+
+            // Determine which status was clicked
+            let selectedStatus = '';
+            if (statItem.classList.contains('pending')) {
+                selectedStatus = 'pending';
+            } else if (statItem.classList.contains('approved')) {
+                selectedStatus = 'approved';
+            } else if (statItem.classList.contains('rejected')) {
+                selectedStatus = 'rejected';
+            }
+            
+            // If clicking the same status, clear the filter (show all)
+            if (statusFilter.value === selectedStatus) {
+                statusFilter.value = '';
+            } else {
+                statusFilter.value = selectedStatus;
+            }
+            
+            // Update visual feedback
+            updateStatItemsActiveState();
+            
+            // Trigger filter change
+            handleFilterChange();
+        });
+    });
+    
+    // Initial active state update
+    updateStatItemsActiveState();
+}
+
+/**
+ * Update visual feedback on stat items based on current filter
+ */
+function updateStatItemsActiveState() {
+    const statusFilter = document.getElementById('statusFilter');
+    const statsBar = document.getElementById('statsBar');
+    if (!statusFilter || !statsBar) return;
+    
+    const currentStatus = statusFilter.value;
+    const statItems = statsBar.querySelectorAll('.stat-item');
+    
+    statItems.forEach(statItem => {
+        const isActive = 
+            (currentStatus === 'pending' && statItem.classList.contains('pending')) ||
+            (currentStatus === 'approved' && statItem.classList.contains('approved')) ||
+            (currentStatus === 'rejected' && statItem.classList.contains('rejected')) ||
+            (currentStatus === '' && !statItem.classList.contains('pending') && 
+             !statItem.classList.contains('approved') && !statItem.classList.contains('rejected'));
+        
+        if (isActive) {
+            statItem.style.opacity = '1';
+            statItem.style.transform = 'scale(1.05)';
+            statItem.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        } else {
+            statItem.style.opacity = '0.6';
+            statItem.style.transform = 'scale(1)';
+            statItem.style.boxShadow = 'none';
+        }
+    });
 }
 
 /**
