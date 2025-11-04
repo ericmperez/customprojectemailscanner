@@ -1133,6 +1133,11 @@ function createCard(lic) {
         ` : ''}
 
         <div class="card-actions">
+            ${lic.contactEmail ? `
+                <button class="btn btn-primary" onclick="showEmailTemplateSelector(${lic.rowNumber})">
+                    📧 Enviar Email
+                </button>
+            ` : ''}
             ${approvalStatus === 'pending' ? `
                 <button class="btn btn-success" onclick="approveWithNotes(${lic.id})">
                     ✓ Aprobar
@@ -2244,6 +2249,148 @@ function setViewMode(mode) {
     // Re-render with new view
     if (currentLicitaciones && currentLicitaciones.length > 0) {
         renderCards(currentLicitaciones);
+    }
+}
+
+/**
+ * Send email to contact with pre-filled template
+ */
+function sendEmailToContact(licId, templateType = 'inquiry') {
+    const lic = currentLicitaciones.find(l => l.rowNumber === licId);
+    if (!lic || !lic.contactEmail) {
+        alert('No hay email de contacto disponible');
+        return;
+    }
+    
+    const templates = {
+        inquiry: {
+            subject: `Consulta sobre Licitación: ${lic.subject || ''}`,
+            body: `Estimado/a ${lic.contactName || 'contacto'},
+
+Saludos cordiales. Me comunico con respecto a la licitación:
+
+${lic.subject || 'N/A'}
+
+Me gustaría obtener más información sobre:
+- [Agregar detalles específicos]
+
+${lic.siteVisitDate && lic.siteVisitDate !== 'No disponible' ? 
+`Además, confirmo mi interés en la visita programada para ${lic.siteVisitDate}.` : ''}
+
+Quedo atento/a a su respuesta.
+
+Gracias por su atención.
+
+Saludos,
+[Tu nombre]
+[Tu empresa]
+[Tu teléfono]`
+        },
+        visitConfirmation: {
+            subject: `Confirmación de Visita - ${lic.subject || ''}`,
+            body: `Estimado/a ${lic.contactName || 'contacto'},
+
+Saludos cordiales.
+
+Por medio de la presente, confirmo mi asistencia a la visita programada:
+
+📅 Fecha: ${lic.siteVisitDate || 'N/A'}
+🕐 Hora: ${lic.siteVisitTime || 'N/A'}
+📍 Lugar: ${lic.visitLocation || 'N/A'}
+📋 Licitación: ${lic.subject || 'N/A'}
+
+Por favor, confirme si necesita alguna información adicional o documentación previa.
+
+Gracias.
+
+Saludos,
+[Tu nombre]
+[Tu empresa]
+[Tu teléfono]`
+        },
+        followUp: {
+            subject: `Seguimiento - ${lic.subject || ''}`,
+            body: `Estimado/a ${lic.contactName || 'contacto'},
+
+Saludos cordiales.
+
+Me comunico para dar seguimiento a la licitación:
+
+${lic.subject || 'N/A'}
+
+Me gustaría conocer el estatus y si hay alguna actualización o documentación adicional requerida.
+
+Quedo atento/a a sus comentarios.
+
+Gracias.
+
+Saludos,
+[Tu nombre]
+[Tu empresa]
+[Tu teléfono]`
+        }
+    };
+    
+    const template = templates[templateType] || templates.inquiry;
+    const mailtoLink = `mailto:${lic.contactEmail}?subject=${encodeURIComponent(template.subject)}&body=${encodeURIComponent(template.body)}`;
+    
+    window.location.href = mailtoLink;
+}
+
+/**
+ * Show email template selector modal
+ */
+function showEmailTemplateSelector(licId) {
+    const lic = currentLicitaciones.find(l => l.rowNumber === licId);
+    if (!lic || !lic.contactEmail) {
+        alert('No hay email de contacto disponible');
+        return;
+    }
+    
+    const hasVisit = lic.siteVisitDate && lic.siteVisitDate !== 'No disponible';
+    
+    const options = [
+        { value: 'inquiry', label: '📧 Consulta General', description: 'Solicitar información sobre la licitación' },
+        hasVisit ? { value: 'visitConfirmation', label: '✅ Confirmar Visita', description: 'Confirmar asistencia a la visita programada' } : null,
+        { value: 'followUp', label: '🔄 Seguimiento', description: 'Dar seguimiento al estado de la licitación' }
+    ].filter(Boolean);
+    
+    const optionsHtml = options.map(opt => `
+        <button class="email-template-option" onclick="sendEmailToContact(${licId}, '${opt.value}'); closeEmailTemplateModal()">
+            <div class="template-label">${opt.label}</div>
+            <div class="template-description">${opt.description}</div>
+        </button>
+    `).join('');
+    
+    const modal = document.getElementById('emailTemplateModal');
+    if (!modal) {
+        // Create modal if it doesn't exist
+        const modalHtml = `
+            <div id="emailTemplateModal" class="modal-overlay" onclick="if(event.target === this) closeEmailTemplateModal()">
+                <div class="modal-content email-template-modal">
+                    <h2>Seleccionar Plantilla de Email</h2>
+                    <p>Contacto: <strong>${escapeHtml(lic.contactEmail)}</strong></p>
+                    <div id="emailTemplateOptions" class="email-template-options">
+                        ${optionsHtml}
+                    </div>
+                    <button class="btn btn-secondary" onclick="closeEmailTemplateModal()">Cancelar</button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    } else {
+        document.getElementById('emailTemplateOptions').innerHTML = optionsHtml;
+        modal.style.display = 'flex';
+    }
+}
+
+/**
+ * Close email template modal
+ */
+function closeEmailTemplateModal() {
+    const modal = document.getElementById('emailTemplateModal');
+    if (modal) {
+        modal.style.display = 'none';
     }
 }
 
