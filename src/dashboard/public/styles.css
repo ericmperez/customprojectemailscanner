@@ -475,6 +475,7 @@ select:focus {
 
 .card.has-visit {
     border-left: 4px solid #3182ce;
+    background: linear-gradient(135deg, #ebf8ff 0%, #ffffff 100%);
 }
 
 .card-meta {
