@@ -413,6 +413,49 @@ body {
     background: linear-gradient(to bottom, rgba(102, 126, 234, 0.05), white);
 }
 
+/* Contact Links */
+.contact-link {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 4px 4px 4px 0;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+    color: white;
+}
+
+.phone-link {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
+.phone-link:hover {
+    background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(56, 161, 105, 0.3);
+}
+
+.whatsapp-link {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+}
+
+.whatsapp-link:hover {
+    background: linear-gradient(135deg, #128c7e 0%, #075e54 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+}
+
+.email-link {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.email-link:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 .filter-group label {
     font-weight: 600;
     color: #4a5568;

@@ -652,9 +652,26 @@ function renderDetailItem(label, value, extraClass = '') {
         return '';
     }
     
-    const formattedValue = typeof value === 'string'
-        ? escapeHtml(value).replace(/\n/g, '<br>')
-        : value;
+    let formattedValue;
+    
+    // Handle phone numbers
+    if (label === 'Teléfono') {
+        const cleanPhone = String(value).replace(/\D/g, ''); // Remove non-digits
+        formattedValue = `
+            <a href="tel:${cleanPhone}" class="contact-link phone-link">📞 ${escapeHtml(value)}</a>
+            <a href="https://wa.me/1${cleanPhone}" target="_blank" class="contact-link whatsapp-link">💬 WhatsApp</a>
+        `;
+    }
+    // Handle emails
+    else if (label === 'Email' || label.toLowerCase().includes('correo')) {
+        formattedValue = `<a href="mailto:${escapeHtml(value)}" class="contact-link email-link">📧 ${escapeHtml(value)}</a>`;
+    }
+    // Default handling
+    else {
+        formattedValue = typeof value === 'string'
+            ? escapeHtml(value).replace(/\n/g, '<br>')
+            : value;
+    }
 
     return `
         <div class="detail-item">
