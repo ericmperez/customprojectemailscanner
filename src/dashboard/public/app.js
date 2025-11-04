@@ -1181,6 +1181,37 @@ function closeModal() {
 }
 
 /**
+ * Quick filter: Show visits this week
+ */
+function quickFilterVisitsThisWeek() {
+    document.getElementById('typeFilter').value = 'visits';
+    document.getElementById('dateRangeFilter').value = 'visits-this-week';
+    document.getElementById('statusFilter').value = 'pending';
+    document.getElementById('sortSelect').value = 'visit-date-asc';
+    handleFilterChange();
+}
+
+/**
+ * Quick filter: Show licitaciones closing soon (next 7 days)
+ */
+function quickFilterClosingSoon() {
+    document.getElementById('statusFilter').value = 'pending';
+    document.getElementById('dateRangeFilter').value = 'next-week';
+    document.getElementById('sortSelect').value = 'close-date-asc';
+    handleFilterChange();
+}
+
+/**
+ * Quick filter: Show pending visits (all upcoming visits that are pending)
+ */
+function quickFilterPendingVisits() {
+    document.getElementById('typeFilter').value = 'visits';
+    document.getElementById('statusFilter').value = 'pending';
+    document.getElementById('sortSelect').value = 'visit-date-asc';
+    handleFilterChange();
+}
+
+/**
  * Clear all filters
  */
 function clearFilters() {

@@ -103,6 +103,12 @@
                 </select>
             </div>
 
+            <div class="quick-actions">
+                <button class="btn btn-quick" onclick="quickFilterVisitsThisWeek()">🏗️ Visitas esta semana</button>
+                <button class="btn btn-quick" onclick="quickFilterClosingSoon()">⏰ Cierre pronto (7 días)</button>
+                <button class="btn btn-quick" onclick="quickFilterPendingVisits()">📍 Visitas pendientes</button>
+            </div>
+
             <button class="btn btn-secondary" onclick="clearFilters()">Limpiar Filtros</button>
             <button class="btn btn-secondary" id="calendarToggleBtn">📆 Ver Calendario</button>
             <button class="btn btn-primary" onclick="loadLicitaciones()">🔄 Refrescar</button>
