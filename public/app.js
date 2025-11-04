@@ -578,7 +578,6 @@ function renderDetailSections(lic) {
             <div class="detail-grid">
                 ${renderDetailItem('Fecha del Email', lic.emailDate ? new Date(lic.emailDate).toLocaleString('es-PR') : 'No disponible')}
                 ${renderDetailItem('Fecha de Procesamiento', lic.processedAt ? new Date(lic.processedAt).toLocaleString('es-PR') : 'No disponible')}
-                ${renderDetailItem('Prioridad', lic.priority || 'No asignada')}
                 ${renderDetailItem('Estado', badgeText(lic.approvalStatus))}
             </div>
         </div>
@@ -821,10 +820,6 @@ function createCard(lic) {
     // Format dates
     const emailDate = lic.emailDate ? new Date(lic.emailDate).toLocaleDateString('es-PR') : 'N/A';
 
-    // Priority styling
-    const priorityClass = `priority-${lic.priority?.toLowerCase() || 'medium'}`;
-    const priorityText = lic.priority === 'High' ? 'Alta' : lic.priority === 'Medium' ? 'Media' : 'Baja';
-
     // Status text
     const statusText = approvalStatus === 'pending' ? 'Pendiente' : 
                        approvalStatus === 'approved' ? 'Aprobada' : 'Rechazada';
@@ -847,7 +842,6 @@ function createCard(lic) {
         <div class="card-meta">
             <div class="meta-item">📅 ${emailDate}</div>
             <div class="meta-item">📂 ${escapeHtml(lic.category || 'N/A')}</div>
-            <div class="meta-item"><span class="${priorityClass}">⚡ ${priorityText}</span></div>
         </div>
 
         <div class="card-section">
