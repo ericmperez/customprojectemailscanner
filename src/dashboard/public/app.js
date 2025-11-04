@@ -1054,7 +1054,15 @@ function createCard(lic) {
                 <div class="section-label">Contacto</div>
                 <div class="section-content">
                     ${escapeHtml(lic.contactName)}
-                    ${lic.contactPhone ? `<br>${escapeHtml(lic.contactPhone)}` : ''}
+                    ${lic.contactPhone ? `
+                        <br>
+                        <a href="tel:${lic.contactPhone.replace(/\\D/g, '')}" class="contact-link phone-link" onclick="event.stopPropagation()">
+                            📞 ${escapeHtml(lic.contactPhone)}
+                        </a>
+                        <a href="https://wa.me/1${lic.contactPhone.replace(/\\D/g, '')}" target="_blank" class="contact-link whatsapp-link" onclick="event.stopPropagation()">
+                            💬
+                        </a>
+                    ` : ''}
                 </div>
             </div>
             ` : ''}
