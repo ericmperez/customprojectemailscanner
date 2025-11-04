@@ -114,6 +114,13 @@
             <button class="btn btn-secondary" onclick="exportAllFiltered()">📥 Exportar a CSV</button>
             <button class="btn btn-secondary" onclick="exportToICalendar()">📅 Exportar Visitas (.ics)</button>
             <button class="btn btn-secondary" id="calendarToggleBtn">📆 Ver Calendario</button>
+            
+            <div class="view-mode-toggle">
+                <button class="btn view-mode-btn active" id="viewModeCards" onclick="setViewMode('cards')" title="Vista de tarjetas">⊞</button>
+                <button class="btn view-mode-btn" id="viewModeList" onclick="setViewMode('list')" title="Vista de lista">☰</button>
+                <button class="btn view-mode-btn" id="viewModeTable" onclick="setViewMode('table')" title="Vista de tabla">⊟</button>
+            </div>
+            
             <button class="btn btn-primary" onclick="loadLicitaciones()">🔄 Refrescar</button>
             <button class="btn btn-link" id="notificationsToggle" onclick="toggleNotifications()" title="Activar notificaciones">🔔</button>
             <button class="btn btn-link" onclick="showKeyboardShortcutsHelp()" title="Mostrar atajos de teclado">⌨️ ?</button>

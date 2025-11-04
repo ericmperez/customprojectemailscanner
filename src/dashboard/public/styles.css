@@ -1854,3 +1854,243 @@ select:focus {
 
 
 
+
+/* View Mode Toggle */
+.view-mode-toggle {
+    display: inline-flex;
+    gap: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+.view-mode-btn {
+    padding: 8px 12px !important;
+    border-radius: 0 !important;
+    border: none !important;
+    border-right: 1px solid #e2e8f0 !important;
+    background: white !important;
+    font-size: 16px;
+}
+
+.view-mode-btn:last-child {
+    border-right: none !important;
+}
+
+.view-mode-btn.active {
+    background: #667eea !important;
+    color: white !important;
+}
+
+.view-mode-btn:hover:not(.active) {
+    background: #f7fafc !important;
+}
+
+/* List View */
+.view-mode-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.list-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e0;
+}
+
+.list-item.status-approved {
+    border-left: 4px solid #48bb78;
+}
+
+.list-item.status-rejected {
+    border-left: 4px solid #f56565;
+}
+
+.list-item.status-pending {
+    border-left: 4px solid #ed8936;
+}
+
+.list-item-content {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.list-item-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.list-item-icon {
+    font-size: 18px;
+}
+
+.list-item-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: #2d3748;
+}
+
+.list-item-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: #718096;
+}
+
+.list-item-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.favorite-btn-small {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: transform 0.2s;
+}
+
+.favorite-btn-small:hover {
+    transform: scale(1.2);
+}
+
+.item-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Table View */
+.view-mode-table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.licitaciones-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.licitaciones-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.licitaciones-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.licitaciones-table tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.licitaciones-table tbody tr:hover {
+    background: #f7fafc;
+}
+
+.licitaciones-table td {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #2d3748;
+}
+
+.table-title {
+    font-weight: 600;
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table-row.status-approved {
+    background: #f0fff4;
+}
+
+.table-row.status-rejected {
+    background: #fff5f5;
+}
+
+.table-row.status-pending {
+    background: #fffaf0;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-icon:hover {
+    background: #e2e8f0;
+}
+
+/* Mobile adjustments for view modes */
+@media (max-width: 768px) {
+    .view-mode-toggle {
+        width: 100%;
+        margin-top: 8px;
+    }
+    
+    .view-mode-btn {
+        flex: 1;
+    }
+    
+    .list-item-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .list-item-meta {
+        flex-wrap: wrap;
+    }
+    
+    .licitaciones-table {
+        font-size: 12px;
+    }
+    
+    .licitaciones-table th,
+    .licitaciones-table td {
+        padding: 8px;
+    }
+    
+    .table-title {
+        max-width: 150px;
+    }
+}

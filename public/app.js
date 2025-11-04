@@ -23,6 +23,9 @@ let favorites = new Set(JSON.parse(localStorage.getItem('licitacion_favorites') 
 // Notifications
 let notificationsEnabled = Notification.permission === 'granted';
 
+// View mode (cards, list, table)
+let currentViewMode = localStorage.getItem('viewMode') || 'cards';
+
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 // Load licitaciones on page load
@@ -32,6 +35,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Update notification button initial state
     updateNotificationButton();
+    
+    // Set initial view mode
+    setViewMode(currentViewMode);
     
     // Request notification permissions after a short delay
     setTimeout(async () => {
@@ -960,16 +966,29 @@ async function loadLicitaciones() {
 }
 
 /**
- * Render licitaciones as cards
+ * Render licitaciones based on current view mode
  */
 function renderCards(licitaciones) {
     const cardsGrid = document.getElementById('cardsGrid');
     cardsGrid.innerHTML = '';
+    
+    // Update grid class based on view mode
+    cardsGrid.className = `view-mode-${currentViewMode}`;
 
-    licitaciones.forEach(lic => {
-        const card = createCard(lic);
-        cardsGrid.appendChild(card);
-    });
+    if (currentViewMode === 'cards') {
+        licitaciones.forEach(lic => {
+            const card = createCard(lic);
+            cardsGrid.appendChild(card);
+        });
+    } else if (currentViewMode === 'list') {
+        licitaciones.forEach(lic => {
+            const listItem = createListItem(lic);
+            cardsGrid.appendChild(listItem);
+        });
+    } else if (currentViewMode === 'table') {
+        const table = createTableView(licitaciones);
+        cardsGrid.appendChild(table);
+    }
 }
 
 /**
@@ -1117,6 +1136,126 @@ function createCard(lic) {
     `;
 
     return card;
+}
+
+/**
+ * Create a compact list item for a licitación
+ */
+function createListItem(lic) {
+    const listItem = document.createElement('div');
+    listItem.className = `list-item status-${(lic.approvalStatus || 'pending').toLowerCase()}`;
+    if (isFavorite(lic.rowNumber)) listItem.classList.add('favorited');
+    
+    const visitLocation = (lic.visitLocation || '').toString().trim();
+    const isVisit = visitLocation && visitLocation.toLowerCase() !== 'no disponible';
+    const typeIcon = isVisit ? '🏗️' : '🛒';
+    
+    const siteVisitDateDisplay = formatSiteVisitDate(lic.siteVisitDate);
+    const emailDate = formatSiteVisitDate(lic.emailDate) || 'Sin fecha';
+    
+    listItem.innerHTML = `
+        <input type="checkbox" class="item-checkbox" data-row="${lic.rowNumber}" onclick="toggleCardSelection(event, ${lic.rowNumber})">
+        <button class="favorite-btn-small ${isFavorite(lic.rowNumber) ? 'favorited' : ''}" onclick="toggleFavorite(${lic.rowNumber}, event)">
+            ${isFavorite(lic.rowNumber) ? '⭐' : '☆'}
+        </button>
+        <div class="list-item-content" onclick="openDetailModal(${lic.rowNumber})">
+            <div class="list-item-main">
+                <span class="list-item-icon">${typeIcon}</span>
+                <span class="list-item-title">${escapeHtml(lic.subject || 'Sin título')}</span>
+            </div>
+            <div class="list-item-meta">
+                ${isVisit && siteVisitDateDisplay !== 'No disponible' ? 
+                    `<span>📅 ${siteVisitDateDisplay}</span>` : 
+                    `<span>📅 ${emailDate}</span>`
+                }
+                ${lic.category ? `<span>📂 ${escapeHtml(lic.category)}</span>` : ''}
+                ${lic.contactName ? `<span>👤 ${escapeHtml(lic.contactName)}</span>` : ''}
+            </div>
+        </div>
+    `;
+    
+    return listItem;
+}
+
+/**
+ * Create a table view for all licitaciones
+ */
+function createTableView(licitaciones) {
+    const table = document.createElement('table');
+    table.className = 'licitaciones-table';
+    
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th><input type="checkbox" onclick="toggleSelectAll(event)"></th>
+                <th></th>
+                <th>Título</th>
+                <th>Tipo</th>
+                <th>Categoría</th>
+                <th>Fecha Visita/Email</th>
+                <th>Contacto</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${licitaciones.map(lic => {
+                const visitLocation = (lic.visitLocation || '').toString().trim();
+                const isVisit = visitLocation && visitLocation.toLowerCase() !== 'no disponible';
+                const typeIcon = isVisit ? '🏗️' : '🛒';
+                const typeText = isVisit ? 'Visita' : 'Compra';
+                
+                const siteVisitDateDisplay = formatSiteVisitDate(lic.siteVisitDate);
+                const emailDate = formatSiteVisitDate(lic.emailDate) || 'Sin fecha';
+                const displayDate = isVisit && siteVisitDateDisplay !== 'No disponible' ? siteVisitDateDisplay : emailDate;
+                
+                const statusBadge = badgeText(lic.approvalStatus || 'pending');
+                
+                return `
+                    <tr class="table-row status-${(lic.approvalStatus || 'pending').toLowerCase()}" onclick="openDetailModal(${lic.rowNumber})">
+                        <td onclick="event.stopPropagation()">
+                            <input type="checkbox" class="item-checkbox" data-row="${lic.rowNumber}" onclick="toggleCardSelection(event, ${lic.rowNumber})">
+                        </td>
+                        <td onclick="event.stopPropagation()">
+                            <button class="favorite-btn-small ${isFavorite(lic.rowNumber) ? 'favorited' : ''}" onclick="toggleFavorite(${lic.rowNumber}, event)">
+                                ${isFavorite(lic.rowNumber) ? '⭐' : '☆'}
+                            </button>
+                        </td>
+                        <td class="table-title">${escapeHtml(lic.subject || 'Sin título')}</td>
+                        <td>${typeIcon} ${typeText}</td>
+                        <td>${escapeHtml(lic.category || '-')}</td>
+                        <td>${displayDate}</td>
+                        <td>${escapeHtml(lic.contactName || '-')}</td>
+                        <td>${statusBadge}</td>
+                        <td onclick="event.stopPropagation()">
+                            <button class="btn-icon" onclick="approveWithNotes(${lic.rowNumber})" title="Aprobar">✓</button>
+                            <button class="btn-icon" onclick="rejectWithNotes(${lic.rowNumber})" title="Rechazar">✗</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    `;
+    
+    return table;
+}
+
+/**
+ * Toggle select all checkboxes in table view
+ */
+function toggleSelectAll(event) {
+    event.stopPropagation();
+    const isChecked = event.target.checked;
+    document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+        checkbox.checked = isChecked;
+        const rowNumber = parseInt(checkbox.dataset.row);
+        if (isChecked) {
+            selectedCards.add(rowNumber);
+        } else {
+            selectedCards.delete(rowNumber);
+        }
+    });
+    updateBulkActionsBar();
 }
 
 /**
@@ -2073,6 +2212,25 @@ function showBrowserNotification(title, body, data = {}) {
         };
     } catch (error) {
         console.error('Error showing notification:', error);
+    }
+}
+
+/**
+ * Switch view mode (cards, list, table)
+ */
+function setViewMode(mode) {
+    currentViewMode = mode;
+    localStorage.setItem('viewMode', mode);
+    
+    // Update button states
+    document.querySelectorAll('.view-mode-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(`viewMode${mode.charAt(0).toUpperCase() + mode.slice(1)}`)?.classList.add('active');
+    
+    // Re-render with new view
+    if (currentLicitaciones && currentLicitaciones.length > 0) {
+        renderCards(currentLicitaciones);
     }
 }
 
