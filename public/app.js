@@ -20,12 +20,23 @@ let currentLicitaciones = [];
 // Favorites
 let favorites = new Set(JSON.parse(localStorage.getItem('licitacion_favorites') || '[]'));
 
+// Notifications
+let notificationsEnabled = Notification.permission === 'granted';
+
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 // Load licitaciones on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     loadStats();
     loadLicitaciones();
+    
+    // Update notification button initial state
+    updateNotificationButton();
+    
+    // Request notification permissions after a short delay
+    setTimeout(async () => {
+        await requestNotificationPermission();
+    }, 2000);
 
     ['statusFilter', 'categoryFilter', 'typeFilter', 'dateRangeFilter', 'sortSelect'].forEach(id => {
         const element = document.getElementById(id);
@@ -921,6 +932,9 @@ async function loadLicitaciones() {
 
             // Generate smart suggestions
             generateSmartSuggestions(licitaciones);
+            
+            // Check for upcoming events and show notifications
+            checkUpcomingEvents(licitaciones);
 
             if (licitaciones.length > 0) {
                 renderCards(licitaciones);
@@ -1959,6 +1973,198 @@ function showOnlyFavorites() {
     }
     
     renderCards(favoriteLics);
+}
+
+/**
+ * Request notification permissions
+ */
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        console.log('Browser does not support notifications');
+        return false;
+    }
+    
+    if (Notification.permission === 'granted') {
+        notificationsEnabled = true;
+        updateNotificationButton();
+        return true;
+    }
+    
+    if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        notificationsEnabled = permission === 'granted';
+        updateNotificationButton();
+        return notificationsEnabled;
+    }
+    
+    return false;
+}
+
+/**
+ * Toggle notifications on/off
+ */
+async function toggleNotifications() {
+    if (!('Notification' in window)) {
+        alert('Tu navegador no soporta notificaciones');
+        return;
+    }
+    
+    if (Notification.permission === 'denied') {
+        alert('Las notificaciones están bloqueadas. Por favor, habilítalas en la configuración de tu navegador.');
+        return;
+    }
+    
+    if (Notification.permission === 'default') {
+        const granted = await requestNotificationPermission();
+        if (granted) {
+            alert('¡Notificaciones activadas! Recibirás alertas sobre visitas y cierres próximos.');
+            // Check immediately for upcoming events
+            if (currentLicitaciones.length > 0) {
+                checkUpcomingEvents(currentLicitaciones);
+            }
+        }
+    } else if (Notification.permission === 'granted') {
+        alert('Las notificaciones están activas. Para desactivarlas, hazlo desde la configuración de tu navegador.');
+    }
+}
+
+/**
+ * Update notification button appearance
+ */
+function updateNotificationButton() {
+    const btn = document.getElementById('notificationsToggle');
+    if (!btn) return;
+    
+    if (notificationsEnabled) {
+        btn.innerHTML = '🔔';
+        btn.title = 'Notificaciones activadas';
+        btn.style.opacity = '1';
+    } else {
+        btn.innerHTML = '🔕';
+        btn.title = 'Activar notificaciones';
+        btn.style.opacity = '0.5';
+    }
+}
+
+/**
+ * Show browser notification
+ */
+function showBrowserNotification(title, body, data = {}) {
+    if (!notificationsEnabled) return;
+    
+    try {
+        const notification = new Notification(title, {
+            body,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: data.tag || 'licitacion',
+            requireInteraction: false,
+            ...data
+        });
+        
+        notification.onclick = () => {
+            window.focus();
+            notification.close();
+            
+            // If there's a rowNumber, open the detail modal
+            if (data.rowNumber) {
+                openDetailModal(data.rowNumber);
+            }
+        };
+    } catch (error) {
+        console.error('Error showing notification:', error);
+    }
+}
+
+/**
+ * Check for upcoming visits and closing dates
+ */
+function checkUpcomingEvents(licitaciones) {
+    if (!notificationsEnabled || !licitaciones) return;
+    
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowEnd = new Date(tomorrow);
+    tomorrowEnd.setHours(23, 59, 59, 999);
+    
+    const in2Hours = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    
+    // Check for visits tomorrow
+    const visitsTomorrow = licitaciones.filter(lic => {
+        if (lic.approvalStatus !== 'pending' && lic.approvalStatus !== 'approved') return false;
+        if (!lic.siteVisitDate || lic.siteVisitDate === 'No disponible') return false;
+        
+        try {
+            const visitDate = new Date(lic.siteVisitDate);
+            return visitDate >= tomorrow && visitDate <= tomorrowEnd;
+        } catch {
+            return false;
+        }
+    });
+    
+    if (visitsTomorrow.length > 0) {
+        showBrowserNotification(
+            `🏗️ ${visitsTomorrow.length} Visita(s) Mañana`,
+            `Tienes ${visitsTomorrow.length} visita(s) programada(s) para mañana`,
+            { tag: 'visits-tomorrow' }
+        );
+    }
+    
+    // Check for visits in next 2 hours
+    const visitsIn2Hours = licitaciones.filter(lic => {
+        if (lic.approvalStatus !== 'pending' && lic.approvalStatus !== 'approved') return false;
+        if (!lic.siteVisitDate || lic.siteVisitDate === 'No disponible') return false;
+        
+        try {
+            const visitDate = new Date(lic.siteVisitDate);
+            // Add time if available
+            if (lic.siteVisitTime && lic.siteVisitTime !== 'Sin hora') {
+                const [hours, minutes] = lic.siteVisitTime.split(':');
+                visitDate.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0);
+            }
+            
+            return visitDate >= now && visitDate <= in2Hours;
+        } catch {
+            return false;
+        }
+    });
+    
+    visitsIn2Hours.forEach(lic => {
+        showBrowserNotification(
+            `🚨 Visita Próxima`,
+            `${lic.subject} - ${lic.siteVisitTime || 'Hora no especificada'}`,
+            { 
+                tag: `visit-soon-${lic.rowNumber}`,
+                rowNumber: lic.rowNumber,
+                requireInteraction: true
+            }
+        );
+    });
+    
+    // Check for closing soon (tomorrow)
+    const closingTomorrow = licitaciones.filter(lic => {
+        if (lic.approvalStatus !== 'pending') return false;
+        if (!lic.biddingCloseDate || lic.biddingCloseDate === 'No disponible') return false;
+        
+        try {
+            const closeDate = new Date(lic.biddingCloseDate);
+            return closeDate >= tomorrow && closeDate <= tomorrowEnd;
+        } catch {
+            return false;
+        }
+    });
+    
+    if (closingTomorrow.length > 0) {
+        showBrowserNotification(
+            `⏰ ${closingTomorrow.length} Licitación(es) Cierra(n) Mañana`,
+            `No olvides revisar las licitaciones que cierran mañana`,
+            { tag: 'closing-tomorrow' }
+        );
+    }
 }
 
 
