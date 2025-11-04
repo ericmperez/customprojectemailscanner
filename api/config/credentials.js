@@ -1,32 +1,28 @@
-import dotenv from 'dotenv';
-
-dotenv.config();
-
 export const config = {
   gmail: {
-    clientId: process.env.GMAIL_CLIENT_ID,
-    clientSecret: process.env.GMAIL_CLIENT_SECRET,
-    redirectUri: process.env.GMAIL_REDIRECT_URI,
-    refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+    clientId: process.env['GMAIL_CLIENT_ID'],
+    clientSecret: process.env['GMAIL_CLIENT_SECRET'],
+    redirectUri: process.env['GMAIL_REDIRECT_URI'],
+    refreshToken: process.env['GMAIL_REFRESH_TOKEN'],
   },
   sheets: {
-    sheetId: process.env.GOOGLE_SHEET_ID,
-    sheetName: process.env.SHEET_NAME || 'Licitaciones',
+    sheetId: process.env['GOOGLE_SHEET_ID'],
+    sheetName: process.env['SHEET_NAME'] || 'Licitaciones',
   },
   supabase: {
-    url: process.env.SUPABASE_URL,
-    key: process.env.SUPABASE_KEY,
-    pdfBucket: process.env.SUPABASE_PDF_BUCKET || 'licitaciones-pdfs',
+    url: process.env['SUPABASE_URL'],
+    key: process.env['SUPABASE_KEY'],
+    pdfBucket: process.env['SUPABASE_PDF_BUCKET'] || 'licitaciones-pdfs',
   },
   openai: {
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env['OPENAI_API_KEY'],
   },
   scheduler: {
-    intervalMinutes: parseInt(process.env.SCHEDULE_INTERVAL_MINUTES || '60', 10),
+    intervalMinutes: parseInt(process.env['SCHEDULE_INTERVAL_MINUTES'] || '60', 10),
   },
   app: {
-    env: process.env.NODE_ENV || 'development',
-    logLevel: process.env.LOG_LEVEL || 'info',
+    env: process.env['NODE_ENV'] || 'development',
+    logLevel: process.env['LOG_LEVEL'] || 'info',
   },
 };
 
