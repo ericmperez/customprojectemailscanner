@@ -304,6 +304,17 @@ class SheetsService {
         lic.siteVisitDate = this._formatDateLocal(siteVisitDateParsed);
       }
 
+      // Format times from decimal/serial numbers to HH:MM format
+      const biddingTime = this._formatTimeValue(lic.biddingCloseTime);
+      if (biddingTime) {
+        lic.biddingCloseTime = biddingTime;
+      }
+
+      const siteVisitTime = this._formatTimeValue(lic.siteVisitTime);
+      if (siteVisitTime) {
+        lic.siteVisitTime = siteVisitTime;
+      }
+
       return lic;
     });
 
@@ -351,6 +362,17 @@ class SheetsService {
     const siteVisitDateParsed = this._parseDateValue(lic.siteVisitDate);
     if (siteVisitDateParsed) {
       lic.siteVisitDate = this._formatDateLocal(siteVisitDateParsed);
+    }
+
+    // Format times from decimal/serial numbers to HH:MM format
+    const biddingTime = this._formatTimeValue(lic.biddingCloseTime);
+    if (biddingTime) {
+      lic.biddingCloseTime = biddingTime;
+    }
+
+    const siteVisitTime = this._formatTimeValue(lic.siteVisitTime);
+    if (siteVisitTime) {
+      lic.siteVisitTime = siteVisitTime;
     }
 
     return lic;
