@@ -1,0 +1,42 @@
+{
+  "name": "Licitaciones Dashboard",
+  "short_name": "Licitaciones",
+  "description": "Dashboard para gestión de licitaciones y visitas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "Ver Visitas",
+      "short_name": "Visitas",
+      "description": "Ver visitas pendientes",
+      "url": "/?filter=visits",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ver Pendientes",
+      "short_name": "Pendientes",
+      "description": "Ver licitaciones pendientes",
+      "url": "/?filter=pending",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+

@@ -28,6 +28,19 @@ let currentViewMode = localStorage.getItem('viewMode') || 'cards';
 
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('ServiceWorker registered:', registration.scope);
+            })
+            .catch((error) => {
+                console.log('ServiceWorker registration failed:', error);
+            });
+    });
+}
+
 // Load licitaciones on page load
 document.addEventListener('DOMContentLoaded', async () => {
     loadStats();
