@@ -14,6 +14,9 @@ const detailCache = new Map();
 // Bulk selection
 const selectedCards = new Set();
 
+// Store current licitaciones for export
+let currentLicitaciones = [];
+
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 // Load licitaciones on page load
@@ -890,6 +893,9 @@ async function loadLicitaciones() {
                 licitaciones = sortLicitaciones(licitaciones, sortBy);
             }
 
+            // Store for export
+            currentLicitaciones = licitaciones;
+
             if (licitaciones.length > 0) {
                 renderCards(licitaciones);
             } else {
@@ -1335,6 +1341,102 @@ async function bulkReject() {
         console.error('Error bulk rejecting:', error);
         showNotification('Error al rechazar licitaciones', 'error');
     }
+}
+
+/**
+ * Convert array of objects to CSV
+ */
+function arrayToCSV(data) {
+    if (!data || data.length === 0) return '';
+    
+    // Define columns to export
+    const columns = [
+        { key: 'subject', label: 'Título' },
+        { key: 'category', label: 'Categoría' },
+        { key: 'approvalStatus', label: 'Estado' },
+        { key: 'location', label: 'Ubicación' },
+        { key: 'description', label: 'Descripción' },
+        { key: 'biddingCloseDate', label: 'Fecha Cierre' },
+        { key: 'biddingCloseTime', label: 'Hora Cierre' },
+        { key: 'siteVisitDate', label: 'Fecha Visita' },
+        { key: 'siteVisitTime', label: 'Hora Visita' },
+        { key: 'visitLocation', label: 'Lugar Visita' },
+        { key: 'contactName', label: 'Contacto' },
+        { key: 'contactPhone', label: 'Teléfono' },
+        { key: 'contactEmail', label: 'Email' },
+        { key: 'emailDate', label: 'Fecha Email' },
+        { key: 'pdfFilename', label: 'Archivo PDF' }
+    ];
+    
+    // Create header row
+    const headerRow = columns.map(col => `"${col.label}"`).join(',');
+    
+    // Create data rows
+    const dataRows = data.map(item => {
+        return columns.map(col => {
+            let value = item[col.key] || '';
+            // Clean value and escape quotes
+            value = String(value).replace(/"/g, '""');
+            return `"${value}"`;
+        }).join(',');
+    });
+    
+    return [headerRow, ...dataRows].join('\n');
+}
+
+/**
+ * Download CSV file
+ */
+function downloadCSV(csvContent, filename) {
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * Export all filtered licitaciones to CSV
+ */
+function exportAllFiltered() {
+    if (!currentLicitaciones || currentLicitaciones.length === 0) {
+        alert('No hay licitaciones para exportar');
+        return;
+    }
+    
+    const csv = arrayToCSV(currentLicitaciones);
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const filename = `licitaciones_${timestamp}.csv`;
+    
+    downloadCSV(csv, filename);
+    showNotification(`✓ ${currentLicitaciones.length} licitación(es) exportadas`, 'success');
+}
+
+/**
+ * Export selected licitaciones to CSV
+ */
+function exportSelected() {
+    if (selectedCards.size === 0) {
+        alert('No hay licitaciones seleccionadas para exportar');
+        return;
+    }
+    
+    // Filter current licitaciones by selected row numbers
+    const selectedLicitaciones = currentLicitaciones.filter(lic => 
+        selectedCards.has(lic.rowNumber)
+    );
+    
+    const csv = arrayToCSV(selectedLicitaciones);
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const filename = `licitaciones_seleccionadas_${timestamp}.csv`;
+    
+    downloadCSV(csv, filename);
+    showNotification(`✓ ${selectedLicitaciones.length} licitación(es) exportadas`, 'success');
 }
 
 /**

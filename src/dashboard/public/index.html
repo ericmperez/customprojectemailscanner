@@ -110,6 +110,7 @@
             </div>
 
             <button class="btn btn-secondary" onclick="clearFilters()">Limpiar Filtros</button>
+            <button class="btn btn-secondary" onclick="exportAllFiltered()">📥 Exportar a CSV</button>
             <button class="btn btn-secondary" id="calendarToggleBtn">📆 Ver Calendario</button>
             <button class="btn btn-primary" onclick="loadLicitaciones()">🔄 Refrescar</button>
         </div>
@@ -122,6 +123,7 @@
             <div class="bulk-buttons">
                 <button class="btn btn-success btn-sm" onclick="bulkApprove()">✓ Aprobar seleccionadas</button>
                 <button class="btn btn-danger btn-sm" onclick="bulkReject()">✗ Rechazar seleccionadas</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportSelected()">📊 Exportar seleccionadas</button>
                 <button class="btn btn-secondary btn-sm" onclick="clearSelection()">Limpiar selección</button>
             </div>
         </div>
