@@ -1,6 +1,19 @@
 import { google } from 'googleapis';
-import { config } from '../config/credentials.js';
 import { normalizeVisitLocationLabel, normalizeVisitLocationFilterValue } from './visit-location.utils.js';
+
+// Read config directly from environment variables
+const config = {
+  gmail: {
+    clientId: process.env.GMAIL_CLIENT_ID,
+    clientSecret: process.env.GMAIL_CLIENT_SECRET,
+    redirectUri: process.env.GMAIL_REDIRECT_URI,
+    refreshToken: process.env.GMAIL_REFRESH_TOKEN,
+  },
+  sheets: {
+    sheetId: process.env.GOOGLE_SHEET_ID,
+    sheetName: process.env.SHEET_NAME || 'Licitaciones',
+  },
+};
 
 const HEADERS = [
   'Fecha de Procesamiento',
