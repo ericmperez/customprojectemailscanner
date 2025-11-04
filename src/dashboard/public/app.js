@@ -17,6 +17,9 @@ const selectedCards = new Set();
 // Store current licitaciones for export
 let currentLicitaciones = [];
 
+// Favorites
+let favorites = new Set(JSON.parse(localStorage.getItem('licitacion_favorites') || '[]'));
+
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 // Load licitaciones on page load
@@ -980,11 +983,16 @@ function createCard(lic) {
     const siteVisitTimeDisplay = formatTimeLabel(lic.siteVisitTime);
     const siteVisitTimeLine = siteVisitTimeDisplay || (siteVisitDateDisplay !== 'No disponible' ? 'Sin hora' : '');
 
+    const isFav = isFavorite(lic.rowNumber);
+    
     card.innerHTML = `
         <input type="checkbox" class="card-checkbox" data-row="${lic.rowNumber}" onclick="toggleCardSelection(event, ${lic.rowNumber})">
         <div class="card-header">
             <div class="card-title">${escapeHtml(lic.subject || 'Sin título')}</div>
             <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="favorite-btn ${isFav ? 'favorited' : ''}" onclick="toggleFavorite(${lic.rowNumber}, event)" title="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
+                    ${isFav ? '⭐' : '☆'}
+                </button>
                 <span class="type-badge ${typeBadgeClass}">${typeText}</span>
             </div>
         </div>
@@ -1883,6 +1891,67 @@ document.addEventListener('keydown', (e) => {
         closeDetailModal();
     }
 });
+
+/**
+ * Toggle favorite status for a licitación
+ */
+function toggleFavorite(licId, event) {
+    if (event) {
+        event.stopPropagation(); // Prevent card click
+    }
+    
+    const idStr = String(licId);
+    if (favorites.has(idStr)) {
+        favorites.delete(idStr);
+    } else {
+        favorites.add(idStr);
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('licitacion_favorites', JSON.stringify([...favorites]));
+    
+    // Update star icon
+    const starBtn = event?.target?.closest('.favorite-btn');
+    if (starBtn) {
+        updateFavoriteIcon(starBtn, favorites.has(idStr));
+    }
+}
+
+/**
+ * Update favorite icon appearance
+ */
+function updateFavoriteIcon(btn, isFavorite) {
+    btn.innerHTML = isFavorite ? '⭐' : '☆';
+    btn.title = isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos';
+    btn.classList.toggle('favorited', isFavorite);
+}
+
+/**
+ * Check if a licitación is favorited
+ */
+function isFavorite(licId) {
+    return favorites.has(String(licId));
+}
+
+/**
+ * Quick filter: Show only favorites
+ */
+function showOnlyFavorites() {
+    if (favorites.size === 0) {
+        alert('No tienes licitaciones en favoritos');
+        return;
+    }
+    
+    // Filter current licitaciones
+    const favoriteLics = currentLicitaciones.filter(lic => isFavorite(lic.id || lic.rowNumber));
+    
+    if (favoriteLics.length === 0) {
+        alert('No hay favoritos en los resultados actuales');
+        return;
+    }
+    
+    renderCards(favoriteLics);
+}
 
 
 
