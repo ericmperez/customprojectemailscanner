@@ -293,6 +293,17 @@ class SheetsService {
       lic.decisionStatus = lic.decisionStatus || DEFAULT_DECISION_STATUS;
       lic.interested = this._parseBoolean(lic.interested);
 
+      // Format dates from serial numbers to readable format
+      const biddingDate = this._parseDateValue(lic.biddingCloseDate);
+      if (biddingDate) {
+        lic.biddingCloseDate = this._formatDateLocal(biddingDate);
+      }
+
+      const siteVisitDateParsed = this._parseDateValue(lic.siteVisitDate);
+      if (siteVisitDateParsed) {
+        lic.siteVisitDate = this._formatDateLocal(siteVisitDateParsed);
+      }
+
       return lic;
     });
 
@@ -330,6 +341,17 @@ class SheetsService {
     lic.approvalStatus = lic.approvalStatus || DEFAULT_STATUS;
     lic.decisionStatus = lic.decisionStatus || DEFAULT_DECISION_STATUS;
     lic.interested = this._parseBoolean(lic.interested);
+
+    // Format dates from serial numbers to readable format
+    const biddingDate = this._parseDateValue(lic.biddingCloseDate);
+    if (biddingDate) {
+      lic.biddingCloseDate = this._formatDateLocal(biddingDate);
+    }
+
+    const siteVisitDateParsed = this._parseDateValue(lic.siteVisitDate);
+    if (siteVisitDateParsed) {
+      lic.siteVisitDate = this._formatDateLocal(siteVisitDateParsed);
+    }
 
     return lic;
   }
