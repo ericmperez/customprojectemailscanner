@@ -11,8 +11,6 @@ let calendarMonthDate = new Date();
 let calendarDataLoaded = false;
 let currentDetailId = null;
 const detailCache = new Map();
-const visitLocationOptionsMap = new Map();
-const townOptionsMap = new Map();
 
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
@@ -21,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStats();
     loadLicitaciones();
 
-    ['statusFilter', 'categoryFilter', 'priorityFilter', 'visitLocationFilter', 'dateRangeFilter'].forEach(id => {
+    ['statusFilter', 'categoryFilter', 'priorityFilter', 'typeFilter', 'dateRangeFilter'].forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('change', handleFilterChange);
@@ -30,34 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Make stat items clickable for filtering
     setupStatClickHandlers();
-
-    // Setup town checkbox dropdown
-    const townToggle = document.getElementById('townFilterToggle');
-    const townMenu = document.getElementById('townFilterMenu');
-    const townSearch = document.getElementById('townSearchInput');
-    
-    if (townToggle && townMenu) {
-        townToggle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isOpen = townMenu.style.display === 'block';
-            townMenu.style.display = isOpen ? 'none' : 'block';
-            townToggle.classList.toggle('active', !isOpen);
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!townToggle.contains(e.target) && !townMenu.contains(e.target)) {
-                townMenu.style.display = 'none';
-                townToggle.classList.remove('active');
-            }
-        });
-    }
-
-    if (townSearch) {
-        townSearch.addEventListener('input', (e) => {
-            filterTownOptions(e.target.value);
-        });
-    }
 
     const calendarToggleBtn = document.getElementById('calendarToggleBtn');
     if (calendarToggleBtn) {
@@ -103,23 +73,11 @@ function handleFilterChange() {
 }
 
 function getCurrentFilters() {
-    const visitLocationSelect = document.getElementById('visitLocationFilter');
-    const visitLocationValues = visitLocationSelect
-        ? Array.from(visitLocationSelect.selectedOptions || [])
-            .map(option => option.value)
-            .filter(Boolean)
-        : [];
-
-    // Get selected towns from checkboxes
-    const townCheckboxes = document.querySelectorAll('#townFilterOptions input[type="checkbox"]:checked');
-    const townValues = Array.from(townCheckboxes).map(cb => cb.value).filter(Boolean);
-
     return {
         status: document.getElementById('statusFilter')?.value || '',
         category: document.getElementById('categoryFilter')?.value || '',
         priority: document.getElementById('priorityFilter')?.value || '',
-        visitLocation: visitLocationValues,
-        town: townValues,
+        type: document.getElementById('typeFilter')?.value || '',
         dateRange: document.getElementById('dateRangeFilter')?.value || '',
     };
 }
@@ -230,8 +188,6 @@ async function loadCalendarEvents() {
 
         if (result.success) {
             calendarEvents = Array.isArray(result.data) ? result.data : [];
-            updateVisitLocationOptions(calendarEvents.map(event => event.visitLocation));
-            updateTownOptions(calendarEvents.map(event => extractTownFromLocation(event.location)));
 
             if (!calendarDataLoaded) {
                 const targetEvent = findUpcomingEvent(calendarEvents);
@@ -872,8 +828,6 @@ async function loadLicitaciones() {
                 }
             }
 
-            updateVisitLocationOptions(licitaciones.map(lic => lic.visitLocation));
-            updateTownOptions(licitaciones.map(lic => extractTownFromLocation(lic.location)));
             loadStats(); // Refresh stats
         } else {
             emptyState.style.display = 'block';
@@ -1154,21 +1108,8 @@ function clearFilters() {
     document.getElementById('statusFilter').value = '';
     document.getElementById('categoryFilter').value = '';
     document.getElementById('priorityFilter').value = '';
+    document.getElementById('typeFilter').value = '';
     document.getElementById('dateRangeFilter').value = '';
-    
-    const visitLocationSelect = document.getElementById('visitLocationFilter');
-    if (visitLocationSelect) {
-        Array.from(visitLocationSelect.options).forEach(option => {
-            option.selected = false;
-        });
-    }
-    
-    // Clear town checkboxes
-    const townCheckboxes = document.querySelectorAll('#townFilterOptions input[type="checkbox"]:checked');
-    townCheckboxes.forEach(cb => {
-        cb.checked = false;
-    });
-    updateTownFilterLabel();
     
     handleFilterChange();
 }
@@ -1179,225 +1120,6 @@ function clearFilters() {
 function showNotification(message, type = 'info') {
     // Simple alert for now - can be enhanced with a toast library
     alert(message);
-}
-
-function updateVisitLocationOptions(candidates = []) {
-    const select = document.getElementById('visitLocationFilter');
-    if (!select || !Array.isArray(candidates)) {
-        return;
-    }
-
-    const previousSelection = new Set(Array.from(select.selectedOptions || []).map(option => option.value));
-
-    // Ensure currently selected values stay available even if not present in latest dataset
-    previousSelection.forEach(label => {
-        const normalizedLabel = normalizeVisitLocationLabel(label);
-        if (!normalizedLabel) {
-            return;
-        }
-        const key = normalizedLabel.toLowerCase();
-        if (!visitLocationOptionsMap.has(key)) {
-            visitLocationOptionsMap.set(key, normalizedLabel);
-        }
-    });
-
-    candidates.forEach(label => {
-        const normalizedLabel = normalizeVisitLocationLabel(label);
-        if (!normalizedLabel) {
-            return;
-        }
-        const key = normalizedLabel.toLowerCase();
-        if (!visitLocationOptionsMap.has(key)) {
-            visitLocationOptionsMap.set(key, normalizedLabel);
-        }
-    });
-
-    if (visitLocationOptionsMap.size === 0) {
-        select.innerHTML = '';
-        return;
-    }
-
-    const sortedOptions = Array.from(visitLocationOptionsMap.entries())
-        .sort((a, b) => a[1].localeCompare(b[1], 'es', { sensitivity: 'base' }));
-
-    select.innerHTML = '';
-    sortedOptions.forEach(([, label]) => {
-        const option = document.createElement('option');
-        option.value = label;
-        option.textContent = label;
-        option.selected = previousSelection.has(label);
-        select.appendChild(option);
-    });
-}
-
-function normalizeVisitLocationLabel(value) {
-    if (!value) {
-        return null;
-    }
-
-    const trimmed = value.toString().trim().replace(/\s+/g, ' ');
-    if (!trimmed || trimmed.toLowerCase() === 'no disponible') {
-        return null;
-    }
-
-    return trimmed;
-}
-
-function updateTownOptions(candidates = []) {
-    const container = document.getElementById('townFilterOptions');
-    if (!container || !Array.isArray(candidates)) {
-        return;
-    }
-
-    // Get currently selected towns
-    const previousSelection = new Set(
-        Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value)
-    );
-
-    // Ensure currently selected values stay available even if not present in latest dataset
-    previousSelection.forEach(town => {
-        const normalizedTown = normalizeTownLabel(town);
-        if (!normalizedTown) {
-            return;
-        }
-        const key = normalizedTown.toLowerCase();
-        if (!townOptionsMap.has(key)) {
-            townOptionsMap.set(key, normalizedTown);
-        }
-    });
-
-    candidates.forEach(town => {
-        const normalizedTown = normalizeTownLabel(town);
-        if (!normalizedTown) {
-            return;
-        }
-        const key = normalizedTown.toLowerCase();
-        if (!townOptionsMap.has(key)) {
-            townOptionsMap.set(key, normalizedTown);
-        }
-    });
-
-    if (townOptionsMap.size === 0) {
-        container.innerHTML = '<div style="padding: 12px; text-align: center; color: #718096;">No hay pueblos disponibles</div>';
-        return;
-    }
-
-    const sortedOptions = Array.from(townOptionsMap.entries())
-        .sort((a, b) => a[1].localeCompare(b[1], 'es', { sensitivity: 'base' }));
-
-    container.innerHTML = '';
-    sortedOptions.forEach(([key, label]) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'checkbox-option';
-        wrapper.dataset.town = key;
-
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `town-${key}`;
-        checkbox.value = label;
-        checkbox.checked = previousSelection.has(label);
-        checkbox.addEventListener('change', () => {
-            updateTownFilterLabel();
-            handleFilterChange();
-        });
-
-        const labelEl = document.createElement('label');
-        labelEl.htmlFor = `town-${key}`;
-        labelEl.textContent = label;
-
-        wrapper.appendChild(checkbox);
-        wrapper.appendChild(labelEl);
-        container.appendChild(wrapper);
-    });
-
-    updateTownFilterLabel();
-}
-
-function normalizeTownLabel(value) {
-    if (!value) {
-        return null;
-    }
-
-    const trimmed = value.toString().trim().replace(/\s+/g, ' ');
-    if (!trimmed || trimmed.toLowerCase() === 'no disponible') {
-        return null;
-    }
-
-    return trimmed;
-}
-
-function extractTownFromLocation(location) {
-    if (!location) {
-        return null;
-    }
-
-    // Extract town name from location string (e.g., "SAN JUAN PR" -> "SAN JUAN")
-    const normalized = location.toString().trim().toUpperCase();
-    
-    // Remove "PR" or "PUERTO RICO" suffix
-    const withoutSuffix = normalized
-        .replace(/\s*,?\s*PUERTO\s+RICO\s*$/i, '')
-        .replace(/\s*,?\s*PR\s*$/i, '')
-        .trim();
-    
-    if (!withoutSuffix || withoutSuffix.toLowerCase() === 'no disponible') {
-        return null;
-    }
-
-    return withoutSuffix;
-}
-
-function updateTownFilterLabel() {
-    const label = document.getElementById('townFilterLabel');
-    if (!label) return;
-
-    const checked = document.querySelectorAll('#townFilterOptions input[type="checkbox"]:checked');
-    const count = checked.length;
-
-    if (count === 0) {
-        label.textContent = 'Todos los pueblos';
-    } else if (count === 1) {
-        label.textContent = checked[0].value;
-    } else {
-        label.textContent = `${count} pueblos seleccionados`;
-    }
-}
-
-function filterTownOptions(searchTerm) {
-    const options = document.querySelectorAll('#townFilterOptions .checkbox-option');
-    const normalized = searchTerm.toLowerCase().trim();
-
-    options.forEach(option => {
-        const town = option.dataset.town || '';
-        const label = option.querySelector('label')?.textContent || '';
-        const matches = town.includes(normalized) || label.toLowerCase().includes(normalized);
-        option.style.display = matches ? 'flex' : 'none';
-    });
-}
-
-function selectAllTowns() {
-    const checkboxes = document.querySelectorAll('#townFilterOptions input[type="checkbox"]:not(:checked)');
-    const visibleCheckboxes = Array.from(checkboxes).filter(cb => {
-        const option = cb.closest('.checkbox-option');
-        return option && option.style.display !== 'none';
-    });
-
-    visibleCheckboxes.forEach(cb => {
-        cb.checked = true;
-    });
-
-    updateTownFilterLabel();
-    handleFilterChange();
-}
-
-function clearTownSelection() {
-    const checkboxes = document.querySelectorAll('#townFilterOptions input[type="checkbox"]:checked');
-    checkboxes.forEach(cb => {
-        cb.checked = false;
-    });
-
-    updateTownFilterLabel();
-    handleFilterChange();
 }
 
 function parseSheetDateValue(value) {

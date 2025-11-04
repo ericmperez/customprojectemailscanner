@@ -581,17 +581,19 @@ class SheetsService {
       result = result.filter(lic => (lic.priority || '').toLowerCase() === filters.priority.toLowerCase());
     }
 
-    if (filters.visitLocation && filters.visitLocation.length) {
-      const visitLocationSet = new Set(
-        filters.visitLocation
-          .map(value => normalizeVisitLocationFilterValue(value))
-          .filter(Boolean)
-      );
-
-      if (visitLocationSet.size > 0) {
+    // Filter by type (visits or purchases)
+    if (filters.type) {
+      if (filters.type === 'visits') {
+        // Show only licitaciones with visit location
         result = result.filter(lic => {
-          const location = normalizeVisitLocationFilterValue(lic.visitLocation);
-          return location ? visitLocationSet.has(location) : false;
+          const location = (lic.visitLocation || '').toString().trim();
+          return location && location.toLowerCase() !== 'no disponible';
+        });
+      } else if (filters.type === 'purchases') {
+        // Show only licitaciones without visit location
+        result = result.filter(lic => {
+          const location = (lic.visitLocation || '').toString().trim();
+          return !location || location.toLowerCase() === 'no disponible';
         });
       }
     }
@@ -599,24 +601,6 @@ class SheetsService {
     if (filters.interested !== undefined) {
       const interestedBool = filters.interested === 'true' || filters.interested === true;
       result = result.filter(lic => lic.interested === interestedBool);
-    }
-
-    // Filter by town (extracted from location)
-    if (filters.town && filters.town.length) {
-      const townSet = new Set(
-        filters.town.map(t => t.toString().trim().toUpperCase()).filter(Boolean)
-      );
-
-      if (townSet.size > 0) {
-        result = result.filter(lic => {
-          const location = (lic.location || '').toString().trim().toUpperCase();
-          const town = location
-            .replace(/\s*,?\s*PUERTO\s+RICO\s*$/i, '')
-            .replace(/\s*,?\s*PR\s*$/i, '')
-            .trim();
-          return town ? townSet.has(town) : false;
-        });
-      }
     }
 
     // Filter by date range

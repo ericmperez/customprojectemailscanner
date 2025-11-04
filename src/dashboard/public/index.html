@@ -65,32 +65,13 @@
                 </select>
             </div>
 
-            <div class="filter-group filter-group-multi">
-                <label for="visitLocationFilter">Lugar de visita:</label>
-                <select id="visitLocationFilter" multiple></select>
-                <small class="filter-hint">Puede seleccionar varios lugares</small>
-            </div>
-
-            <div class="filter-group filter-group-checkbox">
-                <label>Pueblos:</label>
-                <div class="checkbox-dropdown">
-                    <button type="button" class="checkbox-dropdown-toggle" id="townFilterToggle">
-                        <span id="townFilterLabel">Todos los pueblos</span>
-                        <span class="dropdown-arrow">▼</span>
-                    </button>
-                    <div class="checkbox-dropdown-menu" id="townFilterMenu" style="display: none;">
-                        <div class="checkbox-search">
-                            <input type="text" id="townSearchInput" placeholder="Buscar pueblo..." />
-                        </div>
-                        <div class="checkbox-options" id="townFilterOptions">
-                            <!-- Checkboxes will be populated here -->
-                        </div>
-                        <div class="checkbox-actions">
-                            <button type="button" class="btn-link" onclick="selectAllTowns()">Seleccionar todos</button>
-                            <button type="button" class="btn-link" onclick="clearTownSelection()">Limpiar</button>
-                        </div>
-                    </div>
-                </div>
+            <div class="filter-group">
+                <label for="typeFilter">Tipo:</label>
+                <select id="typeFilter">
+                    <option value="">Todos</option>
+                    <option value="visits">Visitas</option>
+                    <option value="purchases">Compras</option>
+                </select>
             </div>
 
             <div class="filter-group">
