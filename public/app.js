@@ -25,6 +25,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Search input with debounce
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                handleFilterChange();
+            }, 300); // 300ms debounce
+        });
+    }
+
     // Make stat items clickable for filtering
     setupStatClickHandlers();
 
@@ -72,6 +84,7 @@ function getCurrentFilters() {
         category: document.getElementById('categoryFilter')?.value || '',
         type: document.getElementById('typeFilter')?.value || '',
         dateRange: document.getElementById('dateRangeFilter')?.value || '',
+        search: document.getElementById('searchInput')?.value || '',
     };
 }
 
@@ -781,13 +794,33 @@ async function loadLicitaciones() {
         if (result.success) {
             let licitaciones = Array.isArray(result.data) ? result.data : [];
 
+            // Apply client-side search filtering
+            if (filters.search && filters.search.trim()) {
+                const searchTerm = filters.search.toLowerCase().trim();
+                licitaciones = licitaciones.filter(lic => {
+                    const searchableText = [
+                        lic.subject || '',
+                        lic.location || '',
+                        lic.description || '',
+                        lic.pdfFilename || '',
+                        lic.contactName || '',
+                        lic.visitLocation || '',
+                        lic.category || ''
+                    ].join(' ').toLowerCase();
+                    
+                    return searchableText.includes(searchTerm);
+                });
+            }
+
             if (licitaciones.length > 0) {
                 renderCards(licitaciones);
             } else {
                 emptyState.style.display = 'block';
                 const emptyMsg = emptyState.querySelector('p');
                 if (emptyMsg) {
-                    emptyMsg.textContent = '📋 No hay licitaciones que coincidan con los filtros';
+                    emptyMsg.textContent = filters.search 
+                        ? `📋 No se encontraron resultados para "${filters.search}"`
+                        : '📋 No hay licitaciones que coincidan con los filtros';
                 }
             }
 
@@ -1083,6 +1116,7 @@ function clearFilters() {
     document.getElementById('categoryFilter').value = '';
     document.getElementById('typeFilter').value = '';
     document.getElementById('dateRangeFilter').value = '';
+    document.getElementById('searchInput').value = '';
     
     handleFilterChange();
 }
