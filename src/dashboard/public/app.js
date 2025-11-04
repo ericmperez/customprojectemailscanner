@@ -216,6 +216,8 @@ async function loadCalendarEvents() {
 
     try {
         const filters = getCurrentFilters();
+        // Force calendar to only show approved licitaciones with site visits
+        filters.status = 'approved';
         const query = buildFilterQueryString(filters);
         const response = await fetch(`${API_BASE}/api/visits${query}`);
         const result = await response.json();
