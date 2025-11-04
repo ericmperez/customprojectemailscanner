@@ -1,16 +1,33 @@
-# 📧 Gmail Licitación Agent
+# 📧 Gmail Licitación Agent + Dashboard
 
-Automated system that monitors Gmail for emails starting with "Licitación", extracts PDF content (location and bidding description), and updates Google Sheets automatically.
+Automated system that monitors Gmail for emails starting with "Licitación", extracts PDF content using AI, updates Google Sheets, and provides a beautiful dashboard for approving/rejecting opportunities.
 
 ## 🚀 Features
 
+### Email Processing & Extraction
 - ✅ **Automated Gmail Monitoring** - Scans inbox every 1-2 hours (configurable)
-- ✅ **Smart PDF Extraction** - Extracts location and bidding description from PDFs
+- ✅ **AI-Powered PDF Extraction** - Uses OpenAI to extract all relevant bidding data
 - ✅ **Google Sheets Integration** - Automatically appends new rows with extracted data
+- ✅ **Google Drive Upload** - Stores PDFs in organized Drive folder
 - ✅ **Duplicate Prevention** - Tracks processed emails using Supabase
-- ✅ **Production Ready** - Comprehensive error handling and logging
-- ✅ **Configurable Schedule** - Set custom intervals via environment variables
 - ✅ **OAuth2 Secure Authentication** - Uses Google's official OAuth2 flow
+
+### Dashboard & Approval Workflow
+- ✨ **Beautiful Card-Based UI** - Each licitación displayed as a comprehensive card
+- ✨ **Approval Workflow** - Approve/reject opportunities with optional notes
+- ✨ **Real-Time Statistics** - Track pending, approved, and rejected counts
+- ✨ **Advanced Filtering** - Filter by status, category, and priority
+- ✨ **Site Visit Filters** - Select multiple visit locations for calendar insights
+- ✨ **Visit List** - Dedicated list of site visits with quick PDF access
+- ✨ **Supabase Storage Backup** - PDFs stored in Supabase Storage for easy download
+- ✨ **Mobile Responsive** - Works perfectly on desktop, tablet, and mobile
+- ✨ **RESTful API** - Full API for integration with other systems
+
+### Production Ready
+- ✅ **Comprehensive Error Handling** - Graceful error recovery
+- ✅ **Detailed Logging** - Winston logger with multiple log levels
+- ✅ **Configurable Schedule** - Set custom intervals via environment variables
+- ✅ **Database Tracking** - Full audit trail in Supabase
 
 ## 📋 Prerequisites
 
@@ -65,25 +82,14 @@ CREATE TABLE processed_emails (
   pdf_filename TEXT
 );
 
-CREATE INDEX idx_email_id ON processed_emails(email_id);
-```
-
-3. Get your Supabase credentials:
-   - Project URL
-   - Anon/Public Key (from Settings > API)
-
-### 4. Create Google Sheet
-
-1. Create a new Google Sheet
-2. Copy the Sheet ID from the URL:
+3. Create a Storage bucket (Settings > Storage):
+   - Name: `licitaciones-pdfs` (or match `SUPABASE_PDF_BUCKET`)
+   - Enable public access or configure a storage policy that allows uploads via your chosen key
+4. Create a new Google Sheet
+5. Copy the Sheet ID from the URL:
    - `https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit`
-3. Make sure the Google account you'll authenticate with has **Editor** access
+6. Make sure the Google account you'll authenticate with has **Editor** access
 
-### 5. Configure Environment Variables
-
-Create a `.env` file in the project root:
-
-```bash
 cp .env.example .env
 ```
 
@@ -102,6 +108,7 @@ SHEET_NAME=Licitaciones
 # Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_anon_key
+SUPABASE_PDF_BUCKET=licitaciones-pdfs
 
 # Scheduler Configuration (in minutes)
 SCHEDULE_INTERVAL_MINUTES=60
@@ -126,6 +133,19 @@ This will:
 
 ## 🎯 Usage
 
+### Quick Start (3 Commands)
+
+```bash
+# 1. Start the email processing agent
+npm start
+
+# 2. Start the dashboard (in a new terminal)
+npm run dashboard
+
+# 3. Migrate existing data to dashboard (optional, one-time)
+npm run migrate
+```
+
 ### Start the Agent (Scheduled Mode)
 
 Run the agent with automatic scheduling:
@@ -137,8 +157,47 @@ npm start
 The agent will:
 - Run immediately on startup
 - Process all new Licitación emails
+- Extract data using AI (OpenAI)
+- Upload PDFs to Google Drive
+- Update Google Sheets
+- Save to dashboard database
 - Run automatically every N minutes (configured in `SCHEDULE_INTERVAL_MINUTES`)
 - Continue running until stopped with `Ctrl+C`
+
+### Start the Dashboard
+
+Run the approval dashboard:
+
+```bash
+npm run dashboard
+```
+
+Then open in your browser:
+```
+http://localhost:4000
+```
+
+The dashboard provides:
+- 🎴 Card-based view of all licitaciones
+- ✅ Approve/reject workflow
+- 📊 Real-time statistics
+- 🔍 Filtering by status, category, priority, and visit location (multi-select)
+- 📋 Visit list showing only opportunities with scheduled site visits (with PDF links)
+- 📱 Mobile-responsive design
+
+### Migrate Existing Data
+
+Import all existing licitaciones from Google Sheets into the dashboard:
+
+```bash
+npm run migrate
+```
+
+This will:
+- Read all data from your Google Sheet
+- Import into the dashboard database
+- Make all existing opportunities available for approval
+- Show progress and statistics
 
 ### Development Mode (Auto-Restart)
 
@@ -258,24 +317,39 @@ Console output shows real-time colored logs with timestamps.
 /GMAIL Agent
 ├── src/
 │   ├── config/
-│   │   └── credentials.js          # Environment configuration
+│   │   └── credentials.js                # Environment configuration
 │   ├── services/
-│   │   ├── gmail.service.js        # Gmail API integration
-│   │   ├── pdf.service.js          # PDF parsing & extraction
-│   │   ├── sheets.service.js       # Google Sheets API
-│   │   ├── supabase.service.js     # Database tracking
-│   │   └── scheduler.service.js    # Cron job scheduler
+│   │   ├── gmail.service.js              # Gmail API integration
+│   │   ├── pdf.service.js                # PDF parsing & AI extraction
+│   │   ├── sheets.service.js             # Google Sheets API
+│   │   ├── supabase.service.js           # Database tracking
+│   │   ├── licitaciones.service.js       # Dashboard database operations
+│   │   ├── drive.service.js              # Google Drive integration
+│   │   └── scheduler.service.js          # Cron job scheduler
+│   ├── dashboard/
+│   │   ├── server.js                     # Express API server
+│   │   └── public/
+│   │       ├── index.html                # Dashboard UI
+│   │       ├── styles.css                # Modern styling
+│   │       └── app.js                    # Frontend JavaScript
 │   ├── setup/
-│   │   └── auth.js                 # OAuth2 setup script
+│   │   └── auth.js                       # OAuth2 setup script
 │   ├── utils/
-│   │   └── logger.js               # Winston logger
-│   └── index.js                    # Main entry point
-├── logs/                           # Log files
-├── .env                            # Environment variables (DO NOT COMMIT)
-├── .env.example                    # Template for .env
-├── .gitignore                      # Git ignore rules
-├── package.json                    # Dependencies
-└── README.md                       # This file
+│   │   ├── logger.js                     # Winston logger
+│   │   └── migrate-sheets-to-dashboard.js # Migration script
+│   └── index.js                          # Main entry point
+├── logs/                                 # Log files
+├── .env                                  # Environment variables (DO NOT COMMIT)
+├── env.template                          # Template for .env
+├── .gitignore                            # Git ignore rules
+├── package.json                          # Dependencies
+├── README.md                             # This file (overview)
+├── SETUP_GUIDE.md                        # Detailed setup instructions
+├── DASHBOARD_README.md                   # Dashboard documentation
+├── MIGRATION_GUIDE.md                    # Data migration guide
+├── QUICK_START.md                        # Quick reference
+├── supabase-migration.sql                # Database schema
+└── quick-setup-with-sample.sql           # DB setup with sample data
 ```
 
 ## 🚀 Production Deployment
@@ -328,6 +402,29 @@ Deploy as a scheduled cloud function on:
 - **AWS Lambda** with EventBridge
 - **Azure Functions**
 
+### Option 4: Vercel (Dashboard Only - FREE)
+
+Deploy the **dashboard** to Vercel for free hosting:
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Login to Vercel
+vercel login
+
+# Add environment variables
+vercel env add SUPABASE_URL
+vercel env add SUPABASE_KEY
+
+# Deploy to production
+npm run vercel:prod
+```
+
+**📖 Full Guide**: See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for complete instructions.
+
+**Note**: The Gmail processing agent still needs to run on a server/local machine since it requires continuous execution. Vercel is perfect for hosting the dashboard interface.
+
 ## 📈 Monitoring & Maintenance
 
 ### Check Status
@@ -364,16 +461,25 @@ For issues or questions:
 
 ISC
 
+## 📚 Documentation
+
+- **[QUICK_START.md](QUICK_START.md)** - Get started in 5 minutes
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Detailed setup instructions
+- **[DASHBOARD_README.md](DASHBOARD_README.md)** - Dashboard features and API
+- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Import existing data
+
 ## 🎉 Credits
 
 Built with:
 - [googleapis](https://github.com/googleapis/google-api-nodejs-client) - Google APIs
+- [OpenAI](https://openai.com/) - AI-powered data extraction
 - [pdf-parse](https://www.npmjs.com/package/pdf-parse) - PDF extraction
+- [Express.js](https://expressjs.com/) - Dashboard API server
 - [node-cron](https://github.com/node-cron/node-cron) - Task scheduling
 - [Supabase](https://supabase.com/) - Database
 - [Winston](https://github.com/winstonjs/winston) - Logging
 
 ---
 
-**Made with ❤️ for automated licitación processing**
+**Made with ❤️ for automated licitación processing and approval workflows**
 

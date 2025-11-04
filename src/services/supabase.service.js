@@ -1,11 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config/credentials.js';
 import logger from '../utils/logger.js';
+import path from 'path';
+import crypto from 'crypto';
 
 class SupabaseService {
   constructor() {
     this.supabase = createClient(config.supabase.url, config.supabase.key);
     this.tableName = 'processed_emails';
+    this.pdfBucket = config.supabase.pdfBucket;
   }
 
   /**
@@ -99,6 +102,75 @@ class SupabaseService {
     }
   }
 
+  async uploadPdfToStorage(pdfBuffer, filename, emailId = '') {
+    if (!this.pdfBucket) {
+      logger.warn('Supabase PDF bucket not configured. Skipping PDF upload.');
+      return null;
+    }
+
+    try {
+      const objectPath = this._buildStoragePath(filename, emailId);
+
+      const { error: uploadError } = await this.supabase
+        .storage
+        .from(this.pdfBucket)
+        .upload(objectPath, pdfBuffer, {
+          contentType: 'application/pdf',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        logger.error(`Error uploading PDF to Supabase storage (${objectPath}):`, uploadError);
+        return null;
+      }
+
+      const { data: publicData, error: publicError } = this.supabase
+        .storage
+        .from(this.pdfBucket)
+        .getPublicUrl(objectPath);
+
+      if (publicError) {
+        logger.error(`Error retrieving public URL for Supabase PDF (${objectPath}):`, publicError);
+        return { path: objectPath, publicUrl: null };
+      }
+
+      const publicUrl = publicData?.publicUrl || null;
+      logger.info(`Uploaded PDF to Supabase storage: ${objectPath}`);
+
+      return { path: objectPath, publicUrl };
+    } catch (error) {
+      logger.error('Unexpected error uploading PDF to Supabase storage:', error);
+      return null;
+    }
+  }
+
+  _buildStoragePath(filename = 'licitacion.pdf', emailId = '') {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const extension = this._ensurePdfExtension(filename);
+    const baseName = this._slugify(path.basename(filename, path.extname(filename)) || 'licitacion');
+    const emailToken = this._slugify(emailId) || crypto.randomUUID();
+    const timestamp = now.toISOString().replace(/[:.]/g, '-');
+
+    return `${year}/${month}/${emailToken}-${timestamp}-${baseName}${extension}`;
+  }
+
+  _ensurePdfExtension(filename) {
+    const ext = (path.extname(filename) || '').toLowerCase();
+    return ext === '.pdf' ? ext : '.pdf';
+  }
+
+  _slugify(value = '') {
+    return value
+      .toString()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase();
+  }
+
   /**
    * Get all processed email IDs
    * @returns {Promise<Array<string>>} Array of processed email IDs
@@ -171,4 +243,6 @@ class SupabaseService {
 }
 
 export default SupabaseService;
+
+
 

@@ -7,7 +7,14 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "setup": "node src/setup/auth.js"
+    "setup": "node src/setup/auth.js",
+    "dashboard": "node src/dashboard/server.js",
+    "migrate": "node src/utils/migrate-sheets-to-dashboard.js",
+    "cleanup:minuta": "node src/utils/remove-minuta-asistencia.js",
+    "test:visit-locations": "node tests/visit-location-filter.test.js",
+    "vercel:dev": "vercel dev",
+    "vercel:deploy": "vercel",
+    "vercel:prod": "vercel --prod"
   },
   "keywords": [
     "gmail",
@@ -20,11 +27,13 @@
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
-    "googleapis": "^128.0.0",
-    "pdf-parse": "^1.1.1",
-    "node-cron": "^3.0.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^5.1.0",
+    "googleapis": "^128.0.0",
+    "node-cron": "^3.0.3",
+    "openai": "^6.7.0",
+    "pdf-parse": "^1.1.1",
     "winston": "^3.11.0"
   }
 }
-

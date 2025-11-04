@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Licitaciones Dashboard - Simple</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .action-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .action-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .action-description {
+            color: #718096;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        }
+
+        .info-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-list li:last-child {
+            border-bottom: none;
+        }
+
+        .status-open {
+            color: #38a169;
+            font-weight: 600;
+        }
+
+        .status-closed {
+            color: #e53e3e;
+            font-weight: 600;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .stats-grid,
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📋 Licitaciones Dashboard</h1>
+            <p>Sistema de gestión de licitaciones procesadas automáticamente</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalProcessed">29</div>
+                <div class="stat-label">Procesadas Recientemente</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="openBiddings">12</div>
+                <div class="stat-label">Licitaciones Abiertas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="urgentToday">3</div>
+                <div class="stat-label">Cierran Hoy (10/31)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalEmails">575</div>
+                <div class="stat-label">Emails Analizados</div>
+            </div>
+        </div>
+
+        <!-- Actions Grid -->
+        <div class="actions-grid">
+            <div class="action-card">
+                <div class="action-title">
+                    📊 Ver Google Sheets
+                </div>
+                <div class="action-description">
+                    Accede a todas las licitaciones procesadas con información completa, fechas de cierre y enlaces a PDFs.
+                </div>
+                <a href="https://docs.google.com/spreadsheets/d/1xAoD8Iha3PUYZUBJgEb6N6mnJDjW-tfS7VHXugwJrlQ/edit" target="_blank" class="btn btn-success">
+                    📈 Abrir Google Sheets
+                </a>
+            </div>
+
+            <div class="action-card">
+                <div class="action-title">
+                    🔄 Procesar Más Emails
+                </div>
+                <div class="action-description">
+                    Ejecuta el agente para buscar nuevos emails de licitaciones no procesados.
+                </div>
+                <button onclick="runEmailProcessor()" class="btn btn-info">
+                    ⚡ Ejecutar Agente
+                </button>
+            </div>
+
+            <div class="action-card">
+                <div class="action-title">
+                    🎯 Licitaciones Urgentes
+                </div>
+                <div class="action-description">
+                    Filtra y muestra solo las licitaciones que cierran en los próximos días.
+                </div>
+                <button onclick="showUrgent()" class="btn btn-warning">
+                    ⏰ Ver Urgentes
+                </button>
+            </div>
+        </div>
+
+        <!-- Information Section -->
+        <div class="info-section">
+            <div class="info-title">
+                📋 Últimas Licitaciones Procesadas
+            </div>
+            
+            <div class="highlight">
+                <strong>🎉 Procesamiento Completado:</strong> Se encontraron y procesaron 29 licitaciones con fechas de cierre abiertas de un total de 575 emails analizados.
+            </div>
+
+            <ul class="info-list">
+                <li>
+                    <span>📄</span>
+                    <strong>Licitación 0530016703 - Suministros</strong>
+                    <span class="status-open">• Cierra: 11/01/2025</span>
+                </li>
+                <li>
+                    <span>📄</span>
+                    <strong>Licitación 0730018503 - Aguadilla</strong>
+                    <span class="status-open">• Cierra: 11/02/2025</span>
+                </li>
+                <li>
+                    <span>📄</span>
+                    <strong>Licitación 0530016709 - Trujillo Alto</strong>
+                    <span class="status-open">• Cierra: 11/01/2025</span>
+                </li>
+                <li>
+                    <span>📄</span>
+                    <strong>Licitación 0730018492 - Aguadilla</strong>
+                    <span class="status-closed">• Cierra: 10/31/2025 (HOY)</span>
+                </li>
+                <li>
+                    <span>📄</span>
+                    <strong>Licitación 0730018491 - Aguadilla</strong>
+                    <span class="status-closed">• Cierra: 10/31/2025 (HOY)</span>
+                </li>
+            </ul>
+
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <p><strong>📱 Acceso Rápido:</strong></p>
+                <p>• <a href="https://docs.google.com/spreadsheets/d/1xAoD8Iha3PUYZUBJgEb6N6mnJDjW-tfS7VHXugwJrlQ/edit" target="_blank" style="color: #667eea;">Google Sheets con todas las licitaciones</a></p>
+                <p>• <a href="https://drive.google.com/drive/folders/1vtIDv9MFXaovSJiTw-xYQct51A4Jw045" target="_blank" style="color: #667eea;">Google Drive con PDFs</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function runEmailProcessor() {
+            alert('🚀 Para ejecutar el agente, usar el terminal:\n\ncd "/Users/ericperez/GMAIL Agent"\nnode src/utils/process-unverified-emails-simple.js');
+        }
+
+        function showUrgent() {
+            alert('📊 Licitaciones que cierran pronto:\n\n🔴 HOY (10/31/2025):\n• BID0730018492.PDF - Aguadilla\n• BID0730018491.PDF - Aguadilla\n• BID0730018488.PDF - Aguadilla\n\n🟡 MAÑANA (11/01/2025):\n• BID0530016709.PDF - Trujillo Alto\n• BID0530016708.PDF - Trujillo Alto\n• BID0530016706.PDF - Trujillo Alto\n\n🟢 PRÓXIMOS DÍAS:\n• BID0730018503.PDF - 11/02/2025\n• BID0730018502.PDF - 11/02/2025');
+        }
+
+        // Update stats periodically
+        function updateStats() {
+            // These would normally come from an API
+            const stats = {
+                totalProcessed: 29,
+                openBiddings: 12,
+                urgentToday: 3,
+                totalEmails: 575
+            };
+
+            Object.keys(stats).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.textContent = stats[key];
+                }
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStats();
+            
+            // Add some interactivity
+            const cards = document.querySelectorAll('.stat-card, .action-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-5px)';
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

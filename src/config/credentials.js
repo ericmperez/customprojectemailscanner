@@ -16,6 +16,10 @@ export const config = {
   supabase: {
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_KEY,
+    pdfBucket: process.env.SUPABASE_PDF_BUCKET || 'licitaciones-pdfs',
+  },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY,
   },
   scheduler: {
     intervalMinutes: parseInt(process.env.SCHEDULE_INTERVAL_MINUTES || '60', 10),

@@ -4,6 +4,7 @@ import GmailService from './services/gmail.service.js';
 import PDFService from './services/pdf.service.js';
 import SheetsService from './services/sheets.service.js';
 import SupabaseService from './services/supabase.service.js';
+import LicitacionesService from './services/licitaciones.service.js';
 import DriveService from './services/drive.service.js';
 import SchedulerService from './services/scheduler.service.js';
 import fs from 'fs';
@@ -15,6 +16,7 @@ class LicitacionAgent {
     this.pdfService = new PDFService();
     this.sheetsService = new SheetsService();
     this.supabaseService = new SupabaseService();
+    this.licitacionesService = new LicitacionesService();
     this.driveService = new DriveService();
     this.scheduler = null;
   }
@@ -34,7 +36,7 @@ class LicitacionAgent {
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Set to start of day for comparison
 
-      // Try to parse MM/DD/YYYY format (e.g., "11/29/2025")
+      // Dates are now standardized to MM/DD/YYYY format
       const usDateMatch = closeDateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
       if (usDateMatch) {
         const month = parseInt(usDateMatch[1]) - 1; // JavaScript months are 0-indexed
@@ -46,39 +48,6 @@ class LicitacionAgent {
         
         // Return true if close date is today or in the future
         return closeDate >= today;
-      }
-
-      // Parse Spanish month names
-      const spanishMonths = {
-        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
-        'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
-        'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-      };
-
-      // Try to parse date in format "3 de noviembre" or "3 de noviembre de 2025"
-      const spanishDateMatch = closeDateStr.match(/(\d{1,2})\s+de\s+(\w+)(?:\s+de\s+(\d{4}))?/i);
-      
-      if (spanishDateMatch) {
-        const day = parseInt(spanishDateMatch[1]);
-        const monthName = spanishDateMatch[2].toLowerCase();
-        const year = spanishDateMatch[3] ? parseInt(spanishDateMatch[3]) : today.getFullYear();
-        
-        const monthNum = spanishMonths[monthName];
-        
-        if (monthNum !== undefined) {
-          const closeDate = new Date(year, monthNum, day);
-          closeDate.setHours(23, 59, 59, 999); // Set to end of day
-          
-          // Return true if close date is today or in the future
-          return closeDate >= today;
-        }
-      }
-
-      // Try standard date parsing as fallback
-      const parsedDate = new Date(closeDateStr);
-      if (!isNaN(parsedDate.getTime())) {
-        parsedDate.setHours(23, 59, 59, 999);
-        return parsedDate >= today;
       }
 
       // If we can't parse the date, include it to be safe
@@ -110,7 +79,7 @@ class LicitacionAgent {
 
       // Initialize services
       await this.supabaseService.ensureTableExists();
-      await this.sheetsService.initializeSheet();
+      await this.licitacionesService.ensureTableExists();
       await this.driveService.ensureLicitacionesFolder();
 
       logger.info('Licitación Agent initialized successfully');
@@ -169,11 +138,21 @@ class LicitacionAgent {
               // Upload PDF to Google Drive
               const pdfBuffer = Buffer.from(attachment.data, 'base64');
               const driveLink = await this.driveService.uploadPDF(pdfBuffer, attachment.filename);
+
+              // Upload PDF to Supabase Storage
+              const supabaseUpload = await this.supabaseService.uploadPdfToStorage(
+                pdfBuffer,
+                attachment.filename,
+                emailDetails.id
+              );
+              const supabaseLink = supabaseUpload?.publicUrl;
               
               // Create hyperlink formula for Google Sheets
-              const pdfLinkFormula = driveLink 
-                ? this.driveService.createHyperlinkFormula(driveLink, '📄 Ver PDF')
+              const pdfHref = supabaseLink || driveLink;
+              const pdfLinkFormula = pdfHref 
+                ? this.driveService.createHyperlinkFormula(pdfHref, '📄 Ver PDF')
                 : 'N/A';
+              const resolvedPdfLink = pdfHref || ''; // fallback only if undefined
 
               // Prepare data for Google Sheets
               const sheetData = {
@@ -183,15 +162,30 @@ class LicitacionAgent {
                 location: pdfData.location,
                 description: pdfData.description,
                 summary: pdfData.summary,
+                category: pdfData.category || 'No clasificado',
+                priority: pdfData.priority || 'Medium',
                 pdfFilename: pdfData.filename,
                 pdfLink: pdfLinkFormula,
                 siteVisitDate: pdfData.siteVisitDate,
                 siteVisitTime: pdfData.siteVisitTime,
+                visitLocation: pdfData.visitLocation,
                 contactName: pdfData.contactName,
                 contactPhone: pdfData.contactPhone,
                 biddingCloseDate: pdfData.biddingCloseDate,
                 biddingCloseTime: pdfData.biddingCloseTime,
+                extractionMethod: pdfData.extractionMethod || 'Regex',
               };
+
+              // Filter out minuta or asistencia entries based on PDF filename
+              const pdfFilenameLower = (pdfData.filename || '').toLowerCase();
+              const isMinutaOrAsistencia = pdfFilenameLower.includes('minuta') || 
+                                           pdfFilenameLower.includes('asistencia');
+
+              if (isMinutaOrAsistencia) {
+                logger.info(`⏭️  Skipped (minuta/asistencia in filename): ${pdfData.filename}`);
+                skippedBiddingClosed++; // Reuse this counter for consistency
+                continue;
+              }
 
               // Check if bidding is still open (close date hasn't passed)
               const isOpen = this.isBiddingOpen(pdfData.biddingCloseDate);
@@ -205,6 +199,12 @@ class LicitacionAgent {
                 logger.info(`⏭️  Skipped from sheet (bidding closed on: ${pdfData.biddingCloseDate})`);
                 skippedBiddingClosed++;
               }
+
+              // Save to licitaciones table for dashboard
+              await this.licitacionesService.saveLicitacion({
+                ...sheetData,
+                pdfUrl: resolvedPdfLink,
+              });
 
               // Mark as processed in Supabase (regardless of open/closed status)
               await this.supabaseService.markEmailAsProcessed({

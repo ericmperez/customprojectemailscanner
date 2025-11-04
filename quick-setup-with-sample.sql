@@ -1,0 +1,84 @@
+-- Quick Setup: Create table + Add 1 sample licitación
+-- Copy and paste this entire file into Supabase SQL Editor and click RUN
+
+-- 1. Create the licitaciones table
+CREATE TABLE IF NOT EXISTS licitaciones (
+  id SERIAL PRIMARY KEY,
+  email_id VARCHAR(255) UNIQUE NOT NULL,
+  email_date TIMESTAMP,
+  subject TEXT,
+  location TEXT,
+  description TEXT,
+  summary TEXT,
+  category VARCHAR(100),
+  priority VARCHAR(50),
+  pdf_filename TEXT,
+  pdf_link TEXT,
+  site_visit_date VARCHAR(100),
+  site_visit_time VARCHAR(100),
+  visit_location TEXT,
+  contact_name VARCHAR(255),
+  contact_phone VARCHAR(50),
+  bidding_close_date VARCHAR(100),
+  bidding_close_time VARCHAR(100),
+  extraction_method VARCHAR(50),
+  approval_status VARCHAR(50) DEFAULT 'pending',
+  approval_notes TEXT,
+  approved_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 2. Create indexes
+CREATE INDEX IF NOT EXISTS idx_licitaciones_email_id ON licitaciones(email_id);
+CREATE INDEX IF NOT EXISTS idx_licitaciones_approval_status ON licitaciones(approval_status);
+CREATE INDEX IF NOT EXISTS idx_licitaciones_bidding_close_date ON licitaciones(bidding_close_date);
+CREATE INDEX IF NOT EXISTS idx_licitaciones_created_at ON licitaciones(created_at DESC);
+
+-- 3. Insert 1 sample licitación for demo
+INSERT INTO licitaciones (
+  email_id,
+  email_date,
+  subject,
+  location,
+  description,
+  summary,
+  category,
+  priority,
+  pdf_filename,
+  pdf_link,
+  site_visit_date,
+  site_visit_time,
+  visit_location,
+  contact_name,
+  contact_phone,
+  bidding_close_date,
+  bidding_close_time,
+  extraction_method,
+  approval_status
+) VALUES (
+  'sample_demo_12345',
+  '2025-10-31 10:30:00',
+  'Licitación 0430012500 - EJEMPLO DEMO',
+  'San Juan, Puerto Rico',
+  'Suministro e instalación de sistema de tuberías de agua potable para residencial en Río Piedras. Incluye materiales, mano de obra, y pruebas de calidad. Proyecto contempla aproximadamente 500 metros lineales de tubería PVC de 6 pulgadas.',
+  'Sistema de tuberías de agua potable - Residencial Río Piedras (500m)',
+  'Construcción',
+  'High',
+  'BID0430012500.PDF',
+  'HYPERLINK("https://drive.google.com/file/d/1YsUN1fGuiuxr9WqD_MFk_qdFvmkGwSeK/view","📄 Ver PDF")',
+  '11/05/2025',
+  '10:00 AM',
+  'Oficina de Proyectos AAA - Ave. Roosevelt, San Juan',
+  'Ing. María Rodriguez',
+  '(787) 555-1234',
+  '11/15/2025',
+  '2:00 PM',
+  'AI',
+  'pending'
+) ON CONFLICT (email_id) DO NOTHING;
+
+-- Done! Your dashboard is ready.
+
+
+

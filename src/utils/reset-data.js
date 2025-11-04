@@ -40,7 +40,7 @@ async function resetData() {
     // Get the sheet to see how many rows exist
     const getResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: config.sheets.sheetId,
-      range: `${sheetName}!A:N`,
+      range: `${sheetName}!A:R`,
     });
 
     const numRows = getResponse.data.values ? getResponse.data.values.length : 1;
@@ -49,7 +49,7 @@ async function resetData() {
       // Clear all rows except the header (row 1)
       await sheets.spreadsheets.values.clear({
         spreadsheetId: config.sheets.sheetId,
-        range: `${sheetName}!A2:N${numRows}`,
+        range: `${sheetName}!A2:R${numRows}`,
       });
       console.log(`✅ Cleared ${numRows - 1} data rows from Google Sheet\n`);
     } else {
