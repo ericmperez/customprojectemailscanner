@@ -114,6 +114,18 @@
             <button class="btn btn-primary" onclick="loadLicitaciones()">🔄 Refrescar</button>
         </div>
 
+        <!-- Bulk Actions Bar -->
+        <div id="bulkActionsBar" class="bulk-actions-bar" style="display: none;">
+            <div class="bulk-info">
+                <span id="bulkSelectedCount">0</span> seleccionada(s)
+            </div>
+            <div class="bulk-buttons">
+                <button class="btn btn-success btn-sm" onclick="bulkApprove()">✓ Aprobar seleccionadas</button>
+                <button class="btn btn-danger btn-sm" onclick="bulkReject()">✗ Rechazar seleccionadas</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearSelection()">Limpiar selección</button>
+            </div>
+        </div>
+
         <div id="cardsContainer">
             <!-- Loading State -->
             <div id="loadingState" class="loading-state" style="display: none;">

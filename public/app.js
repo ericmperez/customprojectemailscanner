@@ -11,6 +11,9 @@ let calendarDataLoaded = false;
 let currentDetailId = null;
 const detailCache = new Map();
 
+// Bulk selection
+const selectedCards = new Set();
+
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 // Load licitaciones on page load
@@ -844,6 +847,9 @@ async function loadLicitaciones() {
     const emptyState = document.getElementById('emptyState');
     const cardsGrid = document.getElementById('cardsGrid');
 
+    // Clear selection when loading new data
+    clearSelection();
+
     // Show loading
     loadingState.style.display = 'block';
     emptyState.style.display = 'none';
@@ -934,6 +940,7 @@ function createCard(lic) {
     const typeBadgeClass = isVisit ? 'visit-type-badge' : 'purchase-type-badge';
     
     card.className = `card status-${approvalStatus} ${isVisit ? 'has-visit' : ''}`;
+    card.dataset.rowNumber = lic.rowNumber;
 
     // Format dates
     const emailDate = lic.emailDate ? new Date(lic.emailDate).toLocaleDateString('es-PR') : 'N/A';
@@ -945,6 +952,7 @@ function createCard(lic) {
     const siteVisitTimeLine = siteVisitTimeDisplay || (siteVisitDateDisplay !== 'No disponible' ? 'Sin hora' : '');
 
     card.innerHTML = `
+        <input type="checkbox" class="card-checkbox" data-row="${lic.rowNumber}" onclick="toggleCardSelection(event, ${lic.rowNumber})">
         <div class="card-header">
             <div class="card-title">${escapeHtml(lic.subject || 'Sin título')}</div>
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -1223,6 +1231,110 @@ function clearFilters() {
     document.getElementById('sortSelect').value = '';
     
     handleFilterChange();
+}
+
+/**
+ * Toggle card selection
+ */
+function toggleCardSelection(event, rowNumber) {
+    event.stopPropagation();
+    const checkbox = event.target;
+    const card = checkbox.closest('.card');
+    
+    if (checkbox.checked) {
+        selectedCards.add(rowNumber);
+        card.classList.add('selected');
+    } else {
+        selectedCards.delete(rowNumber);
+        card.classList.remove('selected');
+    }
+    
+    updateBulkActionsBar();
+}
+
+/**
+ * Update bulk actions bar visibility and count
+ */
+function updateBulkActionsBar() {
+    const bulkBar = document.getElementById('bulkActionsBar');
+    const countSpan = document.getElementById('bulkSelectedCount');
+    
+    if (selectedCards.size > 0) {
+        bulkBar.style.display = 'flex';
+        countSpan.textContent = selectedCards.size;
+    } else {
+        bulkBar.style.display = 'none';
+    }
+}
+
+/**
+ * Clear all selections
+ */
+function clearSelection() {
+    selectedCards.clear();
+    document.querySelectorAll('.card-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    document.querySelectorAll('.card.selected').forEach(card => {
+        card.classList.remove('selected');
+    });
+    updateBulkActionsBar();
+}
+
+/**
+ * Bulk approve selected licitaciones
+ */
+async function bulkApprove() {
+    if (selectedCards.size === 0) return;
+    
+    if (!confirm(`¿Aprobar ${selectedCards.size} licitación(es)?`)) return;
+    
+    const promises = Array.from(selectedCards).map(rowNumber => 
+        fetch(`${API_BASE}/api/licitaciones/${rowNumber}/approve`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: '[Aprobado en lote]' })
+        })
+    );
+    
+    try {
+        await Promise.all(promises);
+        showNotification(`✓ ${selectedCards.size} licitación(es) aprobada(s)`, 'success');
+        clearSelection();
+        loadLicitaciones();
+        loadStats();
+    } catch (error) {
+        console.error('Error bulk approving:', error);
+        showNotification('Error al aprobar licitaciones', 'error');
+    }
+}
+
+/**
+ * Bulk reject selected licitaciones
+ */
+async function bulkReject() {
+    if (selectedCards.size === 0) return;
+    
+    if (!confirm(`¿Rechazar ${selectedCards.size} licitación(es)?`)) return;
+    
+    const promises = Array.from(selectedCards).map(rowNumber => 
+        fetch(`${API_BASE}/api/licitaciones/${rowNumber}/reject`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: '[Rechazado en lote]' })
+        })
+    );
+    
+    try {
+        await Promise.all(promises);
+        showNotification(`✓ ${selectedCards.size} licitación(es) rechazada(s)`, 'success');
+        clearSelection();
+        loadLicitaciones();
+        loadStats();
+    } catch (error) {
+        console.error('Error bulk rejecting:', error);
+        showNotification('Error al rechazar licitaciones', 'error');
+    }
 }
 
 /**
