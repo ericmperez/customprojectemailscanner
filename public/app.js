@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStats();
     loadLicitaciones();
 
-    ['statusFilter', 'categoryFilter', 'typeFilter', 'dateRangeFilter'].forEach(id => {
+    ['statusFilter', 'categoryFilter', 'typeFilter', 'dateRangeFilter', 'sortSelect'].forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('change', handleFilterChange);
@@ -767,6 +767,72 @@ function updateStatItemsActiveState() {
 }
 
 /**
+ * Sort licitaciones based on selected criteria
+ */
+function sortLicitaciones(licitaciones, sortBy) {
+    const sorted = [...licitaciones];
+    
+    switch (sortBy) {
+        case 'visit-date-asc': {
+            // Sort by visit date (earliest first), put items without dates at end
+            return sorted.sort((a, b) => {
+                const dateA = a.siteVisitDate && a.siteVisitDate !== 'No disponible' ? new Date(a.siteVisitDate) : new Date('9999-12-31');
+                const dateB = b.siteVisitDate && b.siteVisitDate !== 'No disponible' ? new Date(b.siteVisitDate) : new Date('9999-12-31');
+                return dateA - dateB;
+            });
+        }
+        
+        case 'close-date-asc': {
+            // Sort by close date (earliest first), put items without dates at end
+            return sorted.sort((a, b) => {
+                const dateA = a.biddingCloseDate && a.biddingCloseDate !== 'No disponible' ? new Date(a.biddingCloseDate) : new Date('9999-12-31');
+                const dateB = b.biddingCloseDate && b.biddingCloseDate !== 'No disponible' ? new Date(b.biddingCloseDate) : new Date('9999-12-31');
+                return dateA - dateB;
+            });
+        }
+        
+        case 'email-date-desc': {
+            // Sort by email date (newest first)
+            return sorted.sort((a, b) => {
+                const dateA = a.emailDate ? new Date(a.emailDate) : new Date(0);
+                const dateB = b.emailDate ? new Date(b.emailDate) : new Date(0);
+                return dateB - dateA;
+            });
+        }
+        
+        case 'email-date-asc': {
+            // Sort by email date (oldest first)
+            return sorted.sort((a, b) => {
+                const dateA = a.emailDate ? new Date(a.emailDate) : new Date(0);
+                const dateB = b.emailDate ? new Date(b.emailDate) : new Date(0);
+                return dateA - dateB;
+            });
+        }
+        
+        case 'title-asc': {
+            // Sort alphabetically A-Z
+            return sorted.sort((a, b) => {
+                const titleA = (a.subject || '').toLowerCase();
+                const titleB = (b.subject || '').toLowerCase();
+                return titleA.localeCompare(titleB, 'es');
+            });
+        }
+        
+        case 'title-desc': {
+            // Sort alphabetically Z-A
+            return sorted.sort((a, b) => {
+                const titleA = (a.subject || '').toLowerCase();
+                const titleB = (b.subject || '').toLowerCase();
+                return titleB.localeCompare(titleA, 'es');
+            });
+        }
+        
+        default:
+            return sorted;
+    }
+}
+
+/**
  * Load licitaciones with current filters
  */
 async function loadLicitaciones() {
@@ -810,6 +876,12 @@ async function loadLicitaciones() {
                     
                     return searchableText.includes(searchTerm);
                 });
+            }
+
+            // Apply sorting
+            const sortBy = document.getElementById('sortSelect')?.value;
+            if (sortBy) {
+                licitaciones = sortLicitaciones(licitaciones, sortBy);
             }
 
             if (licitaciones.length > 0) {
@@ -1117,6 +1189,7 @@ function clearFilters() {
     document.getElementById('typeFilter').value = '';
     document.getElementById('dateRangeFilter').value = '';
     document.getElementById('searchInput').value = '';
+    document.getElementById('sortSelect').value = '';
     
     handleFilterChange();
 }

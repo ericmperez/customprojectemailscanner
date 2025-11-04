@@ -45,6 +45,19 @@
             </div>
 
             <div class="filter-group">
+                <label for="sortSelect">🔀 Ordenar:</label>
+                <select id="sortSelect">
+                    <option value="">Sin ordenar</option>
+                    <option value="visit-date-asc">📅 Visita más cercana</option>
+                    <option value="close-date-asc">⏰ Cierre más cercano</option>
+                    <option value="email-date-desc">📧 Más reciente</option>
+                    <option value="email-date-asc">📧 Más antigua</option>
+                    <option value="title-asc">🔤 A-Z (Título)</option>
+                    <option value="title-desc">🔤 Z-A (Título)</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
                 <label for="statusFilter">Estado:</label>
                 <select id="statusFilter">
                     <option value="">Todos</option>
