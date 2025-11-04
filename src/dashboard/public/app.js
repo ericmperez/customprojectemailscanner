@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Setup keyboard shortcuts
+    setupKeyboardShortcuts();
+
     // Search input with debounce
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
@@ -1437,6 +1440,116 @@ function exportSelected() {
     
     downloadCSV(csv, filename);
     showNotification(`✓ ${selectedLicitaciones.length} licitación(es) exportadas`, 'success');
+}
+
+/**
+ * Setup keyboard shortcuts
+ */
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Ignore shortcuts when typing in input fields
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+            // Allow Escape to blur input fields
+            if (e.key === 'Escape') {
+                e.target.blur();
+            }
+            return;
+        }
+        
+        // Ignore if modal is open
+        const detailModal = document.getElementById('detailModal');
+        const notesModal = document.getElementById('notesModal');
+        if ((detailModal && detailModal.style.display !== 'none') || 
+            (notesModal && notesModal.style.display !== 'none')) {
+            // Allow Escape to close modals
+            if (e.key === 'Escape') {
+                closeDetailModal();
+                closeNotesModal();
+            }
+            return;
+        }
+        
+        // Keyboard shortcuts
+        switch(e.key.toLowerCase()) {
+            case '/':
+                // Focus search
+                e.preventDefault();
+                document.getElementById('searchInput')?.focus();
+                break;
+                
+            case 'r':
+                // Refresh
+                e.preventDefault();
+                loadLicitaciones();
+                break;
+                
+            case 'c':
+                // Clear filters
+                e.preventDefault();
+                clearFilters();
+                break;
+                
+            case 'e':
+                // Export
+                e.preventDefault();
+                exportAllFiltered();
+                break;
+                
+            case 's':
+                // Toggle calendar
+                e.preventDefault();
+                toggleCalendarView();
+                break;
+                
+            case '1':
+                // Quick filter: Visits this week
+                e.preventDefault();
+                quickFilterVisitsThisWeek();
+                break;
+                
+            case '2':
+                // Quick filter: Closing soon
+                e.preventDefault();
+                quickFilterClosingSoon();
+                break;
+                
+            case '3':
+                // Quick filter: Pending visits
+                e.preventDefault();
+                quickFilterPendingVisits();
+                break;
+                
+            case '?':
+                // Show keyboard shortcuts help
+                e.preventDefault();
+                showKeyboardShortcutsHelp();
+                break;
+        }
+    });
+}
+
+/**
+ * Show keyboard shortcuts help
+ */
+function showKeyboardShortcutsHelp() {
+    const helpText = `
+╔══════════════════════════════════════╗
+║   ATAJOS DE TECLADO                  ║
+╠══════════════════════════════════════╣
+║  /   → Buscar                        ║
+║  R   → Refrescar                     ║
+║  C   → Limpiar filtros               ║
+║  E   → Exportar a CSV                ║
+║  S   → Calendario/Tarjetas           ║
+║  1   → Visitas esta semana           ║
+║  2   → Cierre pronto (7 días)        ║
+║  3   → Visitas pendientes            ║
+║  ?   → Mostrar esta ayuda            ║
+║  ESC → Cerrar modales/Desenfocar     ║
+╚══════════════════════════════════════╝
+    `.trim();
+    
+    alert(helpText);
 }
 
 /**
