@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Licitaciones Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>📋 Licitaciones Dashboard</h1>
+                <div class="stats-bar" id="statsBar">
+                    <div class="stat-item">
+                        <span class="stat-label">Total</span>
+                        <span class="stat-value" id="statTotal">0</span>
+                    </div>
+                    <div class="stat-item pending">
+                        <span class="stat-label">Pendientes</span>
+                        <span class="stat-value" id="statPending">0</span>
+                    </div>
+                    <div class="stat-item approved">
+                        <span class="stat-label">Aprobadas</span>
+                        <span class="stat-value" id="statApproved">0</span>
+                    </div>
+                    <div class="stat-item rejected">
+                        <span class="stat-label">Rechazadas</span>
+                        <span class="stat-value" id="statRejected">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label for="statusFilter">Estado:</label>
+                <select id="statusFilter">
+                    <option value="">Todos</option>
+                    <option value="pending" selected>Pendientes</option>
+                    <option value="approved">Aprobadas</option>
+                    <option value="rejected">Rechazadas</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="categoryFilter">Categoría:</label>
+                <select id="categoryFilter">
+                    <option value="">Todas</option>
+                    <option value="Suministros">Suministros</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Construcción">Construcción</option>
+                    <option value="Obras">Obras</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="priorityFilter">Prioridad:</label>
+                <select id="priorityFilter">
+                    <option value="">Todas</option>
+                    <option value="High">Alta</option>
+                    <option value="Medium">Media</option>
+                    <option value="Low">Baja</option>
+                </select>
+            </div>
+
+            <div class="filter-group filter-group-multi">
+                <label for="visitLocationFilter">Lugar de visita:</label>
+                <select id="visitLocationFilter" multiple></select>
+                <small class="filter-hint">Puede seleccionar varios lugares</small>
+            </div>
+
+            <div class="filter-group filter-group-checkbox">
+                <label>Pueblos:</label>
+                <div class="checkbox-dropdown">
+                    <button type="button" class="checkbox-dropdown-toggle" id="townFilterToggle">
+                        <span id="townFilterLabel">Todos los pueblos</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div class="checkbox-dropdown-menu" id="townFilterMenu" style="display: none;">
+                        <div class="checkbox-search">
+                            <input type="text" id="townSearchInput" placeholder="Buscar pueblo..." />
+                        </div>
+                        <div class="checkbox-options" id="townFilterOptions">
+                            <!-- Checkboxes will be populated here -->
+                        </div>
+                        <div class="checkbox-actions">
+                            <button type="button" class="btn-link" onclick="selectAllTowns()">Seleccionar todos</button>
+                            <button type="button" class="btn-link" onclick="clearTownSelection()">Limpiar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="dateRangeFilter">Rango de fechas:</label>
+                <select id="dateRangeFilter">
+                    <option value="">Todas las fechas</option>
+                    <option value="next-week">Próxima semana</option>
+                    <option value="next-2-weeks">Próximas 2 semanas</option>
+                    <option value="next-month">Próximo mes</option>
+                    <option value="this-week">Esta semana</option>
+                    <option value="today">Hoy</option>
+                    <option value="past">Pasadas</option>
+                </select>
+            </div>
+
+            <button class="btn btn-secondary" onclick="clearFilters()">Limpiar Filtros</button>
+            <button class="btn btn-secondary" id="visitsOnlyToggleBtn">📍 Solo Visitas</button>
+            <button class="btn btn-secondary" id="calendarToggleBtn">📆 Ver Calendario</button>
+            <button class="btn btn-primary" onclick="loadLicitaciones()">🔄 Refrescar</button>
+        </div>
+
+        <div id="cardsContainer">
+            <!-- Loading State -->
+            <div id="loadingState" class="loading-state" style="display: none;">
+                <div class="spinner"></div>
+                <p>Cargando licitaciones...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <p>📭 No hay licitaciones que coincidan con los filtros seleccionados</p>
+            </div>
+
+            <!-- Cards Grid -->
+            <div class="cards-grid" id="cardsGrid">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div id="calendarContainer" class="calendar-view" style="display: none;">
+            <div class="calendar-header">
+                <button class="btn btn-secondary calendar-nav" id="calendarPrevBtn">‹</button>
+                <h2 id="calendarMonthLabel">Octubre 2025</h2>
+                <button class="btn btn-secondary calendar-nav" id="calendarNextBtn">›</button>
+            </div>
+
+            <div id="calendarLoadingState" class="loading-state" style="display: none;">
+                <div class="spinner"></div>
+                <p>Cargando visitas programadas...</p>
+            </div>
+
+            <div class="calendar-grid-wrapper">
+                <div class="calendar-weekdays">
+                    <div>Dom</div>
+                    <div>Lun</div>
+                    <div>Mar</div>
+                    <div>Mié</div>
+                    <div>Jue</div>
+                    <div>Vie</div>
+                    <div>Sáb</div>
+                </div>
+                <div id="calendarDays" class="calendar-days"></div>
+            </div>
+
+            <div id="calendarEmptyState" class="empty-state" style="display: none;">
+                <p>📅 No hay visitas programadas para este mes</p>
+            </div>
+
+            <div id="visitListContainer" class="visit-list" style="display: none;">
+                <div class="visit-list-header">
+                    <h3>Visitas Programadas</h3>
+                    <span class="visit-count" id="visitListCount">0</span>
+                </div>
+                <div id="visitListContent" class="visit-list-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for viewing details and adding notes -->
+    <div id="notesModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Notas de Aprobación</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="approvalNotes" placeholder="Agregue notas sobre esta decisión (opcional)..." rows="4"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button class="btn" id="modalActionBtn" onclick="submitModalAction()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal" style="display: none;">
+        <div class="modal-content detail-modal-content">
+            <div class="modal-header">
+                <div>
+                    <div class="detail-modal-badge" id="detailStatusBadge">Pendiente</div>
+                    <h2 id="detailModalTitle">Detalle de Licitación</h2>
+                    <div class="detail-subtitle" id="detailSubtitle"></div>
+                </div>
+                <button class="close-btn" id="detailModalCloseBtn">&times;</button>
+            </div>
+            <div class="modal-body detail-modal-body">
+                <div id="detailLoading" class="detail-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Cargando detalles...</p>
+                </div>
+                <div id="detailContent" class="detail-content"></div>
+            </div>
+            <div class="modal-footer detail-modal-footer">
+                <div style="display: flex; gap: 8px; margin-right: auto;">
+                    <a id="detailPdfLink" class="btn btn-primary" href="#" target="_blank" rel="noopener noreferrer">📄 Abrir PDF</a>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-danger" id="detailDeleteBtn" style="display: none;">🗑️ Eliminar</button>
+                    <button class="btn btn-secondary" id="detailModalDismissBtn">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
+
+

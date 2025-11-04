@@ -1,19 +1,13 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "src/dashboard/server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "src/dashboard/server.js"
+      "source": "/api/:path*",
+      "destination": "/api"
     },
     {
-      "src": "/(.*)",
-      "dest": "src/dashboard/server.js"
+      "source": "/",
+      "destination": "/api"
     }
   ]
 }
