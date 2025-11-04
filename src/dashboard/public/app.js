@@ -899,6 +899,9 @@ async function loadLicitaciones() {
             // Store for export
             currentLicitaciones = licitaciones;
 
+            // Generate smart suggestions
+            generateSmartSuggestions(licitaciones);
+
             if (licitaciones.length > 0) {
                 renderCards(licitaciones);
             } else {
@@ -1526,6 +1529,125 @@ function setupKeyboardShortcuts() {
                 break;
         }
     });
+}
+
+/**
+ * Generate smart suggestions based on current licitaciones
+ */
+function generateSmartSuggestions(licitaciones) {
+    const suggestionsContainer = document.getElementById('smartSuggestions');
+    if (!licitaciones || licitaciones.length === 0) {
+        suggestionsContainer.style.display = 'none';
+        return;
+    }
+    
+    const suggestions = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Count pending licitaciones
+    const pending = licitaciones.filter(lic => lic.approvalStatus === 'pending');
+    
+    // Count pending visits
+    const pendingVisits = pending.filter(lic => {
+        const visitLocation = (lic.visitLocation || '').toString().trim();
+        return visitLocation && visitLocation.toLowerCase() !== 'no disponible';
+    });
+    
+    // Count licitaciones closing this week
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    const closingSoon = pending.filter(lic => {
+        if (!lic.biddingCloseDate || lic.biddingCloseDate === 'No disponible') return false;
+        try {
+            const closeDate = new Date(lic.biddingCloseDate);
+            return closeDate >= today && closeDate <= nextWeek;
+        } catch {
+            return false;
+        }
+    });
+    
+    // Count visits this week
+    const visitsThisWeek = pendingVisits.filter(lic => {
+        if (!lic.siteVisitDate || lic.siteVisitDate === 'No disponible') return false;
+        try {
+            const visitDate = new Date(lic.siteVisitDate);
+            return visitDate >= today && visitDate <= nextWeek;
+        } catch {
+            return false;
+        }
+    });
+    
+    // Count visits tomorrow
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowEnd = new Date(tomorrow);
+    tomorrowEnd.setHours(23, 59, 59, 999);
+    const visitsTomorrow = pendingVisits.filter(lic => {
+        if (!lic.siteVisitDate || lic.siteVisitDate === 'No disponible') return false;
+        try {
+            const visitDate = new Date(lic.siteVisitDate);
+            return visitDate >= tomorrow && visitDate <= tomorrowEnd;
+        } catch {
+            return false;
+        }
+    });
+    
+    // Generate suggestion items
+    if (visitsTomorrow.length > 0) {
+        suggestions.push({
+            icon: '🚨',
+            text: `Tienes ${visitsTomorrow.length} visita(s) mañana`,
+            action: 'Click para ver',
+            onClick: () => {
+                document.getElementById('typeFilter').value = 'visits';
+                document.getElementById('dateRangeFilter').value = 'visits-this-week';
+                document.getElementById('statusFilter').value = 'pending';
+                handleFilterChange();
+            }
+        });
+    }
+    
+    if (visitsThisWeek.length > 0 && !visitsTomorrow.length) {
+        suggestions.push({
+            icon: '🏗️',
+            text: `${visitsThisWeek.length} visita(s) esta semana`,
+            action: 'Click para ver',
+            onClick: () => quickFilterVisitsThisWeek()
+        });
+    }
+    
+    if (closingSoon.length > 0) {
+        suggestions.push({
+            icon: '⏰',
+            text: `${closingSoon.length} licitación(es) cierran en 7 días`,
+            action: 'Click para ver',
+            onClick: () => quickFilterClosingSoon()
+        });
+    }
+    
+    if (pendingVisits.length > 5) {
+        suggestions.push({
+            icon: '📍',
+            text: `${pendingVisits.length} visitas pendientes de aprobar`,
+            action: 'Click para ver',
+            onClick: () => quickFilterPendingVisits()
+        });
+    }
+    
+    // Display suggestions
+    if (suggestions.length > 0) {
+        suggestionsContainer.innerHTML = suggestions.map(s => `
+            <div class="suggestion-item" onclick="(${s.onClick.toString()})()">
+                <span class="suggestion-icon">${s.icon}</span>
+                <span class="suggestion-text">${s.text}</span>
+                <span class="suggestion-action">${s.action} →</span>
+            </div>
+        `).join('');
+        suggestionsContainer.style.display = 'block';
+    } else {
+        suggestionsContainer.style.display = 'none';
+    }
 }
 
 /**
