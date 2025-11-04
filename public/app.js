@@ -739,7 +739,6 @@ async function loadStats() {
 
         if (result.success) {
             const stats = result.data;
-            document.getElementById('statTotal').textContent = stats.total;
             document.getElementById('statPending').textContent = stats.pending;
             document.getElementById('statApproved').textContent = stats.approved;
             document.getElementById('statRejected').textContent = stats.rejected;
