@@ -318,6 +318,44 @@ class SheetsService {
       return lic;
     });
 
+    // Auto-reject pending licitaciones with passed close dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const updatePromises = [];
+    licitaciones.forEach(lic => {
+      if (lic.approvalStatus === 'pending' && lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible') {
+        try {
+          const closeDate = new Date(lic.biddingCloseDate);
+          closeDate.setHours(23, 59, 59, 999);
+          
+          if (closeDate < today) {
+            // Bidding has closed, auto-reject
+            logger.info(`Auto-rejecting expired licitación: ${lic.subject} (closed: ${lic.biddingCloseDate})`);
+            lic.approvalStatus = 'rejected';
+            lic.approvalNotes = lic.approvalNotes ? 
+              `${lic.approvalNotes}\n[Auto-rechazado: fecha de cierre vencida]` : 
+              '[Auto-rechazado: fecha de cierre vencida]';
+            
+            // Update in sheet asynchronously (don't wait)
+            updatePromises.push(
+              this.updateApprovalStatus(lic.rowNumber, 'rejected', lic.approvalNotes)
+                .catch(err => logger.error(`Error auto-rejecting row ${lic.rowNumber}:`, err))
+            );
+          }
+        } catch (err) {
+          logger.error(`Error checking close date for ${lic.subject}:`, err);
+        }
+      }
+    });
+
+    // Don't wait for updates to complete, let them happen in background
+    if (updatePromises.length > 0) {
+      Promise.all(updatePromises).catch(err => 
+        logger.error('Some auto-reject updates failed:', err)
+      );
+    }
+
     // Reverse to show newest (highest row numbers) first
     const sortedLicitaciones = licitaciones.reverse();
 
