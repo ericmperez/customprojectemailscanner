@@ -841,7 +841,12 @@ function createCard(lic) {
         </div>
 
         <div class="card-meta">
-            <div class="meta-item">📅 ${emailDate}</div>
+            ${isVisit && siteVisitDateDisplay !== 'No disponible' ? `
+                <div class="meta-item visit-date-highlight">🗓️ Visita: ${siteVisitDateDisplay}</div>
+                ${siteVisitTimeLine ? `<div class="meta-item">🕐 ${siteVisitTimeLine}</div>` : ''}
+            ` : `
+                <div class="meta-item">📅 ${emailDate}</div>
+            `}
             <div class="meta-item">📂 ${escapeHtml(lic.category || 'N/A')}</div>
         </div>
 
