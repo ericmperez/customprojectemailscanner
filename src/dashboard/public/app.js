@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStats();
     loadLicitaciones();
 
-    ['statusFilter', 'categoryFilter', 'priorityFilter', 'typeFilter', 'dateRangeFilter'].forEach(id => {
+    ['statusFilter', 'categoryFilter', 'typeFilter', 'dateRangeFilter'].forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('change', handleFilterChange);
@@ -70,7 +70,6 @@ function getCurrentFilters() {
     return {
         status: document.getElementById('statusFilter')?.value || '',
         category: document.getElementById('categoryFilter')?.value || '',
-        priority: document.getElementById('priorityFilter')?.value || '',
         type: document.getElementById('typeFilter')?.value || '',
         dateRange: document.getElementById('dateRangeFilter')?.value || '',
     };
@@ -1065,7 +1064,6 @@ function closeModal() {
 function clearFilters() {
     document.getElementById('statusFilter').value = '';
     document.getElementById('categoryFilter').value = '';
-    document.getElementById('priorityFilter').value = '';
     document.getElementById('typeFilter').value = '';
     document.getElementById('dateRangeFilter').value = '';
     

@@ -604,10 +604,6 @@ class SheetsService {
       result = result.filter(lic => (lic.category || '').toLowerCase() === filters.category.toLowerCase());
     }
 
-    if (filters.priority) {
-      result = result.filter(lic => (lic.priority || '').toLowerCase() === filters.priority.toLowerCase());
-    }
-
     // Filter by type (visits or purchases)
     if (filters.type) {
       if (filters.type === 'visits') {
