@@ -677,6 +677,30 @@ class SheetsService {
           case 'past':
             return visitDateTime < today;
           
+          // Visit-specific filters (same logic, but clearer naming for users)
+          case 'visits-this-week': {
+            const dayOfWeek = today.getDay();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - dayOfWeek);
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            return visitDateTime >= startOfWeek && visitDateTime <= endOfWeek;
+          }
+          
+          case 'visits-next-week': {
+            const nextWeekStart = new Date(today);
+            nextWeekStart.setDate(today.getDate() + (7 - today.getDay()));
+            const nextWeekEnd = new Date(nextWeekStart);
+            nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+            return visitDateTime >= nextWeekStart && visitDateTime <= nextWeekEnd;
+          }
+          
+          case 'visits-next-2-weeks': {
+            const twoWeeksLater = new Date(today);
+            twoWeeksLater.setDate(today.getDate() + 14);
+            return visitDateTime >= today && visitDateTime <= twoWeeksLater;
+          }
+          
           default:
             return true;
         }
