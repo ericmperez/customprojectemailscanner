@@ -5,7 +5,6 @@ const API_BASE = window.location.origin;
 let currentModalAction = null;
 let currentLicitacionId = null;
 let isCalendarView = false;
-let isVisitsOnlyView = false;
 let calendarEvents = [];
 let calendarMonthDate = new Date();
 let calendarDataLoaded = false;
@@ -32,11 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const calendarToggleBtn = document.getElementById('calendarToggleBtn');
     if (calendarToggleBtn) {
         calendarToggleBtn.addEventListener('click', toggleCalendarView);
-    }
-
-    const visitsOnlyBtn = document.getElementById('visitsOnlyToggleBtn');
-    if (visitsOnlyBtn) {
-        visitsOnlyBtn.addEventListener('click', toggleVisitsOnlyView);
     }
 
     const prevBtn = document.getElementById('calendarPrevBtn');
@@ -100,17 +94,14 @@ function toggleCalendarView() {
     const cardsContainer = document.getElementById('cardsContainer');
     const calendarContainer = document.getElementById('calendarContainer');
     const toggleBtn = document.getElementById('calendarToggleBtn');
-    const visitsBtn = document.getElementById('visitsOnlyToggleBtn');
 
     isCalendarView = !isCalendarView;
-    isVisitsOnlyView = false; // Reset visits-only when switching to calendar
 
     if (isCalendarView) {
         calendarDataLoaded = false;
         if (cardsContainer) cardsContainer.style.display = 'none';
         if (calendarContainer) calendarContainer.style.display = 'block';
         if (toggleBtn) toggleBtn.textContent = '📄 Ver Tarjetas';
-        if (visitsBtn) visitsBtn.textContent = '📍 Solo Visitas';
         loadCalendarEvents();
     } else {
         if (calendarContainer) calendarContainer.style.display = 'none';
@@ -118,30 +109,6 @@ function toggleCalendarView() {
         if (toggleBtn) toggleBtn.textContent = '📆 Ver Calendario';
         loadLicitaciones();
     }
-}
-
-function toggleVisitsOnlyView() {
-    if (isCalendarView) {
-        // If in calendar view, switch to cards first
-        toggleCalendarView();
-    }
-
-    isVisitsOnlyView = !isVisitsOnlyView;
-    const visitsBtn = document.getElementById('visitsOnlyToggleBtn');
-    
-    if (visitsBtn) {
-        if (isVisitsOnlyView) {
-            visitsBtn.textContent = '📋 Ver Todas';
-            visitsBtn.classList.add('btn-primary');
-            visitsBtn.classList.remove('btn-secondary');
-        } else {
-            visitsBtn.textContent = '📍 Solo Visitas';
-            visitsBtn.classList.remove('btn-primary');
-            visitsBtn.classList.add('btn-secondary');
-        }
-    }
-
-    loadLicitaciones();
 }
 
 function changeCalendarMonth(offset) {
@@ -809,22 +776,13 @@ async function loadLicitaciones() {
         if (result.success) {
             let licitaciones = Array.isArray(result.data) ? result.data : [];
 
-            // Filter to only show licitaciones with visits if toggle is on
-            if (isVisitsOnlyView) {
-                licitaciones = licitaciones.filter(lic => {
-                    return lic.siteVisitDate && lic.siteVisitDate.toLowerCase() !== 'no disponible';
-                });
-            }
-
             if (licitaciones.length > 0) {
                 renderCards(licitaciones);
             } else {
                 emptyState.style.display = 'block';
                 const emptyMsg = emptyState.querySelector('p');
                 if (emptyMsg) {
-                    emptyMsg.textContent = isVisitsOnlyView 
-                        ? '📍 No hay licitaciones con visitas programadas'
-                        : '📋 No hay licitaciones que coincidan con los filtros';
+                    emptyMsg.textContent = '📋 No hay licitaciones que coincidan con los filtros';
                 }
             }
 
