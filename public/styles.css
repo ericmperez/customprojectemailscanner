@@ -451,6 +451,28 @@ select:focus {
     gap: 4px;
 }
 
+.type-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.visit-type-badge {
+    background: #bee3f8;
+    color: #2c5282;
+}
+
+.purchase-type-badge {
+    background: #e9d8fd;
+    color: #553c9a;
+}
+
 .card.has-visit {
     border-left: 4px solid #3182ce;
 }
@@ -1175,7 +1197,8 @@ select:focus {
         font-size: 16px;
     }
 
-    .status-badge {
+    .status-badge,
+    .type-badge {
         font-size: 11px;
         padding: 5px 10px;
     }

@@ -814,15 +814,17 @@ function renderCards(licitaciones) {
 function createCard(lic) {
     const card = document.createElement('div');
     const approvalStatus = (lic.approvalStatus || 'pending').toLowerCase();
-    const hasVisit = lic.siteVisitDate && lic.siteVisitDate.toLowerCase() !== 'no disponible';
-    card.className = `card status-${approvalStatus} ${hasVisit ? 'has-visit' : ''}`;
+    
+    // Determine if it's a visit or purchase based on visitLocation
+    const visitLocation = (lic.visitLocation || '').toString().trim();
+    const isVisit = visitLocation && visitLocation.toLowerCase() !== 'no disponible';
+    const typeText = isVisit ? '🏗️ Visita' : '🛒 Compra';
+    const typeBadgeClass = isVisit ? 'visit-type-badge' : 'purchase-type-badge';
+    
+    card.className = `card status-${approvalStatus} ${isVisit ? 'has-visit' : ''}`;
 
     // Format dates
     const emailDate = lic.emailDate ? new Date(lic.emailDate).toLocaleDateString('es-PR') : 'N/A';
-
-    // Status text
-    const statusText = approvalStatus === 'pending' ? 'Pendiente' : 
-                       approvalStatus === 'approved' ? 'Aprobada' : 'Rechazada';
 
     // PDF link - handle both formula and URL formats
     const pdfLink = lic.pdfUrl || resolvePdfUrl(lic.pdfLink);
@@ -834,8 +836,7 @@ function createCard(lic) {
         <div class="card-header">
             <div class="card-title">${escapeHtml(lic.subject || 'Sin título')}</div>
             <div style="display: flex; gap: 8px; align-items: center;">
-                ${hasVisit ? '<span class="visit-badge">📍 Tiene Visita</span>' : ''}
-                <span class="status-badge ${approvalStatus}">${statusText}</span>
+                <span class="type-badge ${typeBadgeClass}">${typeText}</span>
             </div>
         </div>
 
