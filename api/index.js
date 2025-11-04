@@ -211,18 +211,6 @@ app.get('/api/visits', async (req, res) => {
   }
 });
 
-// Debug endpoint to check environment variables (masked)
-app.get('/api/debug/env', (req, res) => {
-  const maskValue = (val) => val ? `${val.substring(0, 10)}...${val.substring(val.length - 10)}` : 'NOT SET';
-  res.json({
-    GMAIL_CLIENT_ID: maskValue(process.env.GMAIL_CLIENT_ID),
-    GMAIL_CLIENT_SECRET: maskValue(process.env.GMAIL_CLIENT_SECRET),
-    GMAIL_REFRESH_TOKEN: maskValue(process.env.GMAIL_REFRESH_TOKEN),
-    GOOGLE_SHEET_ID: maskValue(process.env.GOOGLE_SHEET_ID),
-    SHEET_NAME: process.env.SHEET_NAME || 'NOT SET',
-  });
-});
-
 // Serve index.html for root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public', 'index.html'));
