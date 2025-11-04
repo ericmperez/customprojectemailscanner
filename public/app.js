@@ -576,18 +576,18 @@ function renderDetailSections(lic) {
         <div class="detail-section">
             <h3>Información General</h3>
             <div class="detail-grid">
-                ${renderDetailItem('Fecha del Email', lic.emailDate ? new Date(lic.emailDate).toLocaleString('es-PR') : 'No disponible')}
-                ${renderDetailItem('Fecha de Procesamiento', lic.processedAt ? new Date(lic.processedAt).toLocaleString('es-PR') : 'No disponible')}
+                ${renderDetailItem('Fecha del Email', lic.emailDate ? new Date(lic.emailDate).toLocaleString('es-PR') : '')}
+                ${renderDetailItem('Fecha de Procesamiento', lic.processedAt ? new Date(lic.processedAt).toLocaleString('es-PR') : '')}
                 ${renderDetailItem('Estado', badgeText(lic.approvalStatus))}
             </div>
         </div>
         <div class="detail-section">
             <h3>Ubicación y Contacto</h3>
             <div class="detail-grid">
-                ${renderDetailItem('Ubicación', lic.location || 'No disponible')}
-                ${renderDetailItem('Categoría', lic.category || 'No clasificado')}
-                ${renderDetailItem('Contacto', lic.contactName || 'No disponible')}
-                ${renderDetailItem('Teléfono', lic.contactPhone || 'No disponible')}
+                ${renderDetailItem('Ubicación', lic.location)}
+                ${renderDetailItem('Categoría', lic.category)}
+                ${renderDetailItem('Contacto', lic.contactName)}
+                ${renderDetailItem('Teléfono', lic.contactPhone)}
             </div>
         </div>
         <div class="detail-section">
@@ -595,15 +595,17 @@ function renderDetailSections(lic) {
             <div class="detail-grid">
                 ${renderDetailItem('Fecha Visita', siteVisitDate)}
                 ${renderDetailItem('Hora Visita', siteVisitTime)}
-                ${renderDetailItem('Lugar de Visita', lic.visitLocation || 'No disponible')}
-                ${renderDetailItem('Cierre Licitación', lic.biddingCloseDate || 'No disponible')}
+                ${renderDetailItem('Lugar de Visita', lic.visitLocation)}
+                ${renderDetailItem('Cierre Licitación', lic.biddingCloseDate)}
                 ${renderDetailItem('Hora Cierre', closeTime)}
             </div>
         </div>
+        ${lic.description ? `
         <div class="detail-section">
             <h3>Descripción</h3>
-            <div class="detail-item-value">${formatMultiline(lic.description || 'No disponible')}</div>
+            <div class="detail-item-value">${formatMultiline(lic.description)}</div>
         </div>
+        ` : ''}
         ${lic.summary ? `
         <div class="detail-section">
             <h3>Resumen</h3>
@@ -613,16 +615,21 @@ function renderDetailSections(lic) {
         <div class="detail-section">
             <h3>Notas y Decisión</h3>
             <div class="detail-grid">
-                ${renderDetailItem('Notas', lic.approvalNotes || 'Sin notas', 'detail-notes')}
-                ${renderDetailItem('Estado de Decisión', lic.decisionStatus || 'Sin decisión')}
+                ${renderDetailItem('Notas', lic.approvalNotes, 'detail-notes')}
+                ${renderDetailItem('Estado de Decisión', lic.decisionStatus)}
                 ${renderDetailItem('Interesado', lic.interested ? 'Sí' : 'No')}
-                ${renderDetailItem('Método de Extracción', lic.extractionMethod || 'No disponible')}
+                ${renderDetailItem('Método de Extracción', lic.extractionMethod)}
             </div>
         </div>
     `;
 }
 
 function renderDetailItem(label, value, extraClass = '') {
+    // Don't render if value is empty, null, undefined, or "No disponible"
+    if (!value || value === 'No disponible' || value === 'Sin notas' || value === 'Sin decisión' || value === 'No clasificado' || value === 'Sin hora') {
+        return '';
+    }
+    
     const formattedValue = typeof value === 'string'
         ? escapeHtml(value).replace(/\n/g, '<br>')
         : value;
@@ -847,18 +854,22 @@ function createCard(lic) {
             ` : `
                 <div class="meta-item">📅 ${emailDate}</div>
             `}
-            <div class="meta-item">📂 ${escapeHtml(lic.category || 'N/A')}</div>
+            ${lic.category ? `<div class="meta-item">📂 ${escapeHtml(lic.category)}</div>` : ''}
         </div>
 
+        ${lic.location ? `
         <div class="card-section">
             <div class="section-label">Ubicación</div>
-            <div class="section-content">${escapeHtml(lic.location || 'No especificada')}</div>
+            <div class="section-content">${escapeHtml(lic.location)}</div>
         </div>
+        ` : ''}
 
+        ${lic.description ? `
         <div class="card-section">
             <div class="section-label">Descripción</div>
-            <div class="section-content">${escapeHtml(truncate(lic.description || 'No disponible', 150))}</div>
+            <div class="section-content">${escapeHtml(truncate(lic.description, 150))}</div>
         </div>
+        ` : ''}
 
         ${lic.summary ? `
         <div class="card-section">
@@ -868,14 +879,17 @@ function createCard(lic) {
         ` : ''}
 
         <div class="info-grid">
+            ${lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible' ? `
             <div class="info-item">
                 <div class="section-label">Cierre de Licitación</div>
                 <div class="section-content">
-                    ${escapeHtml(lic.biddingCloseDate || 'N/A')}
+                    ${escapeHtml(lic.biddingCloseDate)}
                     ${lic.biddingCloseTime ? `<br>${escapeHtml(lic.biddingCloseTime)}` : ''}
                 </div>
             </div>
+            ` : ''}
 
+            ${siteVisitDateDisplay !== 'No disponible' ? `
             <div class="info-item">
                 <div class="section-label">Visita al Sitio</div>
                 <div class="section-content">
@@ -883,6 +897,7 @@ function createCard(lic) {
                     ${siteVisitTimeLine ? `<br>${escapeHtml(siteVisitTimeLine)}` : ''}
                 </div>
             </div>
+            ` : ''}
 
             ${lic.contactName ? `
             <div class="info-item">
@@ -894,6 +909,7 @@ function createCard(lic) {
             </div>
             ` : ''}
 
+            ${pdfLink ? `
             <div class="info-item">
                 <div class="section-label">Archivo PDF</div>
                 <div class="section-content">
@@ -902,6 +918,7 @@ function createCard(lic) {
                     </a>
                 </div>
             </div>
+            ` : ''}
         </div>
 
         ${lic.approvalNotes ? `
