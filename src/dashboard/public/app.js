@@ -2077,6 +2077,131 @@ function showBrowserNotification(title, body, data = {}) {
 }
 
 /**
+ * Export visits to iCal format (.ics)
+ */
+function exportToICalendar() {
+    if (!currentLicitaciones || currentLicitaciones.length === 0) {
+        alert('No hay licitaciones para exportar');
+        return;
+    }
+    
+    // Filter for visits only (licitaciones with visit dates)
+    const visits = currentLicitaciones.filter(lic => {
+        return lic.siteVisitDate && lic.siteVisitDate !== 'No disponible';
+    });
+    
+    if (visits.length === 0) {
+        alert('No hay visitas para exportar al calendario');
+        return;
+    }
+    
+    // Generate iCal content
+    let icalContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Licitaciones Dashboard//ES',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:Visitas Licitaciones',
+        'X-WR-TIMEZONE:America/Puerto_Rico'
+    ];
+    
+    visits.forEach(lic => {
+        try {
+            const visitDate = new Date(lic.siteVisitDate);
+            
+            // Set time if available
+            let startDate = new Date(visitDate);
+            if (lic.siteVisitTime && lic.siteVisitTime !== 'Sin hora') {
+                const [hours, minutes] = lic.siteVisitTime.split(':');
+                startDate.setHours(parseInt(hours) || 9, parseInt(minutes) || 0, 0, 0);
+            } else {
+                startDate.setHours(9, 0, 0, 0); // Default to 9:00 AM
+            }
+            
+            // End time (1 hour later)
+            const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+            
+            // Format dates to iCal format (YYYYMMDDTHHMMSS)
+            const formatICalDate = (date) => {
+                const pad = (n) => String(n).padStart(2, '0');
+                return date.getFullYear() +
+                       pad(date.getMonth() + 1) +
+                       pad(date.getDate()) + 'T' +
+                       pad(date.getHours()) +
+                       pad(date.getMinutes()) +
+                       pad(date.getSeconds());
+            };
+            
+            const dtStart = formatICalDate(startDate);
+            const dtEnd = formatICalDate(endDate);
+            const dtStamp = formatICalDate(new Date());
+            
+            // Create unique ID
+            const uid = `lic-${lic.rowNumber}-${Date.now()}@licitaciones-dashboard`;
+            
+            // Clean and escape text for iCal
+            const escapeICalText = (text) => {
+                if (!text) return '';
+                return String(text)
+                    .replace(/\\/g, '\\\\')
+                    .replace(/;/g, '\\;')
+                    .replace(/,/g, '\\,')
+                    .replace(/\n/g, '\\n');
+            };
+            
+            const summary = escapeICalText(`Visita: ${lic.subject || 'Sin título'}`);
+            const location = escapeICalText(lic.visitLocation || '');
+            const description = escapeICalText(
+                `Licitación: ${lic.subject || ''}\\n` +
+                `Ubicación: ${lic.visitLocation || 'N/A'}\\n` +
+                `Contacto: ${lic.contactName || 'N/A'}\\n` +
+                `Teléfono: ${lic.contactPhone || 'N/A'}\\n` +
+                `Categoría: ${lic.category || 'N/A'}`
+            );
+            
+            icalContent.push('BEGIN:VEVENT');
+            icalContent.push(`UID:${uid}`);
+            icalContent.push(`DTSTAMP:${dtStamp}`);
+            icalContent.push(`DTSTART:${dtStart}`);
+            icalContent.push(`DTEND:${dtEnd}`);
+            icalContent.push(`SUMMARY:${summary}`);
+            if (location) icalContent.push(`LOCATION:${location}`);
+            icalContent.push(`DESCRIPTION:${description}`);
+            icalContent.push('STATUS:CONFIRMED');
+            icalContent.push('TRANSP:OPAQUE');
+            
+            // Add alarm (reminder 1 day before)
+            icalContent.push('BEGIN:VALARM');
+            icalContent.push('TRIGGER:-P1D');
+            icalContent.push('ACTION:DISPLAY');
+            icalContent.push(`DESCRIPTION:Visita mañana: ${summary}`);
+            icalContent.push('END:VALARM');
+            
+            icalContent.push('END:VEVENT');
+        } catch (error) {
+            console.error(`Error creating iCal event for ${lic.subject}:`, error);
+        }
+    });
+    
+    icalContent.push('END:VCALENDAR');
+    
+    // Create blob and download
+    const icalString = icalContent.join('\r\n');
+    const blob = new Blob([icalString], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `visitas-licitaciones-${new Date().toISOString().split('T')[0]}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert(`✅ Se exportaron ${visits.length} visita(s) al calendario.\n\nAbre el archivo .ics para importarlo a Google Calendar, Apple Calendar, Outlook, etc.`);
+}
+
+/**
  * Check for upcoming visits and closing dates
  */
 function checkUpcomingEvents(licitaciones) {
