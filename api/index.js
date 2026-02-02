@@ -19,6 +19,16 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Initialize services
 const licitacionesService = new LicitacionesService();
 
+// Validate that :id parameter is a positive integer
+function validateId(req, res) {
+  const id = req.params.id;
+  if (!id || isNaN(Number(id)) || Number(id) <= 0 || !Number.isInteger(Number(id))) {
+    res.status(400).json({ success: false, error: 'Invalid ID parameter. Must be a positive integer.' });
+    return null;
+  }
+  return Number(id);
+}
+
 // API Routes
 
 /**
@@ -73,7 +83,9 @@ app.get('/api/licitaciones', async (req, res) => {
  */
 app.get('/api/licitaciones/:id', async (req, res) => {
   try {
-    const licitacion = await licitacionesService.getLicitacionById(req.params.id);
+    const id = validateId(req, res);
+    if (id === null) return;
+    const licitacion = await licitacionesService.getLicitacionById(id);
     res.json({ success: true, data: licitacion });
   } catch (error) {
     console.error(`Error fetching licitación ${req.params.id}:`, error);
@@ -87,9 +99,11 @@ app.get('/api/licitaciones/:id', async (req, res) => {
  */
 app.patch('/api/licitaciones/:id/approve', async (req, res) => {
   try {
+    const id = validateId(req, res);
+    if (id === null) return;
     const { notes } = req.body;
     const licitacion = await licitacionesService.updateApprovalStatus(
-      req.params.id,
+      id,
       'approved',
       notes
     );
@@ -106,9 +120,11 @@ app.patch('/api/licitaciones/:id/approve', async (req, res) => {
  */
 app.patch('/api/licitaciones/:id/reject', async (req, res) => {
   try {
+    const id = validateId(req, res);
+    if (id === null) return;
     const { notes } = req.body;
     const licitacion = await licitacionesService.updateApprovalStatus(
-      req.params.id,
+      id,
       'rejected',
       notes
     );
@@ -125,7 +141,9 @@ app.patch('/api/licitaciones/:id/reject', async (req, res) => {
  */
 app.delete('/api/licitaciones/:id', async (req, res) => {
   try {
-    const result = await licitacionesService.deleteLicitacion(req.params.id);
+    const id = validateId(req, res);
+    if (id === null) return;
+    const result = await licitacionesService.deleteLicitacion(id);
     res.json({ success: true, data: result });
   } catch (error) {
     console.error(`Error deleting licitación ${req.params.id}:`, error);
@@ -139,9 +157,11 @@ app.delete('/api/licitaciones/:id', async (req, res) => {
  */
 app.patch('/api/licitaciones/:id/pending', async (req, res) => {
   try {
+    const id = validateId(req, res);
+    if (id === null) return;
     const { notes } = req.body;
     const licitacion = await licitacionesService.updateApprovalStatus(
-      req.params.id,
+      id,
       'pending',
       notes
     );
