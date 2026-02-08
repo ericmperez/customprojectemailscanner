@@ -1,7 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import { param, body, validationResult } from 'express-validator';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
 import LicitacionesService from './services/licitaciones.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -9,21 +12,128 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// ---------------------------------------------------------------------------
+// Security middleware
+// ---------------------------------------------------------------------------
+
+// Helmet — security headers with CSP for self-hosted dashboard
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'https://*.supabase.co'],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+// CORS — origin whitelist
+const allowedOrigins = (() => {
+  const envOrigins = process.env.ALLOWED_ORIGINS;
+  if (envOrigins) {
+    return envOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+  }
+  // Defaults: allow localhost for dev
+  return ['http://localhost:3000', 'http://localhost:4000'];
+})();
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow requests with no origin (curl, server-to-server, same-origin)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+  })
+);
+
 app.use(express.json());
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
+// ---------------------------------------------------------------------------
+// Validation helpers
+// ---------------------------------------------------------------------------
+
+const validateId = [
+  param('id').isInt({ min: 1 }).withMessage('ID must be a positive integer'),
+];
+
+const validateNotes = [
+  body('notes')
+    .optional()
+    .isString()
+    .isLength({ max: 5000 })
+    .withMessage('Notes must be a string (max 5000 chars)'),
+];
+
+function handleValidationErrors(req, res, next) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() });
+  }
+  next();
+}
+
+// ---------------------------------------------------------------------------
+// Helper: safe error response
+// ---------------------------------------------------------------------------
+
+function errorResponse(res, statusCode, error) {
+  const message =
+    process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
+      : error.message;
+  return res.status(statusCode).json({ success: false, error: message });
+}
+
+// ---------------------------------------------------------------------------
 // Initialize services
+// ---------------------------------------------------------------------------
+
 const licitacionesService = new LicitacionesService();
 
+// ---------------------------------------------------------------------------
+// Health check (no auth required — excluded in middleware.js)
+// ---------------------------------------------------------------------------
+
+app.get('/api/health', async (_req, res) => {
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(503).json({ status: 'degraded', reason: 'Missing Supabase config' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { error } = await supabase.from('processed_emails').select('id').limit(1);
+
+    if (error) {
+      return res.status(503).json({ status: 'degraded', reason: 'Supabase unreachable' });
+    }
+
+    res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({ status: 'unhealthy', reason: 'Health check failed' });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // API Routes
+// ---------------------------------------------------------------------------
 
 /**
  * GET /api/licitaciones
- * Get all licitaciones with optional filtering
  */
 app.get('/api/licitaciones', async (req, res) => {
   try {
@@ -63,98 +173,107 @@ app.get('/api/licitaciones', async (req, res) => {
     res.json({ success: true, data: licitaciones });
   } catch (error) {
     console.error('Error fetching licitaciones:', error);
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error);
   }
 });
 
 /**
  * GET /api/licitaciones/:id
- * Get a single licitación by ID
  */
-app.get('/api/licitaciones/:id', async (req, res) => {
+app.get('/api/licitaciones/:id', validateId, handleValidationErrors, async (req, res) => {
   try {
     const licitacion = await licitacionesService.getLicitacionById(req.params.id);
     res.json({ success: true, data: licitacion });
   } catch (error) {
     console.error(`Error fetching licitación ${req.params.id}:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error);
   }
 });
 
 /**
  * PATCH /api/licitaciones/:id/approve
- * Approve a licitación
  */
-app.patch('/api/licitaciones/:id/approve', async (req, res) => {
-  try {
-    const { notes } = req.body;
-    const licitacion = await licitacionesService.updateApprovalStatus(
-      req.params.id,
-      'approved',
-      notes
-    );
-    res.json({ success: true, data: licitacion });
-  } catch (error) {
-    console.error(`Error approving licitación ${req.params.id}:`, error);
-    res.status(500).json({ success: false, error: error.message });
+app.patch(
+  '/api/licitaciones/:id/approve',
+  [...validateId, ...validateNotes],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { notes } = req.body;
+      const licitacion = await licitacionesService.updateApprovalStatus(
+        req.params.id,
+        'approved',
+        notes
+      );
+      res.json({ success: true, data: licitacion });
+    } catch (error) {
+      console.error(`Error approving licitación ${req.params.id}:`, error);
+      errorResponse(res, 500, error);
+    }
   }
-});
+);
 
 /**
  * PATCH /api/licitaciones/:id/reject
- * Reject a licitación (marks as rejected, does not delete)
  */
-app.patch('/api/licitaciones/:id/reject', async (req, res) => {
-  try {
-    const { notes } = req.body;
-    const licitacion = await licitacionesService.updateApprovalStatus(
-      req.params.id,
-      'rejected',
-      notes
-    );
-    res.json({ success: true, data: licitacion });
-  } catch (error) {
-    console.error(`Error rejecting licitación ${req.params.id}:`, error);
-    res.status(500).json({ success: false, error: error.message });
+app.patch(
+  '/api/licitaciones/:id/reject',
+  [...validateId, ...validateNotes],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { notes } = req.body;
+      const licitacion = await licitacionesService.updateApprovalStatus(
+        req.params.id,
+        'rejected',
+        notes
+      );
+      res.json({ success: true, data: licitacion });
+    } catch (error) {
+      console.error(`Error rejecting licitación ${req.params.id}:`, error);
+      errorResponse(res, 500, error);
+    }
   }
-});
+);
 
 /**
  * DELETE /api/licitaciones/:id
- * Delete a licitación permanently
  */
-app.delete('/api/licitaciones/:id', async (req, res) => {
+app.delete('/api/licitaciones/:id', validateId, handleValidationErrors, async (req, res) => {
   try {
     const result = await licitacionesService.deleteLicitacion(req.params.id);
     res.json({ success: true, data: result });
   } catch (error) {
     console.error(`Error deleting licitación ${req.params.id}:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error);
   }
 });
 
 /**
  * PATCH /api/licitaciones/:id/pending
- * Reset a licitación to pending
  */
-app.patch('/api/licitaciones/:id/pending', async (req, res) => {
-  try {
-    const { notes } = req.body;
-    const licitacion = await licitacionesService.updateApprovalStatus(
-      req.params.id,
-      'pending',
-      notes
-    );
-    res.json({ success: true, data: licitacion });
-  } catch (error) {
-    console.error(`Error resetting licitación ${req.params.id}:`, error);
-    res.status(500).json({ success: false, error: error.message });
+app.patch(
+  '/api/licitaciones/:id/pending',
+  [...validateId, ...validateNotes],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { notes } = req.body;
+      const licitacion = await licitacionesService.updateApprovalStatus(
+        req.params.id,
+        'pending',
+        notes
+      );
+      res.json({ success: true, data: licitacion });
+    } catch (error) {
+      console.error(`Error resetting licitación ${req.params.id}:`, error);
+      errorResponse(res, 500, error);
+    }
   }
-});
+);
 
 /**
  * GET /api/stats
- * Get dashboard statistics
  */
 app.get('/api/stats', async (req, res) => {
   try {
@@ -162,13 +281,12 @@ app.get('/api/stats', async (req, res) => {
     res.json({ success: true, data: stats });
   } catch (error) {
     console.error('Error fetching stats:', error);
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error);
   }
 });
 
 /**
  * GET /api/visits
- * Get licitaciones that require a site visit, optionally filtered
  */
 app.get('/api/visits', async (req, res) => {
   try {
@@ -207,7 +325,7 @@ app.get('/api/visits', async (req, res) => {
     res.json({ success: true, data: visits });
   } catch (error) {
     console.error('Error fetching site visit events:', error);
-    res.status(500).json({ success: false, error: error.message });
+    errorResponse(res, 500, error);
   }
 });
 
@@ -218,4 +336,3 @@ app.get('/', (req, res) => {
 
 // Export for Vercel serverless
 export default app;
-

@@ -18,8 +18,9 @@ export const config = {
     key: process.env.SUPABASE_KEY,
     pdfBucket: process.env.SUPABASE_PDF_BUCKET || 'licitaciones-pdfs',
   },
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY,
+  ai: {
+    apiKey: process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY,
+    provider: process.env.GROQ_API_KEY ? 'groq' : 'openai',
   },
   scheduler: {
     intervalMinutes: parseInt(process.env.SCHEDULE_INTERVAL_MINUTES || '60', 10),

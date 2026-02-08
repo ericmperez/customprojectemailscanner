@@ -14,7 +14,9 @@
     "test:visit-locations": "node tests/visit-location-filter.test.js",
     "vercel:dev": "vercel dev",
     "vercel:deploy": "vercel",
-    "vercel:prod": "vercel --prod"
+    "vercel:prod": "vercel --prod",
+    "agent": "node src/index.js",
+    "agent:once": "node -e \"import('./src/index.js').then(m => new m.LicitacionAgent().runOnce())\""
   },
   "keywords": [
     "gmail",
@@ -28,6 +30,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "cors": "^2.8.5",
+    "express-validator": "^7.2.0",
+    "helmet": "^8.0.0",
     "dotenv": "^16.3.1",
     "express": "^5.1.0",
     "googleapis": "^128.0.0",

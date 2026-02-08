@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { config } from '../config/credentials.js';
 import logger from '../utils/logger.js';
+import { withRetry } from '../utils/retry.js';
 import { normalizeVisitLocationLabel, normalizeVisitLocationFilterValue } from './visit-location.utils.js';
 
 const HEADERS = [
@@ -82,10 +83,14 @@ class SheetsService {
     }
 
     try {
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.sheetId,
-        range: `${this.sheetName}!A1:${this._columnLetter(HEADERS.length)}1`,
-      });
+      const response = await withRetry(
+        () =>
+          this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.sheetId,
+            range: `${this.sheetName}!A1:${this._columnLetter(HEADERS.length)}1`,
+          }),
+        { label: 'Sheets.ensureInitialized' }
+      );
 
       const values = response.data.values;
 
@@ -115,14 +120,18 @@ class SheetsService {
   }
 
   async _writeHeaders() {
-    await this.sheets.spreadsheets.values.update({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A1:${this._columnLetter(HEADERS.length)}1`,
-      valueInputOption: 'RAW',
-      requestBody: {
-        values: [HEADERS],
-      },
-    });
+    await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A1:${this._columnLetter(HEADERS.length)}1`,
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [HEADERS],
+          },
+        }),
+      { label: 'Sheets.writeHeaders' }
+    );
   }
 
   _columnLetter(index) {
@@ -226,15 +235,19 @@ class SheetsService {
 
     const row = this._buildRowFromData(data);
 
-    const response = await this.sheets.spreadsheets.values.append({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A:${this._columnLetter(HEADERS.length)}`,
-      valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: {
-        values: [row],
-      },
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.append({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A:${this._columnLetter(HEADERS.length)}`,
+          valueInputOption: 'USER_ENTERED',
+          insertDataOption: 'INSERT_ROWS',
+          requestBody: {
+            values: [row],
+          },
+        }),
+      { label: 'Sheets.appendRow' }
+    );
 
     logger.info('Appended row to Google Sheets', {
       updatedRange: response.data.updates?.updatedRange,
@@ -268,12 +281,16 @@ class SheetsService {
   async getLicitaciones(filters = {}) {
     await this.ensureInitialized();
 
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A2:${this._columnLetter(HEADERS.length)}`,
-      valueRenderOption: 'FORMULA',
-      majorDimension: 'ROWS',
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A2:${this._columnLetter(HEADERS.length)}`,
+          valueRenderOption: 'FORMULA',
+          majorDimension: 'ROWS',
+        }),
+      { label: 'Sheets.getLicitaciones' }
+    );
 
     const rows = response.data.values || [];
 
@@ -392,11 +409,15 @@ class SheetsService {
   async getLicitacionByRow(rowNumber) {
     await this.ensureInitialized();
 
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A${rowNumber}:${this._columnLetter(HEADERS.length)}${rowNumber}`,
-      valueRenderOption: 'FORMULA',
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A${rowNumber}:${this._columnLetter(HEADERS.length)}${rowNumber}`,
+          valueRenderOption: 'FORMULA',
+        }),
+      { label: `Sheets.getRow(${rowNumber})` }
+    );
 
     const rows = response.data.values || [];
     if (rows.length === 0) {
@@ -484,23 +505,27 @@ class SheetsService {
     }
 
     // Delete the row from the sheet
-    await this.sheets.spreadsheets.batchUpdate({
-      spreadsheetId: this.sheetId,
-      resource: {
-        requests: [
-          {
-            deleteDimension: {
-              range: {
-                sheetId: 0, // First sheet (adjust if needed)
-                dimension: 'ROWS',
-                startIndex: rowNumber - 1, // 0-indexed
-                endIndex: rowNumber, // Exclusive
+    await withRetry(
+      () =>
+        this.sheets.spreadsheets.batchUpdate({
+          spreadsheetId: this.sheetId,
+          resource: {
+            requests: [
+              {
+                deleteDimension: {
+                  range: {
+                    sheetId: 0,
+                    dimension: 'ROWS',
+                    startIndex: rowNumber - 1,
+                    endIndex: rowNumber,
+                  },
+                },
               },
-            },
+            ],
           },
-        ],
-      },
-    });
+        }),
+      { label: `Sheets.deleteRow(${rowNumber})` }
+    );
 
     logger.info(`Deleted licitación at row ${rowNumber}: ${current.subject}`);
     return { success: true, deletedRow: rowNumber, subject: current.subject };
@@ -562,10 +587,14 @@ class SheetsService {
   async getLastRowNumber() {
     await this.ensureInitialized();
 
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A:A`,
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A:A`,
+        }),
+      { label: 'Sheets.getLastRowNumber' }
+    );
 
     const values = response.data.values;
     return values ? values.length : 0;
@@ -707,12 +736,16 @@ class SheetsService {
   }
 
   async _findRowByEmailId(emailId) {
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A2:${this._columnLetter(HEADERS.length)}`,
-      valueRenderOption: 'FORMULA',
-      majorDimension: 'ROWS',
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A2:${this._columnLetter(HEADERS.length)}`,
+          valueRenderOption: 'FORMULA',
+          majorDimension: 'ROWS',
+        }),
+      { label: 'Sheets.findByEmailId' }
+    );
 
     const rows = response.data.values || [];
     const emailIndex = HEADERS.indexOf('Email ID');
@@ -729,14 +762,18 @@ class SheetsService {
 
   async _writeRow(rowNumber, rowValues) {
     const range = `${this.sheetName}!A${rowNumber}:${this._columnLetter(HEADERS.length)}${rowNumber}`;
-    await this.sheets.spreadsheets.values.update({
-      spreadsheetId: this.sheetId,
-      range,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [rowValues],
-      },
-    });
+    await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.sheetId,
+          range,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [rowValues],
+          },
+        }),
+      { label: `Sheets.writeRow(${rowNumber})` }
+    );
   }
 
   _rowFromObject(obj) {

@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { config } from '../config/credentials.js';
 import logger from '../utils/logger.js';
+import { withRetry } from '../utils/retry.js';
 import { Readable } from 'stream';
 
 class DriveService {
@@ -26,11 +27,15 @@ class DriveService {
   async ensureLicitacionesFolder() {
     try {
       // Check if folder already exists
-      const response = await this.drive.files.list({
-        q: "name='Licitaciones PDFs' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-        fields: 'files(id, name)',
-        spaces: 'drive',
-      });
+      const response = await withRetry(
+        () =>
+          this.drive.files.list({
+            q: "name='Licitaciones PDFs' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+            fields: 'files(id, name)',
+            spaces: 'drive',
+          }),
+        { label: 'Drive.files.list(folder)' }
+      );
 
       if (response.data.files && response.data.files.length > 0) {
         this.folderId = response.data.files[0].id;
@@ -44,10 +49,14 @@ class DriveService {
         mimeType: 'application/vnd.google-apps.folder',
       };
 
-      const folder = await this.drive.files.create({
-        requestBody: folderMetadata,
-        fields: 'id',
-      });
+      const folder = await withRetry(
+        () =>
+          this.drive.files.create({
+            requestBody: folderMetadata,
+            fields: 'id',
+          }),
+        { label: 'Drive.files.create(folder)' }
+      );
 
       this.folderId = folder.data.id;
       logger.info(`Created Licitaciones folder: ${this.folderId}`);
@@ -75,29 +84,32 @@ class DriveService {
         parents: [this.folderId],
       };
 
-      const media = {
-        mimeType: 'application/pdf',
-        body: Readable.from(pdfBuffer),
-      };
-
-      // Upload file
-      const file = await this.drive.files.create({
-        requestBody: fileMetadata,
-        media: media,
-        fields: 'id, webViewLink',
-      });
+      // Upload file (stream created inside retry so each attempt gets a fresh readable)
+      const file = await withRetry(
+        () =>
+          this.drive.files.create({
+            requestBody: fileMetadata,
+            media: { mimeType: 'application/pdf', body: Readable.from(pdfBuffer) },
+            fields: 'id, webViewLink',
+          }),
+        { label: `Drive.files.create(${filename})` }
+      );
 
       const fileId = file.data.id;
       const webViewLink = file.data.webViewLink;
 
       // Make file publicly readable (anyone with link can view)
-      await this.drive.permissions.create({
-        fileId: fileId,
-        requestBody: {
-          role: 'reader',
-          type: 'anyone',
-        },
-      });
+      await withRetry(
+        () =>
+          this.drive.permissions.create({
+            fileId: fileId,
+            requestBody: {
+              role: 'reader',
+              type: 'anyone',
+            },
+          }),
+        { label: `Drive.permissions.create(${fileId})` }
+      );
 
       logger.info(`Uploaded PDF to Drive: ${filename}`, { fileId, webViewLink });
       

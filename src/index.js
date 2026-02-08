@@ -96,8 +96,19 @@ class LicitacionAgent {
     try {
       logger.info('=== Starting Licitación Email Processing ===');
 
-      // Search for Licitación emails from October 1st, 2025 onwards
-      const afterDate = new Date('2025-10-01T00:00:00');
+      // Use EMAIL_SEARCH_START_DATE env var, or default to 90 days ago
+      const afterDate = (() => {
+        const envDate = process.env.EMAIL_SEARCH_START_DATE;
+        if (envDate) {
+          const parsed = new Date(envDate);
+          if (!isNaN(parsed.getTime())) return parsed;
+          logger.warn(`Invalid EMAIL_SEARCH_START_DATE "${envDate}", using 90-day default`);
+        }
+        const d = new Date();
+        d.setDate(d.getDate() - 90);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      })();
       const messages = await this.gmailService.searchLicitacionEmails(afterDate);
 
       if (messages.length === 0) {
@@ -128,6 +139,7 @@ class LicitacionAgent {
           const emailDetails = await this.gmailService.getEmailDetails(message.id);
 
           // Process each PDF attachment
+          let emailHadError = false;
           for (const attachment of emailDetails.attachments) {
             try {
               logger.info(`Processing attachment: ${attachment.filename}`);
@@ -146,10 +158,10 @@ class LicitacionAgent {
                 emailDetails.id
               );
               const supabaseLink = supabaseUpload?.publicUrl;
-              
+
               // Create hyperlink formula for Google Sheets
               const pdfHref = supabaseLink || driveLink;
-              const pdfLinkFormula = pdfHref 
+              const pdfLinkFormula = pdfHref
                 ? this.driveService.createHyperlinkFormula(pdfHref, '📄 Ver PDF')
                 : 'N/A';
               const resolvedPdfLink = pdfHref || ''; // fallback only if undefined
@@ -178,7 +190,7 @@ class LicitacionAgent {
 
               // Filter out minuta or asistencia entries based on PDF filename
               const pdfFilenameLower = (pdfData.filename || '').toLowerCase();
-              const isMinutaOrAsistencia = pdfFilenameLower.includes('minuta') || 
+              const isMinutaOrAsistencia = pdfFilenameLower.includes('minuta') ||
                                            pdfFilenameLower.includes('asistencia');
 
               if (isMinutaOrAsistencia) {
@@ -219,12 +231,17 @@ class LicitacionAgent {
 
             } catch (pdfError) {
               logger.error(`Error processing PDF ${attachment.filename}:`, pdfError);
+              emailHadError = true;
               errorCount++;
             }
           }
 
-          // Optional: Mark email as read
-          await this.gmailService.markAsRead(message.id);
+          // Only mark email as read if all attachments processed successfully
+          if (!emailHadError) {
+            await this.gmailService.markAsRead(message.id);
+          } else {
+            logger.warn(`Skipping markAsRead for ${message.id} due to processing errors`);
+          }
 
         } catch (emailError) {
           logger.error(`Error processing email ${message.id}:`, emailError);

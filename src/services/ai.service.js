@@ -1,19 +1,27 @@
 import OpenAI from 'openai';
 import logger from '../utils/logger.js';
+import { withRetry } from '../utils/retry.js';
 
 class AIService {
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
-    
+    const apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+
     if (!apiKey) {
-      logger.warn('OPENAI_API_KEY not set - AI extraction will be disabled');
+      logger.warn('GROQ_API_KEY not set - AI extraction will be disabled');
       this.enabled = false;
       return;
     }
 
-    this.openai = new OpenAI({ apiKey });
+    const isGroq = !!process.env.GROQ_API_KEY;
+    this.provider = isGroq ? 'groq' : 'openai';
+    this.model = isGroq ? 'llama-3.3-70b-versatile' : 'gpt-4o-mini';
+
+    this.openai = new OpenAI({
+      apiKey,
+      ...(isGroq && { baseURL: 'https://api.groq.com/openai/v1' }),
+    });
     this.enabled = true;
-    logger.info('AI Service initialized with OpenAI');
+    logger.info(`AI Service initialized with ${this.provider} (model: ${this.model})`);
   }
 
   /**
@@ -143,26 +151,33 @@ CRITICAL RULES:
 Return ONLY valid JSON, no additional text.`;
 
     try {
-      logger.info('Calling OpenAI API for data extraction...');
-      
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o-mini", // Using gpt-4o-mini for cost efficiency
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert at analyzing Puerto Rico government bidding documents (Licitaciones) and extracting structured data. You understand Spanish and can parse various date formats. Always return valid JSON."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1, // Low temperature for consistent extraction
-        max_tokens: 1000,
-      });
+      logger.info(`Calling ${this.provider} API for data extraction (model: ${this.model})...`);
 
-      const extractedData = JSON.parse(response.choices[0].message.content);
+      const response = await withRetry(
+        () =>
+          this.openai.chat.completions.create({
+            model: this.model,
+            messages: [
+              {
+                role: "system",
+                content: "You are an expert at analyzing Puerto Rico government bidding documents (Licitaciones) and extracting structured data. You understand Spanish and can parse various date formats. Always return valid JSON only, no markdown fences."
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            ...(this.provider === 'openai' && { response_format: { type: "json_object" } }),
+            temperature: 0.1,
+            max_tokens: 1000,
+          }),
+        { label: `${this.provider}.chat.completions` }
+      );
+
+      let content = response.choices[0].message.content.trim();
+      // Strip markdown code fences if present
+      content = content.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      const extractedData = JSON.parse(content);
       
       // Calculate confidence score
       const confidence = this.calculateConfidence(extractedData);

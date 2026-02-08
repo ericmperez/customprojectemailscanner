@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { config } from '../config/credentials.js';
 import logger from '../utils/logger.js';
+import { withRetry } from '../utils/retry.js';
 
 class GmailService {
   constructor() {
@@ -38,12 +39,17 @@ class GmailService {
       let pageToken = null;
 
       do {
-        const response = await this.gmail.users.messages.list({
-          userId: 'me',
-          q: query,
-          maxResults: 500, // Max allowed by Gmail API
-          pageToken: pageToken,
-        });
+        const currentPageToken = pageToken;
+        const response = await withRetry(
+          () =>
+            this.gmail.users.messages.list({
+              userId: 'me',
+              q: query,
+              maxResults: 500,
+              pageToken: currentPageToken,
+            }),
+          { label: 'Gmail.messages.list' }
+        );
 
         const messages = response.data.messages || [];
         allMessages = allMessages.concat(messages);
@@ -69,11 +75,15 @@ class GmailService {
    */
   async getEmailDetails(messageId) {
     try {
-      const response = await this.gmail.users.messages.get({
-        userId: 'me',
-        id: messageId,
-        format: 'full',
-      });
+      const response = await withRetry(
+        () =>
+          this.gmail.users.messages.get({
+            userId: 'me',
+            id: messageId,
+            format: 'full',
+          }),
+        { label: `Gmail.messages.get(${messageId})` }
+      );
 
       const message = response.data;
       const headers = message.payload.headers;
@@ -118,11 +128,15 @@ class GmailService {
         
         if (attachmentId) {
           try {
-            const attachment = await this.gmail.users.messages.attachments.get({
-              userId: 'me',
-              messageId: message.id,
-              id: attachmentId,
-            });
+            const attachment = await withRetry(
+              () =>
+                this.gmail.users.messages.attachments.get({
+                  userId: 'me',
+                  messageId: message.id,
+                  id: attachmentId,
+                }),
+              { label: `Gmail.attachments.get(${part.filename})` }
+            );
 
             attachments.push({
               filename: part.filename,
@@ -148,13 +162,17 @@ class GmailService {
    */
   async markAsRead(messageId) {
     try {
-      await this.gmail.users.messages.modify({
-        userId: 'me',
-        id: messageId,
-        requestBody: {
-          removeLabelIds: ['UNREAD'],
-        },
-      });
+      await withRetry(
+        () =>
+          this.gmail.users.messages.modify({
+            userId: 'me',
+            id: messageId,
+            requestBody: {
+              removeLabelIds: ['UNREAD'],
+            },
+          }),
+        { label: `Gmail.markAsRead(${messageId})` }
+      );
       logger.info(`Marked email ${messageId} as read`);
     } catch (error) {
       logger.error(`Error marking email as read:`, error);
