@@ -39,6 +39,7 @@ const HEADERS = [
   'Approval Notes',
   'Interested',
   'Decision Status',
+  'Titulo',
 ];
 
 const HEADER_KEY_MAP = {
@@ -65,6 +66,7 @@ const HEADER_KEY_MAP = {
   'Approval Notes': 'approvalNotes',
   'Interested': 'interested',
   'Decision Status': 'decisionStatus',
+  'Titulo': 'title',
 };
 
 const DEFAULT_STATUS = 'pending';
@@ -221,6 +223,10 @@ class SheetsService {
 
     if (data.decisionStatus !== undefined || !existingRow) {
       updates['Decision Status'] = data.decisionStatus || DEFAULT_DECISION_STATUS;
+    }
+
+    if (data.title !== undefined || !existingRow) {
+      updates['Titulo'] = data.title || '';
     }
 
     Object.entries(updates).forEach(([key, value]) => {

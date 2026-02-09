@@ -107,6 +107,7 @@ class PDFService {
     const rawBiddingCloseDate = this.extractBiddingCloseDate(text);
 
     const fields = {
+      title: this.createSummary(description), // Regex fallback uses summary as title
       location: this.extractLocation(text),
       description: description,
       summary: this.createSummary(description),

@@ -29,6 +29,32 @@ let notificationsEnabled = Notification.permission === 'granted';
 // View mode (cards, list, table)
 let currentViewMode = localStorage.getItem('viewMode') || 'cards';
 
+// Theme (light/dark)
+function getPreferredTheme() {
+    const stored = localStorage.getItem('theme');
+    if (stored) return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const toggle = document.getElementById('themeToggle');
+    if (toggle) toggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+    // Update meta theme-color for mobile browsers
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#4f46e5');
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+}
+
+// Apply theme immediately to prevent flash
+applyTheme(getPreferredTheme());
+
 const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 // Register service worker for PWA
@@ -56,7 +82,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Set initial view mode
     setViewMode(currentViewMode);
-    
+
+    // Listen for OS theme changes (only applies if user hasn't set explicit preference)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+            applyTheme(e.matches ? 'dark' : 'light');
+        }
+    });
+
     // Request notification permissions after a short delay
     setTimeout(async () => {
         await requestNotificationPermission();
@@ -333,7 +366,7 @@ function renderCalendar() {
 
                 const titleLabel = document.createElement('div');
                 titleLabel.className = 'calendar-event-title';
-                titleLabel.textContent = truncate(event.subject || 'Sin título', 60);
+                titleLabel.textContent = truncate(event.title || event.subject || 'Sin título', 60);
                 eventElement.appendChild(titleLabel);
 
                 const metaLabel = document.createElement('div');
@@ -415,7 +448,7 @@ function renderVisitList(events) {
 
         const title = document.createElement('div');
         title.className = 'visit-item-title';
-        title.textContent = event.subject || 'Sin título';
+        title.textContent = event.title || event.subject || 'Sin título';
         titleRow.appendChild(title);
 
         const status = (event.approvalStatus || 'pending').toLowerCase();
@@ -604,7 +637,7 @@ function renderDetailModal(lic) {
     badge.textContent = approvalStatus === 'approved' ? 'Aprobada' : approvalStatus === 'rejected' ? 'Rechazada' : 'Pendiente';
     badge.className = `detail-modal-badge status-${approvalStatus}`;
 
-    titleEl.textContent = lic.subject || 'Sin título';
+    titleEl.textContent = lic.title || lic.subject || 'Sin título';
     subtitle.textContent = [lic.location, lic.category].filter(Boolean).join(' · ');
 
     const pdfUrl = lic.pdfUrl || resolvePdfUrl(lic.pdfLink);
@@ -637,6 +670,7 @@ function renderDetailSections(lic) {
         <div class="detail-section">
             <h3>Información General</h3>
             <div class="detail-grid">
+                ${renderDetailItem('Asunto Email', lic.subject)}
                 ${renderDetailItem('Fecha del Email', lic.emailDate ? new Date(lic.emailDate).toLocaleString('es-PR') : '')}
                 ${renderDetailItem('Fecha de Procesamiento', lic.processedAt ? new Date(lic.processedAt).toLocaleString('es-PR') : '')}
                 ${renderDetailItem('Estado', badgeText(lic.approvalStatus))}
@@ -912,10 +946,28 @@ async function loadLicitaciones() {
     // Clear selection when loading new data
     clearSelection();
 
-    // Show loading
-    loadingState.style.display = 'block';
+    // Show skeleton loading
+    loadingState.style.display = 'none';
     emptyState.style.display = 'none';
     cardsGrid.innerHTML = '';
+    cardsGrid.className = `view-mode-${currentViewMode}`;
+    if (currentViewMode === 'cards') {
+        cardsGrid.innerHTML = Array(3).fill(`
+            <div class="skeleton-card">
+                <div class="skeleton-line skeleton-title"></div>
+                <div class="skeleton-line skeleton-badge"></div>
+                <div class="skeleton-line skeleton-text" style="width:90%"></div>
+                <div class="skeleton-line skeleton-text" style="width:60%"></div>
+                <div class="skeleton-line skeleton-text" style="width:45%"></div>
+                <div class="skeleton-section">
+                    <div class="skeleton-line skeleton-btn"></div>
+                    <div class="skeleton-line skeleton-btn"></div>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        loadingState.style.display = 'block';
+    }
 
     try {
         const filters = getCurrentFilters();
@@ -933,6 +985,7 @@ async function loadLicitaciones() {
                 const searchTerm = filters.search.toLowerCase().trim();
                 licitaciones = licitaciones.filter(lic => {
                     const searchableText = [
+                        lic.title || '',
                         lic.subject || '',
                         lic.location || '',
                         lic.description || '',
@@ -1111,7 +1164,7 @@ function createCard(lic) {
     card.innerHTML = `
         <input type="checkbox" class="card-checkbox" data-row="${lic.rowNumber}" onclick="toggleCardSelection(event, ${lic.rowNumber})">
         <div class="card-header">
-            <div class="card-title">${escapeHtml(lic.subject || 'Sin título')}</div>
+            <div class="card-title">${escapeHtml(lic.title || lic.subject || 'Sin título')}</div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 <button class="favorite-btn ${isFav ? 'favorited' : ''}" onclick="toggleFavorite(${lic.rowNumber}, event)" title="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
                     ${isFav ? '⭐' : '☆'}
@@ -1257,7 +1310,7 @@ function createListItem(lic) {
         <div class="list-item-content" onclick="openLicitacionDetails(${lic.id})">
             <div class="list-item-main">
                 <span class="list-item-icon">${typeIcon}</span>
-                <span class="list-item-title">${escapeHtml(lic.subject || 'Sin título')}</span>
+                <span class="list-item-title">${escapeHtml(lic.title || lic.subject || 'Sin título')}</span>
             </div>
             <div class="list-item-meta">
                 ${isVisit && siteVisitDateDisplay !== 'No disponible' ? 
@@ -1317,7 +1370,7 @@ function createTableView(licitaciones) {
                                 ${isFavorite(lic.rowNumber) ? '⭐' : '☆'}
                             </button>
                         </td>
-                        <td class="table-title">${escapeHtml(lic.subject || 'Sin título')}</td>
+                        <td class="table-title">${escapeHtml(lic.title || lic.subject || 'Sin título')}</td>
                         <td>${typeIcon} ${typeText}</td>
                         <td>${escapeHtml(lic.category || '-')}</td>
                         <td>${displayDate}</td>
@@ -1694,10 +1747,10 @@ function downloadCSV(csvContent, filename) {
  */
 function exportAllFiltered() {
     if (!currentLicitaciones || currentLicitaciones.length === 0) {
-        alert('No hay licitaciones para exportar');
+        showNotification('No hay licitaciones para exportar', 'warning');
         return;
     }
-    
+
     const csv = arrayToCSV(currentLicitaciones);
     const timestamp = new Date().toISOString().slice(0, 10);
     const filename = `licitaciones_${timestamp}.csv`;
@@ -1711,7 +1764,7 @@ function exportAllFiltered() {
  */
 function exportSelected() {
     if (selectedCards.size === 0) {
-        alert('No hay licitaciones seleccionadas para exportar');
+        showNotification('No hay licitaciones seleccionadas para exportar', 'warning');
         return;
     }
     
@@ -1809,6 +1862,12 @@ function setupKeyboardShortcuts() {
                 // Show keyboard shortcuts help
                 e.preventDefault();
                 showKeyboardShortcutsHelp();
+                break;
+
+            case 'd':
+                // Toggle dark mode
+                e.preventDefault();
+                toggleTheme();
                 break;
         }
     });
@@ -1937,32 +1996,67 @@ function generateSmartSuggestions(licitaciones) {
  * Show keyboard shortcuts help
  */
 function showKeyboardShortcutsHelp() {
-    const helpText = `
-╔══════════════════════════════════════╗
-║   ATAJOS DE TECLADO                  ║
-╠══════════════════════════════════════╣
-║  /   → Buscar                        ║
-║  R   → Refrescar                     ║
-║  C   → Limpiar filtros               ║
-║  E   → Exportar a CSV                ║
-║  S   → Calendario/Tarjetas           ║
-║  1   → Visitas esta semana           ║
-║  2   → Cierre pronto (7 días)        ║
-║  3   → Visitas pendientes            ║
-║  ?   → Mostrar esta ayuda            ║
-║  ESC → Cerrar modales/Desenfocar     ║
-╚══════════════════════════════════════╝
-    `.trim();
-    
-    alert(helpText);
+    // Show as a modal overlay instead of alert
+    let modal = document.getElementById('keyboardHelpModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'keyboardHelpModal';
+        modal.className = 'modal';
+        modal.style.display = 'none';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px;">
+                <div class="modal-header">
+                    <h2>Atajos de Teclado</h2>
+                    <button class="close-btn" onclick="document.getElementById('keyboardHelpModal').style.display='none'">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <div style="display: grid; grid-template-columns: 50px 1fr; gap: 8px 16px; font-size: 14px;">
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">/</kbd><span>Buscar</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">R</kbd><span>Refrescar</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">C</kbd><span>Limpiar filtros</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">E</kbd><span>Exportar a CSV</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">S</kbd><span>Calendario / Tarjetas</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">1</kbd><span>Visitas esta semana</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">2</kbd><span>Cierre pronto (7 d)</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">3</kbd><span>Visitas pendientes</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">D</kbd><span>Modo oscuro / claro</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">?</kbd><span>Mostrar esta ayuda</span>
+                        <kbd style="background: var(--color-bg); padding: 4px 8px; border-radius: 4px; text-align: center; font-weight: 600; border: 1px solid var(--color-border);">Esc</kbd><span>Cerrar / Desenfocar</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+        document.body.appendChild(modal);
+    }
+    modal.style.display = 'flex';
 }
 
 /**
- * Show notification
+ * Show toast notification
  */
 function showNotification(message, type = 'info') {
-    // Simple alert for now - can be enhanced with a toast library
-    alert(message);
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const icons = { success: '✓', error: '✗', warning: '⚠', info: 'ℹ' };
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || icons.info}</span>
+        <span class="toast-message">${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+        toast.classList.add('toast-exiting');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 
 function parseSheetDateValue(value) {
@@ -2347,7 +2441,7 @@ function isFavorite(licId) {
  */
 function showOnlyFavorites() {
     if (favorites.size === 0) {
-        alert('No tienes licitaciones en favoritos');
+        showNotification('No tienes licitaciones en favoritos', 'info');
         return;
     }
     
@@ -2355,7 +2449,7 @@ function showOnlyFavorites() {
     const favoriteLics = currentLicitaciones.filter(lic => isFavorite(lic.id || lic.rowNumber));
     
     if (favoriteLics.length === 0) {
-        alert('No hay favoritos en los resultados actuales');
+        showNotification('No hay favoritos en los resultados actuales', 'info');
         return;
     }
     
@@ -2392,26 +2486,26 @@ async function requestNotificationPermission() {
  */
 async function toggleNotifications() {
     if (!('Notification' in window)) {
-        alert('Tu navegador no soporta notificaciones');
+        showNotification('Tu navegador no soporta notificaciones', 'warning');
         return;
     }
     
     if (Notification.permission === 'denied') {
-        alert('Las notificaciones están bloqueadas. Por favor, habilítalas en la configuración de tu navegador.');
+        showNotification('Las notificaciones están bloqueadas. Habilítalas en la configuración de tu navegador.', 'warning');
         return;
     }
     
     if (Notification.permission === 'default') {
         const granted = await requestNotificationPermission();
         if (granted) {
-            alert('¡Notificaciones activadas! Recibirás alertas sobre visitas y cierres próximos.');
+            showNotification('Notificaciones activadas. Recibirás alertas sobre visitas y cierres próximos.', 'success');
             // Check immediately for upcoming events
             if (currentLicitaciones.length > 0) {
                 checkUpcomingEvents(currentLicitaciones);
             }
         }
     } else if (Notification.permission === 'granted') {
-        alert('Las notificaciones están activas. Para desactivarlas, hazlo desde la configuración de tu navegador.');
+        showNotification('Las notificaciones están activas.', 'info');
     }
 }
 
@@ -2488,18 +2582,18 @@ function setViewMode(mode) {
 function sendEmailToContact(licId, templateType = 'inquiry') {
     const lic = currentLicitaciones.find(l => l.rowNumber === licId);
     if (!lic || !lic.contactEmail) {
-        alert('No hay email de contacto disponible');
+        showNotification('No hay email de contacto disponible', 'warning');
         return;
     }
     
     const templates = {
         inquiry: {
-            subject: `Consulta sobre Licitación: ${lic.subject || ''}`,
+            subject: `Consulta sobre Licitación: ${lic.title || lic.subject || ''}`,
             body: `Estimado/a ${lic.contactName || 'contacto'},
 
 Saludos cordiales. Me comunico con respecto a la licitación:
 
-${lic.subject || 'N/A'}
+${lic.title || lic.subject || 'N/A'}
 
 Me gustaría obtener más información sobre:
 - [Agregar detalles específicos]
@@ -2517,7 +2611,7 @@ Saludos,
 [Tu teléfono]`
         },
         visitConfirmation: {
-            subject: `Confirmación de Visita - ${lic.subject || ''}`,
+            subject: `Confirmación de Visita - ${lic.title || lic.subject || ''}`,
             body: `Estimado/a ${lic.contactName || 'contacto'},
 
 Saludos cordiales.
@@ -2527,7 +2621,7 @@ Por medio de la presente, confirmo mi asistencia a la visita programada:
 📅 Fecha: ${lic.siteVisitDate || 'N/A'}
 🕐 Hora: ${lic.siteVisitTime || 'N/A'}
 📍 Lugar: ${lic.visitLocation || 'N/A'}
-📋 Licitación: ${lic.subject || 'N/A'}
+📋 Licitación: ${lic.title || lic.subject || 'N/A'}
 
 Por favor, confirme si necesita alguna información adicional o documentación previa.
 
@@ -2539,14 +2633,14 @@ Saludos,
 [Tu teléfono]`
         },
         followUp: {
-            subject: `Seguimiento - ${lic.subject || ''}`,
+            subject: `Seguimiento - ${lic.title || lic.subject || ''}`,
             body: `Estimado/a ${lic.contactName || 'contacto'},
 
 Saludos cordiales.
 
 Me comunico para dar seguimiento a la licitación:
 
-${lic.subject || 'N/A'}
+${lic.title || lic.subject || 'N/A'}
 
 Me gustaría conocer el estatus y si hay alguna actualización o documentación adicional requerida.
 
@@ -2573,7 +2667,7 @@ Saludos,
 function showEmailTemplateSelector(licId) {
     const lic = currentLicitaciones.find(l => l.rowNumber === licId);
     if (!lic || !lic.contactEmail) {
-        alert('No hay email de contacto disponible');
+        showNotification('No hay email de contacto disponible', 'warning');
         return;
     }
     
@@ -2629,17 +2723,17 @@ function closeEmailTemplateModal() {
  */
 function exportToICalendar() {
     if (!currentLicitaciones || currentLicitaciones.length === 0) {
-        alert('No hay licitaciones para exportar');
+        showNotification('No hay licitaciones para exportar', 'warning');
         return;
     }
-    
+
     // Filter for visits only (licitaciones with visit dates)
     const visits = currentLicitaciones.filter(lic => {
         return lic.siteVisitDate && lic.siteVisitDate !== 'No disponible';
     });
     
     if (visits.length === 0) {
-        alert('No hay visitas para exportar al calendario');
+        showNotification('No hay visitas para exportar al calendario', 'warning');
         return;
     }
     
@@ -2698,10 +2792,10 @@ function exportToICalendar() {
                     .replace(/\n/g, '\\n');
             };
             
-            const summary = escapeICalText(`Visita: ${lic.subject || 'Sin título'}`);
+            const summary = escapeICalText(`Visita: ${lic.title || lic.subject || 'Sin título'}`);
             const location = escapeICalText(lic.visitLocation || '');
             const description = escapeICalText(
-                `Licitación: ${lic.subject || ''}\\n` +
+                `Licitación: ${lic.title || lic.subject || ''}\\n` +
                 `Ubicación: ${lic.visitLocation || 'N/A'}\\n` +
                 `Contacto: ${lic.contactName || 'N/A'}\\n` +
                 `Teléfono: ${lic.contactPhone || 'N/A'}\\n` +
@@ -2728,7 +2822,7 @@ function exportToICalendar() {
             
             icalContent.push('END:VEVENT');
         } catch (error) {
-            console.error(`Error creating iCal event for ${lic.subject}:`, error);
+            console.error(`Error creating iCal event for ${lic.title || lic.subject}:`, error);
         }
     });
     
@@ -2746,7 +2840,7 @@ function exportToICalendar() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    alert(`✅ Se exportaron ${visits.length} visita(s) al calendario.\n\nAbre el archivo .ics para importarlo a Google Calendar, Apple Calendar, Outlook, etc.`);
+    showNotification(`Se exportaron ${visits.length} visita(s) al calendario. Abre el archivo .ics para importarlo.`, 'success');
 }
 
 /**
@@ -2809,7 +2903,7 @@ function checkUpcomingEvents(licitaciones) {
     visitsIn2Hours.forEach(lic => {
         showBrowserNotification(
             `🚨 Visita Próxima`,
-            `${lic.subject} - ${lic.siteVisitTime || 'Hora no especificada'}`,
+            `${lic.title || lic.subject} - ${lic.siteVisitTime || 'Hora no especificada'}`,
             {
                 tag: `visit-soon-${lic.rowNumber}`,
                 licitacionId: lic.id,

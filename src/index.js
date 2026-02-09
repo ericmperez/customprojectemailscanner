@@ -177,6 +177,7 @@ class LicitacionAgent {
                 emailId: emailDetails.id,
                 emailDate: emailDetails.date,
                 subject: emailDetails.subject,
+                title: pdfData.title,
                 location: pdfData.location,
                 description: pdfData.description,
                 summary: pdfData.summary,

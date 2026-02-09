@@ -42,6 +42,7 @@ ${pdfText.substring(0, 8000)}
 Extract the following information in JSON format:
 
 {
+  "title": "Short descriptive title (max 80 chars)",
   "location": "City/Municipality ONLY",
   "description": "Complete project description",
   "summary": "One-sentence summary (max 150 chars)",
@@ -58,6 +59,19 @@ Extract the following information in JSON format:
 }
 
 DETAILED EXTRACTION INSTRUCTIONS:
+
+🏷️ TITLE (title):
+- Generate a SHORT, DESCRIPTIVE title in Spanish (max 80 characters)
+- Must clearly describe WHAT the project/work is about
+- Include the type of work and key details (e.g., location, system, facility)
+- DO NOT use the email subject or licitación number as the title
+- DO NOT start with "Licitación para..." — be direct
+- Good examples:
+  * "Reparación Sistema de Filtros - Planta Guajataca"
+  * "Pintura y Mantenimiento Edificio Oficinas Caguas"
+  * "Suministro de Cloro Líquido para Plantas de Tratamiento"
+  * "Instalación Bombas Sumergibles - Estación Mayagüez"
+- Bad examples (too vague): "Servicios Varios", "Proyecto de Mantenimiento"
 
 📍 LOCATION (location):
 - Extract ONLY the municipality/city name
