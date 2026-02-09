@@ -346,11 +346,13 @@ app.get('/api/cron/process-emails', async (req, res) => {
 
   try {
     const agent = new LicitacionAgent();
-    await agent.runOnce();
+    // Limit batch size for serverless (60s max on Hobby plan)
+    const maxEmails = parseInt(process.env.CRON_MAX_EMAILS || '5', 10);
+    await agent.runOnce({ maxEmails });
 
     res.json({
       success: true,
-      message: 'Email processing completed',
+      message: `Email processing completed (batch limit: ${maxEmails})`,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

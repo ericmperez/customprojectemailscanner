@@ -93,7 +93,7 @@ class LicitacionAgent {
   /**
    * Main processing function - scans Gmail and processes new Licitación emails
    */
-  async processLicitacionEmails() {
+  async processLicitacionEmails({ maxEmails = 0 } = {}) {
     try {
       logger.info('=== Starting Licitación Email Processing ===');
 
@@ -124,14 +124,19 @@ class LicitacionAgent {
       let skippedBiddingClosed = 0;
       let errorCount = 0;
 
-      // Process each email
+      // Process each email (with optional batch limit for serverless)
       for (const message of messages) {
+        // Stop if we've hit the batch limit
+        if (maxEmails > 0 && processedCount >= maxEmails) {
+          logger.info(`Batch limit reached (${maxEmails}), stopping for this run`);
+          break;
+        }
+
         try {
           // Check if already processed
           const isProcessed = await this.supabaseService.isEmailProcessed(message.id);
-          
+
           if (isProcessed) {
-            logger.info(`Skipping already processed email: ${message.id}`);
             skippedAlreadyProcessed++;
             continue;
           }
@@ -292,9 +297,9 @@ class LicitacionAgent {
   /**
    * Run once without scheduling
    */
-  async runOnce() {
+  async runOnce(options = {}) {
     await this.initialize();
-    await this.processLicitacionEmails();
+    await this.processLicitacionEmails(options);
   }
 }
 
