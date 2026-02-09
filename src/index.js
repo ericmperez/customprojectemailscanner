@@ -9,6 +9,7 @@ import DriveService from './services/drive.service.js';
 import SchedulerService from './services/scheduler.service.js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 class LicitacionAgent {
   constructor() {
@@ -328,8 +329,11 @@ async function main() {
   }
 }
 
-// Run the agent
-main();
+// Only run the scheduler when executed directly (not when imported by Vercel cron)
+const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+if (isMainModule) {
+  main();
+}
 
 export { LicitacionAgent };
 

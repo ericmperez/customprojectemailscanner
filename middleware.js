@@ -13,7 +13,8 @@ export default function middleware(request) {
   const url = new URL(request.url);
 
   // Allow health check without auth (for uptime monitors)
-  if (url.pathname === '/api/health') {
+  // Allow cron endpoint (uses its own CRON_SECRET verification)
+  if (url.pathname === '/api/health' || url.pathname === '/api/cron/process-emails') {
     return;
   }
 

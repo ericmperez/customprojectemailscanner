@@ -329,6 +329,37 @@ app.get('/api/visits', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Cron endpoint — Vercel Cron Job triggers this daily
+// ---------------------------------------------------------------------------
+
+app.get('/api/cron/process-emails', async (req, res) => {
+  // Verify CRON_SECRET (Vercel sends it as Authorization: Bearer <token>)
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+  }
+
+  try {
+    // Dynamic import — only load the heavy agent when cron fires
+    const { LicitacionAgent } = await import('../src/index.js');
+    const agent = new LicitacionAgent();
+    await agent.runOnce();
+
+    res.json({
+      success: true,
+      message: 'Email processing completed',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Cron job error:', error);
+    errorResponse(res, 500, error);
+  }
+});
+
 // Serve index.html for root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public', 'index.html'));

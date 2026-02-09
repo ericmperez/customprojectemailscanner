@@ -1,5 +1,16 @@
 {
   "version": 2,
+  "crons": [
+    {
+      "path": "/api/cron/process-emails",
+      "schedule": "0 10 * * *"
+    }
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
