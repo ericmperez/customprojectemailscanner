@@ -6,7 +6,13 @@ logs
 credentials.json
 token.json
 src/setup/
-src/utils/
+src/utils/migrate-*.js
+src/utils/process-*.js
+src/utils/remove-*.js
+src/utils/reset-*.js
+src/utils/setup-*.js
+src/utils/test-*.js
+src/utils/add-headers.js
 tests/
 *.sql
 *.md

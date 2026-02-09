@@ -73,8 +73,8 @@ class LicitacionAgent {
       validateConfig();
       logger.info('Configuration validated successfully');
 
-      // Ensure logs directory exists
-      if (!fs.existsSync('logs')) {
+      // Ensure logs directory exists (skip in serverless — filesystem is read-only)
+      if (!process.env.VERCEL && !fs.existsSync('logs')) {
         fs.mkdirSync('logs');
       }
 
