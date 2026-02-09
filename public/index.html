@@ -51,7 +51,7 @@
                 <select id="sortSelect">
                     <option value="">Sin ordenar</option>
                     <option value="visit-date-asc">📅 Visita más cercana</option>
-                    <option value="close-date-asc">⏰ Cierre más cercano</option>
+                    <option value="close-date-asc" selected>⏰ Cierre más cercano</option>
                     <option value="email-date-desc">📧 Más reciente</option>
                     <option value="email-date-asc">📧 Más antigua</option>
                     <option value="title-asc">🔤 A-Z (Título)</option>
@@ -73,11 +73,29 @@
                 <label for="categoryFilter">Categoría:</label>
                 <select id="categoryFilter">
                     <option value="">Todas</option>
-                    <option value="Suministros">Suministros</option>
-                    <option value="Servicios">Servicios</option>
-                    <option value="Construcción">Construcción</option>
-                    <option value="Obras">Obras</option>
                 </select>
+            </div>
+
+            <div class="filter-group filter-group-checkbox">
+                <label>Pueblo:</label>
+                <div class="checkbox-dropdown" id="townDropdown">
+                    <button type="button" class="checkbox-dropdown-toggle" id="townDropdownToggle">
+                        <span id="townDropdownLabel">Todos los pueblos</span>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div class="checkbox-dropdown-menu" id="townDropdownMenu" style="display: none;">
+                        <div class="checkbox-search">
+                            <input type="text" id="townSearchInput" placeholder="Buscar pueblo...">
+                        </div>
+                        <div class="checkbox-options" id="townOptions">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <div class="checkbox-actions">
+                            <button type="button" class="btn-link" onclick="selectAllTowns()">Seleccionar todos</button>
+                            <button type="button" class="btn-link" onclick="clearAllTowns()">Limpiar</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="filter-group">

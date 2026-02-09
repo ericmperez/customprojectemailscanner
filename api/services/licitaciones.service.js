@@ -94,6 +94,18 @@ class LicitacionesService {
   }
 
   /**
+   * Get distinct filter values (towns and categories) from the data
+   */
+  async getDistinctFilterValues() {
+    try {
+      return await this.sheetsService.getDistinctFilterValues();
+    } catch (error) {
+      console.error('Error getting distinct filter values:', error);
+      return { towns: [], categories: [] };
+    }
+  }
+
+  /**
    * Get licitations that have a scheduled site visit
    */
   async getSiteVisitEvents(filters = {}) {

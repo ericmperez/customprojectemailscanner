@@ -134,6 +134,19 @@ app.get('/api/health', async (_req, res) => {
 // ---------------------------------------------------------------------------
 
 /**
+ * GET /api/filter-options — distinct towns & categories for dynamic filters
+ */
+app.get('/api/filter-options', async (_req, res) => {
+  try {
+    const options = await licitacionesService.getDistinctFilterValues();
+    res.json({ success: true, data: options });
+  } catch (error) {
+    console.error('Error fetching filter options:', error);
+    errorResponse(res, 500, error);
+  }
+});
+
+/**
  * GET /api/licitaciones
  */
 app.get('/api/licitaciones', async (req, res) => {
@@ -155,6 +168,7 @@ app.get('/api/licitaciones', async (req, res) => {
     const filters = {
       status: req.query.status,
       category: req.query.category,
+      type: req.query.type,
       priority: req.query.priority,
       visitLocation: visitLocationFilter.filter(Boolean),
       town: townFilter.filter(Boolean),

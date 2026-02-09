@@ -20,6 +20,9 @@ let currentLicitaciones = [];
 // Favorites
 let favorites = new Set(JSON.parse(localStorage.getItem('licitacion_favorites') || '[]'));
 
+// Town selection for filter
+const selectedTowns = new Set();
+
 // Notifications
 let notificationsEnabled = Notification.permission === 'granted';
 
@@ -43,6 +46,8 @@ if ('serviceWorker' in navigator) {
 
 // Load licitaciones on page load
 document.addEventListener('DOMContentLoaded', async () => {
+    loadFilterOptions();
+    setupTownDropdown();
     loadStats();
     loadLicitaciones();
     
@@ -127,6 +132,7 @@ function getCurrentFilters() {
         type: document.getElementById('typeFilter')?.value || '',
         dateRange: document.getElementById('dateRangeFilter')?.value || '',
         search: document.getElementById('searchInput')?.value || '',
+        town: Array.from(selectedTowns),
     };
 }
 
@@ -1019,6 +1025,12 @@ function createCard(lic) {
     
     card.className = `card status-${approvalStatus} ${isVisit ? 'has-visit' : ''}`;
     card.dataset.rowNumber = lic.rowNumber;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+        // Don't open detail if clicking buttons, links, checkboxes, or favorites
+        if (e.target.closest('button, a, input, .favorite-btn, .card-actions')) return;
+        openLicitacionDetails(lic.id);
+    });
 
     // Format dates
     const emailDate = lic.emailDate ? new Date(lic.emailDate).toLocaleDateString('es-PR') : 'N/A';
@@ -1029,16 +1041,82 @@ function createCard(lic) {
     const siteVisitTimeDisplay = formatTimeLabel(lic.siteVisitTime);
     const siteVisitTimeLine = siteVisitTimeDisplay || (siteVisitDateDisplay !== 'No disponible' ? 'Sin hora' : '');
 
+    // Compute urgency badge
+    // Visits are inherently more urgent (physical presence required, tight turnarounds)
+    let urgencyHtml = '';
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    if (isVisit) {
+        // For visits: use the EARLIEST deadline (visit date or close date)
+        let deadlineDate = null;
+        let deadlineLabel = 'Visita';
+
+        if (lic.siteVisitDate && lic.siteVisitDate !== 'No disponible') {
+            const vd = new Date(lic.siteVisitDate);
+            if (!Number.isNaN(vd.getTime())) deadlineDate = vd;
+        }
+        if (lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible') {
+            const cd = new Date(lic.biddingCloseDate);
+            if (!Number.isNaN(cd.getTime()) && (!deadlineDate || cd < deadlineDate)) {
+                deadlineDate = cd;
+                deadlineLabel = 'Cierra';
+            }
+        }
+
+        if (deadlineDate) {
+            const daysRemaining = Math.ceil((deadlineDate - now) / (1000 * 60 * 60 * 24));
+
+            // Compute turnaround: how many total days between email received and deadline
+            let turnaroundDays = Infinity;
+            if (lic.emailDate) {
+                const emailDate = new Date(lic.emailDate);
+                if (!Number.isNaN(emailDate.getTime())) {
+                    turnaroundDays = Math.ceil((deadlineDate - emailDate) / (1000 * 60 * 60 * 24));
+                }
+            }
+
+            // Short turnaround (≤7 days total) bumps urgency: critical if ≤5 days left
+            const isTightTurnaround = turnaroundDays <= 7;
+
+            if (daysRemaining >= 0) {
+                const dayLabel = daysRemaining === 1 ? 'día' : 'días';
+                if (daysRemaining <= 3 || (isTightTurnaround && daysRemaining <= 5)) {
+                    urgencyHtml = `<span class="urgency-badge urgency-critical">🔥 ${deadlineLabel} en ${daysRemaining} ${dayLabel}</span>`;
+                } else if (daysRemaining <= 7 || (isTightTurnaround && daysRemaining <= 10)) {
+                    urgencyHtml = `<span class="urgency-badge urgency-high">⚠️ ${deadlineLabel} en ${daysRemaining} ${dayLabel}</span>`;
+                } else if (daysRemaining <= 10) {
+                    urgencyHtml = `<span class="urgency-badge urgency-high">⚠️ ${deadlineLabel} en ${daysRemaining} días</span>`;
+                }
+            }
+        }
+    } else {
+        // Non-visits: standard close-date urgency
+        if (lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible') {
+            const closeDate = new Date(lic.biddingCloseDate);
+            if (!Number.isNaN(closeDate.getTime())) {
+                const diffDays = Math.ceil((closeDate - now) / (1000 * 60 * 60 * 24));
+                if (diffDays >= 0 && diffDays <= 3) {
+                    const dayLabel = diffDays === 1 ? 'día' : 'días';
+                    urgencyHtml = `<span class="urgency-badge urgency-critical">🔥 Cierra en ${diffDays} ${dayLabel}</span>`;
+                } else if (diffDays >= 4 && diffDays <= 7) {
+                    urgencyHtml = `<span class="urgency-badge urgency-high">⚠️ Cierra en ${diffDays} días</span>`;
+                }
+            }
+        }
+    }
+
     const isFav = isFavorite(lic.rowNumber);
-    
+
     card.innerHTML = `
         <input type="checkbox" class="card-checkbox" data-row="${lic.rowNumber}" onclick="toggleCardSelection(event, ${lic.rowNumber})">
         <div class="card-header">
             <div class="card-title">${escapeHtml(lic.subject || 'Sin título')}</div>
-            <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 <button class="favorite-btn ${isFav ? 'favorited' : ''}" onclick="toggleFavorite(${lic.rowNumber}, event)" title="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
                     ${isFav ? '⭐' : '☆'}
                 </button>
+                ${urgencyHtml}
                 <span class="type-badge ${typeBadgeClass}">${typeText}</span>
             </div>
         </div>
@@ -1176,7 +1254,7 @@ function createListItem(lic) {
         <button class="favorite-btn-small ${isFavorite(lic.rowNumber) ? 'favorited' : ''}" onclick="toggleFavorite(${lic.rowNumber}, event)">
             ${isFavorite(lic.rowNumber) ? '⭐' : '☆'}
         </button>
-        <div class="list-item-content" onclick="openDetailModal(${lic.rowNumber})">
+        <div class="list-item-content" onclick="openLicitacionDetails(${lic.id})">
             <div class="list-item-main">
                 <span class="list-item-icon">${typeIcon}</span>
                 <span class="list-item-title">${escapeHtml(lic.subject || 'Sin título')}</span>
@@ -1230,7 +1308,7 @@ function createTableView(licitaciones) {
                 const statusBadge = badgeText(lic.approvalStatus || 'pending');
                 
                 return `
-                    <tr class="table-row status-${(lic.approvalStatus || 'pending').toLowerCase()}" onclick="openDetailModal(${lic.rowNumber})">
+                    <tr class="table-row status-${(lic.approvalStatus || 'pending').toLowerCase()}" onclick="openLicitacionDetails(${lic.id})">
                         <td onclick="event.stopPropagation()">
                             <input type="checkbox" class="item-checkbox" data-row="${lic.rowNumber}" onclick="toggleCardSelection(event, ${lic.rowNumber})">
                         </td>
@@ -1444,8 +1522,9 @@ function clearFilters() {
     document.getElementById('typeFilter').value = '';
     document.getElementById('dateRangeFilter').value = '';
     document.getElementById('searchInput').value = '';
-    document.getElementById('sortSelect').value = '';
-    
+    document.getElementById('sortSelect').value = 'close-date-asc';
+    clearAllTowns();
+
     handleFilterChange();
 }
 
@@ -2049,6 +2128,157 @@ function truncate(text, maxLength) {
     return text.substring(0, maxLength) + '...';
 }
 
+/**
+ * Extract town name from a location string (e.g. "San Juan, PR" → "San Juan")
+ */
+function extractTownFromLocation(location) {
+    if (!location || location === 'No disponible') return '';
+    const parts = location.split(',');
+    return (parts[0] || '').trim();
+}
+
+/**
+ * Fetch filter options from API and populate category select & town checkboxes
+ */
+async function loadFilterOptions() {
+    try {
+        const response = await fetch(`${API_BASE}/api/filter-options`);
+        const result = await response.json();
+        if (!result.success) return;
+
+        const { towns, categories } = result.data;
+
+        // Populate category select
+        const categorySelect = document.getElementById('categoryFilter');
+        if (categorySelect && categories.length > 0) {
+            // Keep the first "Todas" option, remove the rest
+            while (categorySelect.options.length > 1) {
+                categorySelect.remove(1);
+            }
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                categorySelect.appendChild(opt);
+            });
+        }
+
+        // Populate town checkboxes
+        const townOptions = document.getElementById('townOptions');
+        if (townOptions && towns.length > 0) {
+            townOptions.innerHTML = '';
+            towns.forEach(town => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-option';
+                div.dataset.town = town.toLowerCase();
+                div.innerHTML = `
+                    <input type="checkbox" id="town_${town.replace(/\s+/g, '_')}" value="${town}">
+                    <label for="town_${town.replace(/\s+/g, '_')}">${town}</label>
+                `;
+                const checkbox = div.querySelector('input');
+                checkbox.addEventListener('change', () => handleTownChange(town, checkbox.checked));
+                div.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        handleTownChange(town, checkbox.checked);
+                    }
+                });
+                townOptions.appendChild(div);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading filter options:', error);
+    }
+}
+
+/**
+ * Setup town dropdown open/close behavior
+ */
+function setupTownDropdown() {
+    const toggle = document.getElementById('townDropdownToggle');
+    const menu = document.getElementById('townDropdownMenu');
+    const searchInput = document.getElementById('townSearchInput');
+    if (!toggle || !menu) return;
+
+    toggle.addEventListener('click', () => {
+        const isOpen = menu.style.display !== 'none';
+        menu.style.display = isOpen ? 'none' : 'flex';
+        toggle.classList.toggle('active', !isOpen);
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#townDropdown')) {
+            menu.style.display = 'none';
+            toggle.classList.remove('active');
+        }
+    });
+
+    // Search within dropdown
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase();
+            const options = document.querySelectorAll('#townOptions .checkbox-option');
+            options.forEach(opt => {
+                const matches = opt.dataset.town.includes(query);
+                opt.style.display = matches ? 'flex' : 'none';
+            });
+        });
+    }
+}
+
+/**
+ * Handle town checkbox change
+ */
+function handleTownChange(town, isChecked) {
+    if (isChecked) {
+        selectedTowns.add(town);
+    } else {
+        selectedTowns.delete(town);
+    }
+    updateTownDropdownLabel();
+    handleFilterChange();
+}
+
+/**
+ * Update town dropdown toggle label
+ */
+function updateTownDropdownLabel() {
+    const label = document.getElementById('townDropdownLabel');
+    if (!label) return;
+
+    if (selectedTowns.size === 0) {
+        label.textContent = 'Todos los pueblos';
+    } else if (selectedTowns.size === 1) {
+        label.textContent = [...selectedTowns][0];
+    } else {
+        label.textContent = `${selectedTowns.size} pueblos`;
+    }
+}
+
+/**
+ * Select all towns
+ */
+function selectAllTowns() {
+    const checkboxes = document.querySelectorAll('#townOptions input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.checked = true;
+        selectedTowns.add(cb.value);
+    });
+    updateTownDropdownLabel();
+    handleFilterChange();
+}
+
+/**
+ * Clear all town selections
+ */
+function clearAllTowns() {
+    selectedTowns.clear();
+    const checkboxes = document.querySelectorAll('#townOptions input[type="checkbox"]');
+    checkboxes.forEach(cb => { cb.checked = false; });
+    updateTownDropdownLabel();
+}
+
 // Close modal when clicking outside
 document.addEventListener('click', (e) => {
     const notesModal = document.getElementById('notesModal');
@@ -2223,9 +2453,9 @@ function showBrowserNotification(title, body, data = {}) {
             window.focus();
             notification.close();
             
-            // If there's a rowNumber, open the detail modal
-            if (data.rowNumber) {
-                openDetailModal(data.rowNumber);
+            // If there's a licitacion ID, open the detail modal
+            if (data.licitacionId) {
+                openLicitacionDetails(data.licitacionId);
             }
         };
     } catch (error) {
@@ -2580,9 +2810,9 @@ function checkUpcomingEvents(licitaciones) {
         showBrowserNotification(
             `🚨 Visita Próxima`,
             `${lic.subject} - ${lic.siteVisitTime || 'Hora no especificada'}`,
-            { 
+            {
                 tag: `visit-soon-${lic.rowNumber}`,
-                rowNumber: lic.rowNumber,
+                licitacionId: lic.id,
                 requireInteraction: true
             }
         );

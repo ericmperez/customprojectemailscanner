@@ -395,8 +395,14 @@ class SheetsService {
       );
     }
 
+    // Hide auto-rejected (expired) licitaciones from API response
+    const visibleLicitaciones = licitaciones.filter(lic => {
+      const notes = (lic.approvalNotes || '').toString();
+      return !notes.includes('[Auto-rechazado');
+    });
+
     // Reverse to show newest (highest row numbers) first
-    const sortedLicitaciones = licitaciones.reverse();
+    const sortedLicitaciones = visibleLicitaciones.reverse();
 
     return this._applyFilters(sortedLicitaciones, filters);
   }
@@ -529,6 +535,30 @@ class SheetsService {
     return { total, pending, approved, rejected };
   }
 
+  async getDistinctFilterValues() {
+    const licitaciones = await this.getLicitaciones();
+
+    const townSet = new Set();
+    const categorySet = new Set();
+
+    for (const lic of licitaciones) {
+      const loc = (lic.location || '').trim();
+      if (loc && loc.toLowerCase() !== 'no disponible') {
+        townSet.add(loc);
+      }
+      const cat = (lic.category || '').trim();
+      if (cat && cat.toLowerCase() !== 'no clasificado') {
+        categorySet.add(cat);
+      }
+    }
+
+    const collator = new Intl.Collator('es', { sensitivity: 'base' });
+    return {
+      towns: [...townSet].sort(collator.compare),
+      categories: [...categorySet].sort(collator.compare),
+    };
+  }
+
   async getSiteVisitEvents(filters = {}) {
     const licitaciones = await this.getLicitaciones(filters);
 
@@ -631,6 +661,14 @@ class SheetsService {
           return !location || location.toLowerCase() === 'no disponible';
         });
       }
+    }
+
+    if (filters.town && Array.isArray(filters.town) && filters.town.length > 0) {
+      const lowerTowns = filters.town.map(t => t.toLowerCase());
+      result = result.filter(lic => {
+        const loc = (lic.location || '').toLowerCase();
+        return lowerTowns.some(t => loc.includes(t));
+      });
     }
 
     if (filters.interested !== undefined) {
