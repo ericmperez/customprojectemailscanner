@@ -6,7 +6,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 import LicitacionesService from './services/licitaciones.service.js';
-import { LicitacionAgent } from '../src/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -345,6 +344,7 @@ app.get('/api/cron/process-emails', async (req, res) => {
   }
 
   try {
+    const { LicitacionAgent } = await import('../src/index.js');
     const agent = new LicitacionAgent();
     await agent.runOnce();
 
