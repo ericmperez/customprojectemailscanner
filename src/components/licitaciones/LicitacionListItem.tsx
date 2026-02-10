@@ -44,10 +44,12 @@ export function LicitacionListItem({
         checked={isSelected}
         onChange={() => onToggleSelection(lic.rowNumber)}
         onClick={(e) => e.stopPropagation()}
+        aria-label="Seleccionar licitación"
       />
       <button
         className="text-base hover:scale-110 transition-transform shrink-0"
         onClick={(e) => { e.stopPropagation(); onToggleFavorite(lic.rowNumber); }}
+        aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
       >
         {isFavorite ? '⭐' : '☆'}
       </button>
@@ -55,6 +57,7 @@ export function LicitacionListItem({
         className="text-base hover:scale-110 transition-transform shrink-0"
         onClick={(e) => { e.stopPropagation(); onToggleInterested(lic.id, !lic.interested); }}
         title={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
+        aria-label={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
       >
         {lic.interested ? '❤️' : '🤍'}
       </button>
@@ -103,6 +106,7 @@ export function LicitacionListItem({
           className="text-sm hover:scale-110 transition-transform text-gray-400 hover:text-red-500 shrink-0"
           onClick={(e) => { e.stopPropagation(); onQuickDismiss(lic.id); }}
           title="Descartar"
+          aria-label="Descartar licitación"
         >
           ✕
         </button>

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import LicitacionesService from '@/lib/services/licitaciones.service';
-import type { PriceResult } from '@/lib/types';
+import type { PriceResult, QuoteItem } from '@/lib/types';
 
 export const maxDuration = 30;
 
@@ -13,46 +12,29 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-const licitacionesService = new LicitacionesService();
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const numId = parseInt(id, 10);
-  if (isNaN(numId) || numId < 1) {
-    return NextResponse.json(
-      { success: false, error: 'ID must be a positive integer' },
-      { status: 400 }
-    );
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    const lic = await licitacionesService.getLicitacionById(numId);
-    if (!lic) {
-      return NextResponse.json(
-        { success: false, error: 'Licitacion not found' },
-        { status: 404 }
-      );
-    }
+    const body = await request.json().catch(() => ({}));
+    const items: QuoteItem[] = body.items;
 
-    const description = (lic.description || '').slice(0, 2000);
-    if (!description || description === 'No disponible') {
+    if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No description available for price search' },
+        { success: false, error: 'Items array is required' },
         { status: 400 }
       );
     }
 
-    const query = `${lic.title || lic.subject || ''} - ${description}`.slice(0, 2500);
+    // Build a concise item list for the search prompt
+    const itemList = items
+      .map((it, i) => `${i + 1}. ${it.item} — qty: ${it.qty} ${it.unit}`)
+      .join('\n');
 
     const response = await getOpenAI().responses.create({
       model: 'gpt-4o',
       tools: [{ type: 'web_search' as const }],
       instructions: `You are a procurement price research assistant for Puerto Rico government licitaciones (bids).
 
-Given the description of items/materials/services from a licitación, search the web and find exactly 3 real market prices for the most important items mentioned.
+Given a list of items with quantities, search the web and find a real market price for EACH item.
 
 PRIORITIZE these sources:
 1. Puerto Rico / Caribbean suppliers and distributors
@@ -60,38 +42,41 @@ PRIORITIZE these sources:
 3. Major US distributors (Grainger, Home Depot Pro, HD Supply, Amazon Business, Uline)
 4. Manufacturer websites with MSRP
 
-RESPOND ONLY with a JSON array of exactly 3 objects with this structure:
+RESPOND ONLY with a JSON array with one object per item, in the same order as the input list:
 [
   {
-    "item": "specific item name",
-    "price": "$X,XXX.XX (include units like per unit, per box, per sqft)",
+    "item": "item name from the list",
+    "qty": <quantity from list>,
+    "unit": "unit from list",
+    "price": "$X,XXX.XX per <unit>",
     "sourceUrl": "https://actual-url-found",
     "sourceName": "Name of the supplier/website",
-    "notes": "brief relevance note (e.g. 'Closest match for PR market')"
+    "notes": "brief relevance note"
   }
 ]
 
 IMPORTANT:
+- Find a price for EVERY item in the list — do not skip any
 - Use REAL prices from REAL websites found via web search
 - Include the actual source URL where the price was found
-- If exact items aren't found, find the closest equivalent
-- Prices should include units (per unit, per gallon, per sqft, etc.)
+- Price should be per-unit cost (not total), include the unit
+- If an exact item isn't found, find the closest equivalent and note it
 - Keep notes brief (under 60 chars)`,
-      input: query,
+      input: itemList,
     });
 
     const outputText = response.output_text;
     let results: PriceResult[] = [];
 
-    // Try to parse JSON from the response
     try {
-      // Extract JSON array from response (may be wrapped in markdown code blocks)
       const jsonMatch = outputText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         if (Array.isArray(parsed)) {
           results = parsed.map((r: Record<string, unknown>) => ({
             item: String(r.item || ''),
+            qty: Number(r.qty) || 1,
+            unit: String(r.unit || 'units'),
             price: String(r.price || ''),
             sourceUrl: String(r.sourceUrl || ''),
             sourceName: String(r.sourceName || ''),
@@ -102,12 +87,14 @@ IMPORTANT:
     } catch {
       // Fallback: try to extract price-like patterns from plain text
       const lines = outputText.split('\n').filter((l: string) => l.includes('$'));
-      results = lines.slice(0, 3).map((line: string) => {
+      results = lines.slice(0, items.length).map((line: string, i: number) => {
         const priceMatch = line.match(/\$[\d,.]+/);
         const urlMatch = line.match(/https?:\/\/[^\s)]+/);
         return {
-          item: line.replace(/\$[\d,.]+/, '').replace(/https?:\/\/[^\s)]+/, '').trim().slice(0, 100),
-          price: priceMatch ? priceMatch[0] : 'Price not parsed',
+          item: items[i]?.item || line.trim().slice(0, 100),
+          qty: items[i]?.qty || 1,
+          unit: items[i]?.unit || 'units',
+          price: priceMatch ? priceMatch[0] : 'Price not found',
           sourceUrl: urlMatch ? urlMatch[0] : '',
           sourceName: 'Web search',
           notes: 'Extracted from search results',
@@ -119,12 +106,11 @@ IMPORTANT:
       success: true,
       data: {
         results,
-        query: (lic.title || lic.subject || '').slice(0, 200),
         searchedAt: new Date().toISOString(),
       },
     });
   } catch (error) {
-    console.error(`Error searching prices for licitación ${id}:`, error);
+    console.error('Error searching prices:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to search prices' },
       { status: 500 }

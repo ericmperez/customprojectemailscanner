@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { FilterOptions } from '@/lib/types';
@@ -30,6 +31,7 @@ interface FilterBarProps {
   onSavePreset: (name: string) => void;
   onDeletePreset: (id: string) => void;
   onRenamePreset: (id: string, newName: string) => void;
+  onOpenSettings: () => void;
 }
 
 export function FilterBar({
@@ -53,6 +55,7 @@ export function FilterBar({
   onSavePreset,
   onDeletePreset,
   onRenamePreset,
+  onOpenSettings,
 }: FilterBarProps) {
   const [townDropdownOpen, setTownDropdownOpen] = useState(false);
   const [townSearch, setTownSearch] = useState('');
@@ -85,7 +88,9 @@ export function FilterBar({
       {/* Top row: Search + Sort + mobile toggles */}
       <div className="flex gap-2 flex-wrap">
         <div className="flex-1 min-w-0">
+          <label className="sr-only" htmlFor="search-licitaciones">Buscar licitaciones</label>
           <Input
+            id="search-licitaciones"
             ref={searchInputRef}
             placeholder="Buscar..."
             value={filters.search}
@@ -98,6 +103,7 @@ export function FilterBar({
           className="rounded-md border bg-background px-2 py-2 text-sm min-w-0 max-w-[140px] sm:max-w-none sm:px-3"
           value={filters.sort}
           onChange={(e) => onFilterChange('sort', e.target.value)}
+          aria-label="Ordenar por"
         >
           <option value="">Ordenar</option>
           <option value="visit-date-asc">Visita +cercana</option>
@@ -138,6 +144,7 @@ export function FilterBar({
           className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
           value={filters.status}
           onChange={(e) => onFilterChange('status', e.target.value)}
+          aria-label="Filtrar por estado"
         >
           <option value="">Todos</option>
           <option value="pending">Pendientes</option>
@@ -149,6 +156,7 @@ export function FilterBar({
           className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
           value={filters.category}
           onChange={(e) => onFilterChange('category', e.target.value)}
+          aria-label="Filtrar por categoría"
         >
           <option value="">Categorias</option>
           {filterOptions.categories.map((cat) => (
@@ -164,6 +172,7 @@ export function FilterBar({
             type="button"
             className="rounded-md border bg-background px-2 py-2 text-sm flex items-center gap-2 w-full sm:w-auto sm:min-w-[160px] sm:px-3"
             onClick={() => setTownDropdownOpen(!townDropdownOpen)}
+            aria-label="Filtrar por pueblo"
           >
             <span className="truncate">{townLabel}</span>
             <span className="text-xs ml-auto">{townDropdownOpen ? '▲' : '▼'}</span>
@@ -216,6 +225,7 @@ export function FilterBar({
           className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
           value={filters.type}
           onChange={(e) => onFilterChange('type', e.target.value)}
+          aria-label="Filtrar por tipo"
         >
           <option value="">Tipo</option>
           <option value="visits">Visitas</option>
@@ -226,6 +236,7 @@ export function FilterBar({
           className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
           value={filters.priority}
           onChange={(e) => onFilterChange('priority', e.target.value)}
+          aria-label="Filtrar por prioridad"
         >
           <option value="">Prioridad</option>
           <option value="High">Alta</option>
@@ -237,6 +248,7 @@ export function FilterBar({
           className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
           value={filters.dateRange}
           onChange={(e) => onFilterChange('dateRange', e.target.value)}
+          aria-label="Filtrar por fecha"
         >
           <option value="">Fechas</option>
           <option value="next-week">Proxima semana</option>
@@ -322,6 +334,7 @@ export function FilterBar({
               className={`px-2.5 py-1.5 text-sm ${viewMode === mode ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
               onClick={() => onSetViewMode(mode)}
               title={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
+              aria-label={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
             >
               {mode === 'cards' ? '⊞' : mode === 'list' ? '☰' : '⊟'}
             </button>
@@ -333,9 +346,19 @@ export function FilterBar({
         </Button>
 
         <button
+          className="rounded-md border bg-background p-2 hover:bg-muted transition-colors"
+          onClick={onOpenSettings}
+          title="Configuracion de confianza"
+          aria-label="Configuracion de confianza"
+        >
+          <Settings className="h-4 w-4" />
+        </button>
+
+        <button
           className="text-lg px-1 hover:opacity-70 transition-opacity"
           onClick={onToggleTheme}
           title="Cambiar tema"
+          aria-label="Cambiar tema claro/oscuro"
         >
           🌓
         </button>

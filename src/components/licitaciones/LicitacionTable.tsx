@@ -48,6 +48,7 @@ export function LicitacionTable({
                     onSelectAll(licitaciones.map((l) => l.rowNumber));
                   }
                 }}
+                aria-label="Seleccionar todas"
               />
             </th>
             <th className="p-2 text-left w-8"></th>
@@ -85,12 +86,14 @@ export function LicitacionTable({
                     type="checkbox"
                     checked={isSelected(lic.rowNumber)}
                     onChange={() => onToggleSelection(lic.rowNumber)}
+                    aria-label="Seleccionar licitación"
                   />
                 </td>
                 <td className="p-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     className="hover:scale-110 transition-transform"
                     onClick={() => onToggleFavorite(lic.rowNumber)}
+                    aria-label={isFavorite(lic.rowNumber) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                   >
                     {isFavorite(lic.rowNumber) ? '⭐' : '☆'}
                   </button>
@@ -100,6 +103,7 @@ export function LicitacionTable({
                     className="hover:scale-110 transition-transform"
                     onClick={() => onToggleInterested(lic.id, !lic.interested)}
                     title={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
+                    aria-label={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
                   >
                     {lic.interested ? '❤️' : '🤍'}
                   </button>
@@ -150,6 +154,7 @@ export function LicitacionTable({
                       className="hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded p-1"
                       onClick={() => onApprove(lic.rowNumber)}
                       title="Aprobar"
+                      aria-label="Aprobar licitación"
                     >
                       ✓
                     </button>
@@ -157,6 +162,7 @@ export function LicitacionTable({
                       className="hover:bg-red-100 dark:hover:bg-red-900 rounded p-1"
                       onClick={() => onReject(lic.rowNumber)}
                       title="Rechazar"
+                      aria-label="Rechazar licitación"
                     >
                       ✗
                     </button>
@@ -165,6 +171,7 @@ export function LicitacionTable({
                         className="hover:bg-red-100 dark:hover:bg-red-900 rounded p-1 text-gray-400 hover:text-red-500"
                         onClick={() => onQuickDismiss(lic.id)}
                         title="Descartar"
+                        aria-label="Descartar licitación"
                       >
                         ✕
                       </button>

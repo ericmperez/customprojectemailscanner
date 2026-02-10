@@ -22,6 +22,10 @@ class LicitacionesService {
     return this.sheetsService.getLicitaciones(filters);
   }
 
+  async autoRejectExpired(): Promise<number> {
+    return this.sheetsService.autoRejectExpired();
+  }
+
   async getLicitacionById(id: number | string): Promise<Licitacion | null> {
     return this.sheetsService.getLicitacionByRow(Number(id));
   }

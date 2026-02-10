@@ -2,11 +2,14 @@ import OpenAI from 'openai';
 import type { ChatCompletionContentPart } from 'openai/resources/chat/completions';
 // pdf-parse v2 uses named export with class-based API
 import { PDFParse } from 'pdf-parse';
+import { withRetry } from '@/lib/utils/retry';
+import type { ConfidenceFieldSettings } from '@/lib/types';
+import { getConfidenceSettings } from '@/lib/services/supabase.service';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 45_000 });
   }
   return _openai;
 }
@@ -177,19 +180,42 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
   }
 
   // Step 3: Call GPT-4o
-  const response = await getOpenAI().chat.completions.create({
-    model: 'gpt-4o',
-    response_format: { type: 'json_object' },
-    temperature: 0.1,
-    max_tokens: 2500,
-    messages: [
-      { role: 'system', content: getSystemPrompt() },
-      { role: 'user', content: contentParts },
-    ],
-  });
+  const response = await withRetry(
+    () =>
+      getOpenAI().chat.completions.create(
+        {
+          model: 'gpt-4o',
+          response_format: { type: 'json_object' },
+          temperature: 0.1,
+          max_tokens: 2500,
+          messages: [
+            { role: 'system', content: getSystemPrompt() },
+            { role: 'user', content: contentParts },
+          ],
+        },
+        { timeout: 40_000 }
+      ),
+    { maxRetries: 1 }
+  );
 
   const content = response.choices[0]?.message?.content || '{}';
-  const parsed = JSON.parse(content) as Partial<ExtractedLicitacionData>;
+
+  let parsed: Partial<ExtractedLicitacionData>;
+  try {
+    const raw = JSON.parse(content);
+    // Coerce all fields to strings, drop non-string values
+    parsed = {};
+    for (const [key, value] of Object.entries(raw)) {
+      if (typeof value === 'string') {
+        (parsed as Record<string, string>)[key] = value;
+      } else if (typeof value === 'number') {
+        (parsed as Record<string, string>)[key] = String(value);
+      }
+    }
+  } catch (err) {
+    console.error('[openai] Failed to parse GPT response as JSON:', err);
+    parsed = {};
+  }
 
   const data: ExtractedLicitacionData = {
     title: parsed.title || 'No disponible',
@@ -209,23 +235,32 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
     confidence: 0,
   };
 
-  data.confidence = calculateConfidence(data, !!pdfText);
+  // Fetch confidence field settings (one lightweight query, negligible vs GPT-4o call)
+  const fieldSettings = await getConfidenceSettings();
+  data.confidence = calculateConfidence(data, !!pdfText, fieldSettings);
   return data;
 }
 
 /**
  * Calculate extraction confidence score.
  * 60% weight for critical fields, 40% for optional fields.
+ * If one list is empty, the other gets 100% weight.
+ * Ignored fields are excluded from scoring.
  * Bonus points when pdf-parse text extraction was available.
  */
-function calculateConfidence(data: ExtractedLicitacionData, hadTextExtraction: boolean): number {
-  const criticalFields: (keyof ExtractedLicitacionData)[] = [
+function calculateConfidence(
+  data: ExtractedLicitacionData,
+  hadTextExtraction: boolean,
+  settings?: ConfidenceFieldSettings
+): number {
+  const criticalFields = (settings?.critical ?? [
     'location',
     'description',
     'biddingCloseDate',
     'contactPhone',
-  ];
-  const optionalFields: (keyof ExtractedLicitacionData)[] = [
+  ]) as (keyof ExtractedLicitacionData)[];
+
+  const optionalFields = (settings?.optional ?? [
     'title',
     'summary',
     'category',
@@ -235,19 +270,37 @@ function calculateConfidence(data: ExtractedLicitacionData, hadTextExtraction: b
     'contactName',
     'biddingCloseTime',
     'estimatedValue',
-  ];
+  ]) as (keyof ExtractedLicitacionData)[];
 
   const isPresent = (val: string) =>
     val && val !== 'No disponible' && val !== 'No clasificado';
 
-  const criticalScore =
-    criticalFields.filter((f) => isPresent(data[f] as string)).length /
-    criticalFields.length;
-  const optionalScore =
-    optionalFields.filter((f) => isPresent(data[f] as string)).length /
-    optionalFields.length;
+  // Handle edge cases: if one list is empty, the other gets full weight
+  const hasCritical = criticalFields.length > 0;
+  const hasOptional = optionalFields.length > 0;
 
-  let score = criticalScore * 0.6 + optionalScore * 0.4;
+  let criticalWeight = 0.6;
+  let optionalWeight = 0.4;
+
+  if (!hasCritical && hasOptional) {
+    criticalWeight = 0;
+    optionalWeight = 1;
+  } else if (hasCritical && !hasOptional) {
+    criticalWeight = 1;
+    optionalWeight = 0;
+  } else if (!hasCritical && !hasOptional) {
+    // All fields ignored — no meaningful score
+    return hadTextExtraction ? 5 : 0;
+  }
+
+  const criticalScore = hasCritical
+    ? criticalFields.filter((f) => isPresent(data[f] as string)).length / criticalFields.length
+    : 0;
+  const optionalScore = hasOptional
+    ? optionalFields.filter((f) => isPresent(data[f] as string)).length / optionalFields.length
+    : 0;
+
+  let score = criticalScore * criticalWeight + optionalScore * optionalWeight;
 
   // Small confidence boost when text extraction was available (more reliable)
   if (hadTextExtraction) {

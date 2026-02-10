@@ -1,5 +1,6 @@
 import { google, sheets_v4 } from 'googleapis';
 import { normalizeVisitLocationLabel } from './visit-location.utils';
+import { withRetry } from '@/lib/utils/retry';
 import type { Licitacion, Filters } from '@/lib/types';
 
 const config = {
@@ -100,10 +101,14 @@ class SheetsService {
   async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
 
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A1:${this.columnLetter(HEADERS.length)}1`,
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A1:${this.columnLetter(HEADERS.length)}1`,
+        }),
+      { maxRetries: 2 }
+    );
 
     const values = response.data.values;
 
@@ -125,12 +130,16 @@ class SheetsService {
   }
 
   private async writeHeaders(): Promise<void> {
-    await this.sheets.spreadsheets.values.update({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A1:${this.columnLetter(HEADERS.length)}1`,
-      valueInputOption: 'RAW',
-      requestBody: { values: [HEADERS] },
-    });
+    await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A1:${this.columnLetter(HEADERS.length)}1`,
+          valueInputOption: 'RAW',
+          requestBody: { values: [HEADERS] },
+        }),
+      { maxRetries: 2 }
+    );
   }
 
   private columnLetter(index: number): string {
@@ -222,13 +231,17 @@ class SheetsService {
     await this.ensureInitialized();
     const row = this.buildRowFromData(data);
 
-    const response = await this.sheets.spreadsheets.values.append({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A:${this.columnLetter(HEADERS.length)}`,
-      valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: { values: [row] },
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.append({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A:${this.columnLetter(HEADERS.length)}`,
+          valueInputOption: 'USER_ENTERED',
+          insertDataOption: 'INSERT_ROWS',
+          requestBody: { values: [row] },
+        }),
+      { maxRetries: 2 }
+    );
 
     return response.data;
   }
@@ -255,12 +268,16 @@ class SheetsService {
   async getLicitaciones(filters: Filters = {}): Promise<Licitacion[]> {
     await this.ensureInitialized();
 
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A2:${this.columnLetter(HEADERS.length)}`,
-      valueRenderOption: 'FORMULA',
-      majorDimension: 'ROWS',
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A2:${this.columnLetter(HEADERS.length)}`,
+          valueRenderOption: 'FORMULA',
+          majorDimension: 'ROWS',
+        }),
+      { maxRetries: 2 }
+    );
 
     const rows = response.data.values || [];
 
@@ -294,59 +311,6 @@ class SheetsService {
       return lic as unknown as Licitacion;
     });
 
-    // Auto-reject pending licitaciones with passed close dates or visit dates
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const updatePromises: Promise<void>[] = [];
-    licitaciones.forEach((lic) => {
-      if (lic.approvalStatus === 'pending') {
-        let shouldReject = false;
-        let rejectReason = '';
-
-        if (lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible') {
-          try {
-            const closeDate = new Date(lic.biddingCloseDate);
-            closeDate.setHours(23, 59, 59, 999);
-            if (closeDate < today) {
-              shouldReject = true;
-              rejectReason = '[Auto-rechazado: fecha de cierre vencida]';
-            }
-          } catch { /* ignore */ }
-        }
-
-        if (!shouldReject && lic.siteVisitDate && lic.siteVisitDate !== 'No disponible') {
-          try {
-            const visitDate = new Date(lic.siteVisitDate);
-            visitDate.setHours(23, 59, 59, 999);
-            if (visitDate < today) {
-              shouldReject = true;
-              rejectReason = '[Auto-rechazado: fecha de visita vencida]';
-            }
-          } catch { /* ignore */ }
-        }
-
-        if (shouldReject) {
-          lic.approvalStatus = 'rejected';
-          lic.approvalNotes = lic.approvalNotes
-            ? `${lic.approvalNotes}\n${rejectReason}`
-            : rejectReason;
-
-          updatePromises.push(
-            this.updateApprovalStatus(lic.rowNumber, 'rejected', lic.approvalNotes)
-              .then(() => {})
-              .catch((err) => console.error(`Error auto-rejecting row ${lic.rowNumber}:`, err))
-          );
-        }
-      }
-    });
-
-    if (updatePromises.length > 0) {
-      Promise.all(updatePromises).catch((err) =>
-        console.error('Some auto-reject updates failed:', err)
-      );
-    }
-
     // Hide auto-rejected (expired) licitaciones from API response
     const visibleLicitaciones = licitaciones.filter((lic) => {
       const notes = (lic.approvalNotes || '').toString();
@@ -357,14 +321,75 @@ class SheetsService {
     return this.applyFilters(sortedLicitaciones, filters);
   }
 
+  async autoRejectExpired(): Promise<number> {
+    const licitaciones = await this.getLicitaciones();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const updatePromises: Promise<void>[] = [];
+    for (const lic of licitaciones) {
+      if (lic.approvalStatus !== 'pending') continue;
+
+      let shouldReject = false;
+      let rejectReason = '';
+
+      if (lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible') {
+        try {
+          const closeDate = new Date(lic.biddingCloseDate);
+          closeDate.setHours(23, 59, 59, 999);
+          if (closeDate < today) {
+            shouldReject = true;
+            rejectReason = '[Auto-rechazado: fecha de cierre vencida]';
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (!shouldReject && lic.siteVisitDate && lic.siteVisitDate !== 'No disponible') {
+        try {
+          const visitDate = new Date(lic.siteVisitDate);
+          visitDate.setHours(23, 59, 59, 999);
+          if (visitDate < today) {
+            shouldReject = true;
+            rejectReason = '[Auto-rechazado: fecha de visita vencida]';
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (shouldReject) {
+        const notes = lic.approvalNotes
+          ? `${lic.approvalNotes}\n${rejectReason}`
+          : rejectReason;
+
+        updatePromises.push(
+          this.updateApprovalStatus(lic.rowNumber, 'rejected', notes)
+            .then(() => {})
+            .catch((err) => console.error(`Error auto-rejecting row ${lic.rowNumber}:`, err))
+        );
+      }
+    }
+
+    if (updatePromises.length > 0) {
+      await Promise.all(updatePromises).catch((err) =>
+        console.error('Some auto-reject updates failed:', err)
+      );
+    }
+
+    return updatePromises.length;
+  }
+
   async getLicitacionByRow(rowNumber: number): Promise<Licitacion | null> {
     await this.ensureInitialized();
 
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A${rowNumber}:${this.columnLetter(HEADERS.length)}${rowNumber}`,
-      valueRenderOption: 'FORMULA',
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A${rowNumber}:${this.columnLetter(HEADERS.length)}${rowNumber}`,
+          valueRenderOption: 'FORMULA',
+        }),
+      { maxRetries: 2 }
+    );
 
     const rows = response.data.values || [];
     if (rows.length === 0) return null;
@@ -440,23 +465,27 @@ class SheetsService {
     const current = await this.getLicitacionByRow(rowNumber);
     if (!current) throw new Error(`Licitación with row ${rowNumber} not found`);
 
-    await this.sheets.spreadsheets.batchUpdate({
-      spreadsheetId: this.sheetId,
-      requestBody: {
-        requests: [
-          {
-            deleteDimension: {
-              range: {
-                sheetId: 0,
-                dimension: 'ROWS',
-                startIndex: rowNumber - 1,
-                endIndex: rowNumber,
+    await withRetry(
+      () =>
+        this.sheets.spreadsheets.batchUpdate({
+          spreadsheetId: this.sheetId,
+          requestBody: {
+            requests: [
+              {
+                deleteDimension: {
+                  range: {
+                    sheetId: 0,
+                    dimension: 'ROWS',
+                    startIndex: rowNumber - 1,
+                    endIndex: rowNumber,
+                  },
+                },
               },
-            },
+            ],
           },
-        ],
-      },
-    });
+        }),
+      { maxRetries: 2 }
+    );
 
     return { success: true, deletedRow: rowNumber, subject: current.subject };
   }
@@ -536,10 +565,14 @@ class SheetsService {
 
   private async getLastRowNumber(): Promise<number> {
     await this.ensureInitialized();
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A:A`,
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A:A`,
+        }),
+      { maxRetries: 2 }
+    );
     const values = response.data.values;
     return values ? values.length : 0;
   }
@@ -662,12 +695,16 @@ class SheetsService {
   }
 
   private async findRowByEmailId(emailId: string): Promise<{ rowNumber: number | null; rowValues: string[] | null }> {
-    const response = await this.sheets.spreadsheets.values.get({
-      spreadsheetId: this.sheetId,
-      range: `${this.sheetName}!A2:${this.columnLetter(HEADERS.length)}`,
-      valueRenderOption: 'FORMULA',
-      majorDimension: 'ROWS',
-    });
+    const response = await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.get({
+          spreadsheetId: this.sheetId,
+          range: `${this.sheetName}!A2:${this.columnLetter(HEADERS.length)}`,
+          valueRenderOption: 'FORMULA',
+          majorDimension: 'ROWS',
+        }),
+      { maxRetries: 2 }
+    );
 
     const rows = response.data.values || [];
     const emailIndex = HEADERS.indexOf('Email ID');
@@ -684,12 +721,16 @@ class SheetsService {
 
   private async writeRow(rowNumber: number, rowValues: string[]): Promise<void> {
     const range = `${this.sheetName}!A${rowNumber}:${this.columnLetter(HEADERS.length)}${rowNumber}`;
-    await this.sheets.spreadsheets.values.update({
-      spreadsheetId: this.sheetId,
-      range,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [rowValues] },
-    });
+    await withRetry(
+      () =>
+        this.sheets.spreadsheets.values.update({
+          spreadsheetId: this.sheetId,
+          range,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [rowValues] },
+        }),
+      { maxRetries: 2 }
+    );
   }
 
   private rowFromObject(obj: Licitacion): string[] {

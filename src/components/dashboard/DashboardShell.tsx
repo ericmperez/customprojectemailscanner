@@ -13,6 +13,9 @@ import { LicitacionTable } from '@/components/licitaciones/LicitacionTable';
 import { CalendarView } from '@/components/calendar/CalendarView';
 import { ApprovalModal } from '@/components/modals/ApprovalModal';
 import { DetailModal } from '@/components/modals/DetailModal';
+import { ConfirmationDialog } from '@/components/modals/ConfirmationDialog';
+import { ConfidenceSettingsDialog } from '@/components/modals/ConfidenceSettingsDialog';
+import { Loader2 } from 'lucide-react';
 
 import { useLicitaciones } from '@/hooks/useLicitaciones';
 import { useStats } from '@/hooks/useStats';
@@ -53,6 +56,17 @@ export function DashboardShell() {
     lic: null,
   });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [bulkOperation, setBulkOperation] = useState<{
+    type: 'approve' | 'reject' | null;
+    loading: boolean;
+    confirmOpen: boolean;
+  }>({ type: null, loading: false, confirmOpen: false });
+  const [resetConfirm, setResetConfirm] = useState<{ open: boolean; id: number | null; loading: boolean }>({
+    open: false,
+    id: null,
+    loading: false,
+  });
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Derived data: apply client-side search + favorites filter
   const displayedLicitaciones = useMemo(() => {
@@ -98,10 +112,14 @@ export function DashboardShell() {
           toast.success(interested ? 'Marcada como interesada' : 'Interés removido');
           refresh();
         } else {
-          toast.error('Error al actualizar');
+          toast.error('Error al cambiar interés', {
+            action: { label: 'Reintentar', onClick: () => handleToggleInterested(id, interested) },
+          });
         }
       } catch {
-        toast.error('Error al actualizar');
+        toast.error('Error al cambiar interés', {
+          action: { label: 'Reintentar', onClick: () => handleToggleInterested(id, interested) },
+        });
       }
     },
     [refresh]
@@ -130,31 +148,42 @@ export function DashboardShell() {
   );
 
   const handleResetPending = useCallback(
-    async (id: number) => {
-      if (!confirm('¿Volver esta licitación a estado pendiente?')) return;
-      try {
-        const response = await fetch(`/api/licitaciones/${id}/pending`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notes: '' }),
-        });
-        const result = await response.json();
-        if (result.success) {
-          toast.success('Licitacion marcada como pendiente');
-          refresh();
-        } else {
-          toast.error('Error al actualizar');
-        }
-      } catch {
-        toast.error('Error al actualizar');
-      }
+    (id: number) => {
+      setResetConfirm({ open: true, id, loading: false });
     },
-    [refresh]
+    []
   );
+
+  const executeResetPending = useCallback(async () => {
+    if (!resetConfirm.id) return;
+    setResetConfirm((prev) => ({ ...prev, loading: true }));
+    try {
+      const response = await fetch(`/api/licitaciones/${resetConfirm.id}/pending`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: '' }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Licitacion marcada como pendiente');
+        refresh();
+      } else {
+        toast.error('Error al cambiar estado a pendiente', {
+          action: { label: 'Reintentar', onClick: executeResetPending },
+        });
+      }
+    } catch {
+      toast.error('Error al cambiar estado a pendiente', {
+        action: { label: 'Reintentar', onClick: executeResetPending },
+      });
+    }
+    setResetConfirm({ open: false, id: null, loading: false });
+  }, [resetConfirm.id, refresh]);
 
   const handleApprovalConfirm = useCallback(
     async (notes: string) => {
       if (!approvalModal.id || !approvalModal.action) return;
+      const actionText = approvalModal.action === 'approve' ? 'aprobar' : 'rechazar';
       try {
         const response = await fetch(
           `/api/licitaciones/${approvalModal.id}/${approvalModal.action}`,
@@ -170,10 +199,14 @@ export function DashboardShell() {
           toast.success(`Licitacion ${text} exitosamente`);
           refresh();
         } else {
-          toast.error('Error al actualizar');
+          toast.error(`Error al ${actionText} la licitación`, {
+            action: { label: 'Reintentar', onClick: () => handleApprovalConfirm(notes) },
+          });
         }
       } catch {
-        toast.error('Error al actualizar');
+        toast.error(`Error al ${actionText} la licitación`, {
+          action: { label: 'Reintentar', onClick: () => handleApprovalConfirm(notes) },
+        });
       }
       setApprovalModal({ open: false, action: null, id: null });
     },
@@ -181,45 +214,44 @@ export function DashboardShell() {
   );
 
   // Bulk actions
-  const handleBulkApprove = useCallback(async () => {
+  const handleBulkApprove = useCallback(() => {
     if (selectedCount === 0) return;
-    if (!confirm(`¿Aprobar ${selectedCount} licitación(es)?`)) return;
-    try {
-      await Promise.all(
-        Array.from(selectedCards).map((rowNumber) =>
-          fetch(`/api/licitaciones/${rowNumber}/approve`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notes: '[Aprobado en lote]' }),
-          })
-        )
-      );
-      toast.success(`${selectedCount} licitación(es) aprobada(s)`);
-      refresh();
-    } catch {
-      toast.error('Error al aprobar licitaciones');
-    }
-  }, [selectedCards, selectedCount, refresh]);
+    setBulkOperation({ type: 'approve', loading: false, confirmOpen: true });
+  }, [selectedCount]);
 
-  const handleBulkReject = useCallback(async () => {
+  const handleBulkReject = useCallback(() => {
     if (selectedCount === 0) return;
-    if (!confirm(`¿Rechazar ${selectedCount} licitación(es)?`)) return;
-    try {
-      await Promise.all(
-        Array.from(selectedCards).map((rowNumber) =>
-          fetch(`/api/licitaciones/${rowNumber}/reject`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notes: '[Rechazado en lote]' }),
-          })
-        )
-      );
-      toast.success(`${selectedCount} licitación(es) rechazada(s)`);
-      refresh();
-    } catch {
-      toast.error('Error al rechazar licitaciones');
+    setBulkOperation({ type: 'reject', loading: false, confirmOpen: true });
+  }, [selectedCount]);
+
+  const executeBulkOperation = useCallback(async () => {
+    if (!bulkOperation.type) return;
+    setBulkOperation((prev) => ({ ...prev, loading: true }));
+    const action = bulkOperation.type;
+    const noteText = action === 'approve' ? '[Aprobado en lote]' : '[Rechazado en lote]';
+
+    const results = await Promise.allSettled(
+      Array.from(selectedCards).map((rowNumber) =>
+        fetch(`/api/licitaciones/${rowNumber}/${action}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: noteText }),
+        }).then((r) => r.json())
+      )
+    );
+
+    const succeeded = results.filter((r) => r.status === 'fulfilled' && r.value?.success).length;
+    const failed = results.length - succeeded;
+
+    if (failed === 0) {
+      toast.success(`${succeeded} licitación(es) ${action === 'approve' ? 'aprobada(s)' : 'rechazada(s)'}`);
+    } else {
+      toast.warning(`${succeeded} exitosa(s), ${failed} fallida(s)`);
     }
-  }, [selectedCards, selectedCount, refresh]);
+
+    setBulkOperation({ type: null, loading: false, confirmOpen: false });
+    refresh();
+  }, [bulkOperation.type, selectedCards, refresh]);
 
   // Export
   const handleExportCSV = useCallback(() => {
@@ -355,6 +387,7 @@ export function DashboardShell() {
           onSavePreset={handleSavePreset}
           onDeletePreset={deletePreset}
           onRenamePreset={renamePreset}
+          onOpenSettings={() => setSettingsOpen(true)}
         />
 
         {/* Bulk actions bar */}
@@ -362,20 +395,29 @@ export function DashboardShell() {
           <div className="flex items-center gap-2 sm:gap-3 rounded-lg border bg-card p-2 sm:p-3 flex-wrap">
             <span className="text-sm font-medium">{selectedCount} seleccionada(s)</span>
             <button
-              className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-1.5"
               onClick={handleBulkApprove}
+              disabled={bulkOperation.loading}
             >
+              {bulkOperation.loading && bulkOperation.type === 'approve' && (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              )}
               ✓ Aprobar
             </button>
             <button
-              className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+              className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50 inline-flex items-center gap-1.5"
               onClick={handleBulkReject}
+              disabled={bulkOperation.loading}
             >
+              {bulkOperation.loading && bulkOperation.type === 'reject' && (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              )}
               ✗ Rechazar
             </button>
             <button
-              className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
               onClick={clearSelection}
+              disabled={bulkOperation.loading}
             >
               Limpiar
             </button>
@@ -524,6 +566,36 @@ export function DashboardShell() {
         licitacion={detailModal.lic}
         onClose={() => setDetailModal({ open: false, lic: null })}
         onRefresh={refresh}
+      />
+
+      <ConfirmationDialog
+        open={bulkOperation.confirmOpen}
+        onOpenChange={(open) => {
+          if (!open) setBulkOperation({ type: null, loading: false, confirmOpen: false });
+        }}
+        title={bulkOperation.type === 'approve' ? 'Aprobar en lote' : 'Rechazar en lote'}
+        description={`¿${bulkOperation.type === 'approve' ? 'Aprobar' : 'Rechazar'} ${selectedCount} licitación(es)?`}
+        confirmLabel={bulkOperation.type === 'approve' ? 'Aprobar' : 'Rechazar'}
+        variant={bulkOperation.type === 'reject' ? 'destructive' : 'default'}
+        loading={bulkOperation.loading}
+        onConfirm={executeBulkOperation}
+      />
+
+      <ConfirmationDialog
+        open={resetConfirm.open}
+        onOpenChange={(open) => {
+          if (!open) setResetConfirm({ open: false, id: null, loading: false });
+        }}
+        title="Volver a pendiente"
+        description="¿Volver esta licitación a estado pendiente?"
+        confirmLabel="Confirmar"
+        loading={resetConfirm.loading}
+        onConfirm={executeResetPending}
+      />
+
+      <ConfidenceSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import { google, gmail_v1 } from 'googleapis';
+import { withRetry } from '@/lib/utils/retry';
 
 const config = {
   gmail: {
@@ -60,12 +61,16 @@ class GmailService {
     let pageToken: string | undefined;
 
     do {
-      const response = await this.gmail.users.messages.list({
-        userId: 'me',
-        q: query,
-        pageToken,
-        maxResults: 100,
-      });
+      const response = await withRetry(
+        () =>
+          this.gmail.users.messages.list({
+            userId: 'me',
+            q: query,
+            pageToken,
+            maxResults: 100,
+          }),
+        { maxRetries: 2 }
+      );
 
       const messages = response.data.messages || [];
       for (const msg of messages) {
@@ -82,11 +87,15 @@ class GmailService {
    * Fetch full message details and extract PDF attachments.
    */
   async getEmailDetails(messageId: string): Promise<EmailDetails> {
-    const response = await this.gmail.users.messages.get({
-      userId: 'me',
-      id: messageId,
-      format: 'full',
-    });
+    const response = await withRetry(
+      () =>
+        this.gmail.users.messages.get({
+          userId: 'me',
+          id: messageId,
+          format: 'full',
+        }),
+      { maxRetries: 2 }
+    );
 
     const message = response.data;
     const headers = message.payload?.headers || [];

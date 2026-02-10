@@ -29,6 +29,11 @@ export async function GET(request: NextRequest) {
     if (!filters.visitLocation?.length) delete filters.visitLocation;
     if (!filters.town?.length) delete filters.town;
 
+    // Run auto-reject for expired licitaciones (fire in background, don't block response)
+    licitacionesService.autoRejectExpired().catch((err) =>
+      console.error('Auto-reject failed:', err)
+    );
+
     const licitaciones = await licitacionesService.getAllLicitaciones(filters);
     return NextResponse.json({ success: true, data: licitaciones });
   } catch (error) {
