@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText } from '@/lib/utils';
+import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore } from '@/lib/utils';
 import type { Licitacion } from '@/lib/types';
 
 interface DetailModalProps {
@@ -109,6 +109,32 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
                 value={lic.emailDate ? new Date(lic.emailDate).toLocaleString('es-PR') : ''}
               />
               <DetailItem label="Estado" value={badgeText(lic.approvalStatus)} />
+              <DetailItem
+                label="Prioridad"
+                value={
+                  (lic.priority || '').toLowerCase() === 'high' ? 'Alta' :
+                  (lic.priority || '').toLowerCase() === 'medium' ? 'Media' :
+                  (lic.priority || '').toLowerCase() === 'low' ? 'Baja' : lic.priority
+                }
+              />
+              {parseConfidence(lic.extractionMethod) !== null && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground font-medium">Confianza Extraccion: </span>
+                  <span className={cn(
+                    'font-medium',
+                    (parseConfidence(lic.extractionMethod) ?? 0) >= 80 ? 'text-emerald-600 dark:text-emerald-400' :
+                    (parseConfidence(lic.extractionMethod) ?? 0) >= 60 ? 'text-amber-600 dark:text-amber-400' :
+                    'text-red-600 dark:text-red-400'
+                  )}>
+                    {parseConfidence(lic.extractionMethod)}% ({lic.extractionMethod})
+                  </span>
+                </div>
+              )}
+              <DetailItem label="Valor Estimado" value={lic.estimatedValue} />
+              <div className="text-sm">
+                <span className="text-muted-foreground font-medium">Puntuacion: </span>
+                <span className="font-bold">{computeWorthItScore(lic)}/10</span>
+              </div>
             </Section>
 
             {/* Location & Contact */}

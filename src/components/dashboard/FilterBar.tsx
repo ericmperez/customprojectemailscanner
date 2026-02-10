@@ -94,6 +94,7 @@ export function FilterBar({
           <option value="email-date-asc">Mas antigua</option>
           <option value="title-asc">A-Z (Titulo)</option>
           <option value="title-desc">Z-A (Titulo)</option>
+          <option value="score-desc">Mayor puntuacion</option>
         </select>
       </div>
 
@@ -189,6 +190,17 @@ export function FilterBar({
 
         <select
           className="rounded-md border bg-background px-3 py-2 text-sm"
+          value={filters.priority}
+          onChange={(e) => onFilterChange('priority', e.target.value)}
+        >
+          <option value="">Todas las prioridades</option>
+          <option value="High">Alta</option>
+          <option value="Medium">Media</option>
+          <option value="Low">Baja</option>
+        </select>
+
+        <select
+          className="rounded-md border bg-background px-3 py-2 text-sm"
           value={filters.dateRange}
           onChange={(e) => onFilterChange('dateRange', e.target.value)}
         >
@@ -226,6 +238,13 @@ export function FilterBar({
           onClick={() => onQuickFilter({ type: 'visits', status: 'pending', sort: 'visit-date-asc' })}
         >
           Visitas pendientes
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onQuickFilter({ interested: 'true', status: '' })}
+        >
+          Interesadas
         </Button>
 
         <SavedFiltersSection

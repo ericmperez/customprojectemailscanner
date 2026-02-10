@@ -224,6 +224,7 @@ export async function GET(request: NextRequest) {
           contactPhone: extracted.contactPhone,
           biddingCloseDate: extracted.biddingCloseDate,
           biddingCloseTime: extracted.biddingCloseTime,
+          estimatedValue: extracted.estimatedValue || 'No disponible',
           extractionMethod: `GPT-4o (${extracted.confidence}%)`,
           emailId: messageId,
           approvalStatus: 'pending',

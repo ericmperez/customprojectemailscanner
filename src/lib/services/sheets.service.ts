@@ -40,6 +40,7 @@ const HEADERS = [
   'Interested',
   'Decision Status',
   'Titulo',
+  'Valor Estimado',
 ];
 
 const HEADER_KEY_MAP: Record<string, string> = {
@@ -67,6 +68,7 @@ const HEADER_KEY_MAP: Record<string, string> = {
   'Interested': 'interested',
   'Decision Status': 'decisionStatus',
   'Titulo': 'title',
+  'Valor Estimado': 'estimatedValue',
 };
 
 const DEFAULT_STATUS = 'pending';
@@ -203,6 +205,9 @@ class SheetsService {
     }
     if (data.title !== undefined || !existingRow) {
       updates['Titulo'] = String(data.title || '');
+    }
+    if (data.estimatedValue !== undefined || !existingRow) {
+      updates['Valor Estimado'] = String(data.estimatedValue || 'No disponible');
     }
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -413,6 +418,22 @@ class SheetsService {
     return this.getLicitacionByRow(rowNumber);
   }
 
+  async updateFields(rowNumber: number, fields: { interested?: boolean; decisionStatus?: string }): Promise<Licitacion | null> {
+    const current = await this.getLicitacionByRow(rowNumber);
+    if (!current) throw new Error(`Licitación with row ${rowNumber} not found`);
+
+    const updated: Record<string, unknown> = { ...current };
+    if (fields.interested !== undefined) {
+      updated.interested = fields.interested;
+    }
+    if (fields.decisionStatus !== undefined) {
+      updated.decisionStatus = fields.decisionStatus;
+    }
+
+    await this.writeRow(rowNumber, this.buildRowFromData(updated, this.rowFromObject(current)));
+    return this.getLicitacionByRow(rowNumber);
+  }
+
   async deleteLicitacion(rowNumber: number): Promise<{ success: boolean; deletedRow: number; subject: string }> {
     await this.ensureInitialized();
 
@@ -440,15 +461,16 @@ class SheetsService {
     return { success: true, deletedRow: rowNumber, subject: current.subject };
   }
 
-  async getStats(): Promise<{ total: number; pending: number; approved: number; rejected: number }> {
+  async getStats(): Promise<{ total: number; pending: number; approved: number; rejected: number; interested: number }> {
     const data = await this.getLicitaciones();
 
     const total = data.length;
     const pending = data.filter((lic) => (lic.approvalStatus || '').toLowerCase() === 'pending').length;
     const approved = data.filter((lic) => (lic.approvalStatus || '').toLowerCase() === 'approved').length;
     const rejected = data.filter((lic) => (lic.approvalStatus || '').toLowerCase() === 'rejected').length;
+    const interested = data.filter((lic) => !!lic.interested).length;
 
-    return { total, pending, approved, rejected };
+    return { total, pending, approved, rejected, interested };
   }
 
   async getDistinctFilterValues(): Promise<{ towns: string[]; categories: string[] }> {
@@ -551,6 +573,12 @@ class SheetsService {
     if (filters.category) {
       result = result.filter(
         (lic) => (lic.category || '').toLowerCase() === filters.category!.toLowerCase()
+      );
+    }
+
+    if (filters.priority) {
+      result = result.filter(
+        (lic) => (lic.priority || '').toLowerCase() === filters.priority!.toLowerCase()
       );
     }
 

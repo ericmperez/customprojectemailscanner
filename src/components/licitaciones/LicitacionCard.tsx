@@ -1,6 +1,6 @@
 'use client';
 
-import { cn, truncate, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText } from '@/lib/utils';
+import { cn, truncate, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore } from '@/lib/utils';
 import type { Licitacion } from '@/lib/types';
 
 interface LicitacionCardProps {
@@ -13,6 +13,8 @@ interface LicitacionCardProps {
   onApprove: (id: number) => void;
   onReject: (id: number) => void;
   onResetPending: (id: number) => void;
+  onToggleInterested: (id: number, interested: boolean) => void;
+  onQuickDismiss: (id: number) => void;
 }
 
 function computeUrgency(lic: Licitacion) {
@@ -91,6 +93,8 @@ export function LicitacionCard({
   onApprove,
   onReject,
   onResetPending,
+  onToggleInterested,
+  onQuickDismiss,
 }: LicitacionCardProps) {
   const status = (lic.approvalStatus || 'pending').toLowerCase();
   const visitLocation = (lic.visitLocation || '').toString().trim();
@@ -101,6 +105,9 @@ export function LicitacionCard({
   const emailDate = lic.emailDate ? new Date(lic.emailDate).toLocaleDateString('es-PR') : 'N/A';
   const pdfLink = lic.pdfUrl || resolvePdfUrl(lic.pdfLink);
   const urgency = computeUrgency(lic);
+  const confidence = parseConfidence(lic.extractionMethod);
+  const worthItScore = computeWorthItScore(lic);
+  const priorityLower = (lic.priority || '').toLowerCase();
 
   return (
     <div
@@ -128,12 +135,39 @@ export function LicitacionCard({
           {lic.title || lic.subject || 'Sin titulo'}
         </h3>
         <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+          {/* Worth It score */}
+          <span
+            className={cn(
+              'text-xs font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
+              worthItScore >= 7 ? 'text-emerald-700 dark:text-emerald-300' : worthItScore >= 4 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
+            )}
+            title={`Puntuacion: ${worthItScore}/10`}
+          >
+            {worthItScore}/10
+          </span>
           <button
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(lic.rowNumber); }}
             className="text-lg hover:scale-110 transition-transform"
+            title="Favorito"
           >
             {isFavorite ? '⭐' : '☆'}
           </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleInterested(lic.id, !lic.interested); }}
+            className="text-lg hover:scale-110 transition-transform"
+            title={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
+          >
+            {lic.interested ? '❤️' : '🤍'}
+          </button>
+          {status === 'pending' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onQuickDismiss(lic.id); }}
+              className="text-sm hover:scale-110 transition-transform text-gray-400 hover:text-red-500"
+              title="Descartar"
+            >
+              ✕
+            </button>
+          )}
           {urgency && (
             <span
               className={cn(
@@ -142,6 +176,32 @@ export function LicitacionCard({
               )}
             >
               {urgency.level === 'critical' ? '🔥' : '⚠️'} {urgency.text}
+            </span>
+          )}
+          {/* Priority badge */}
+          {priorityLower && (
+            <span
+              className={cn(
+                'text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap',
+                priorityLower === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
+                priorityLower === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+                'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
+              )}
+            >
+              {priorityLower === 'high' ? 'Alta' : priorityLower === 'medium' ? 'Media' : 'Baja'}
+            </span>
+          )}
+          {/* Confidence pill */}
+          {confidence !== null && (
+            <span
+              className={cn(
+                'text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap',
+                confidence >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' :
+                confidence >= 60 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+                'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+              )}
+            >
+              {confidence}%
             </span>
           )}
           <span
@@ -230,6 +290,12 @@ export function LicitacionCard({
             >
               📄 {lic.pdfFilename || 'Ver PDF'}
             </a>
+          </div>
+        )}
+        {lic.estimatedValue && lic.estimatedValue !== 'No disponible' && (
+          <div>
+            <span className="text-muted-foreground font-medium">Valor Est.</span>
+            <p className="text-emerald-600 dark:text-emerald-400 font-medium">{lic.estimatedValue}</p>
           </div>
         )}
       </div>

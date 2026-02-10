@@ -85,6 +85,50 @@ export function DashboardShell() {
     setApprovalModal({ open: true, action: 'reject', id });
   }, []);
 
+  const handleToggleInterested = useCallback(
+    async (id: number, interested: boolean) => {
+      try {
+        const response = await fetch(`/api/licitaciones/${id}/update-fields`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ interested }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          toast.success(interested ? 'Marcada como interesada' : 'Interés removido');
+          refresh();
+        } else {
+          toast.error('Error al actualizar');
+        }
+      } catch {
+        toast.error('Error al actualizar');
+      }
+    },
+    [refresh]
+  );
+
+  const handleQuickDismiss = useCallback(
+    async (id: number) => {
+      try {
+        const response = await fetch(`/api/licitaciones/${id}/reject`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes: '' }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          toast.success('Licitacion descartada');
+          refresh();
+        } else {
+          toast.error('Error al descartar');
+        }
+      } catch {
+        toast.error('Error al descartar');
+      }
+    },
+    [refresh]
+  );
+
   const handleResetPending = useCallback(
     async (id: number) => {
       if (!confirm('¿Volver esta licitación a estado pendiente?')) return;
@@ -392,6 +436,8 @@ export function DashboardShell() {
                     onApprove={handleApprove}
                     onReject={handleReject}
                     onResetPending={handleResetPending}
+                    onToggleInterested={handleToggleInterested}
+                    onQuickDismiss={handleQuickDismiss}
                   />
                 ))}
               </div>
@@ -409,6 +455,8 @@ export function DashboardShell() {
                     onToggleFavorite={toggleFavorite}
                     onToggleSelection={toggleSelection}
                     onOpenDetail={openDetail}
+                    onToggleInterested={handleToggleInterested}
+                    onQuickDismiss={handleQuickDismiss}
                   />
                 ))}
               </div>

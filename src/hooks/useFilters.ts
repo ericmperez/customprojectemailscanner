@@ -7,6 +7,8 @@ export interface FilterState {
   status: string;
   category: string;
   type: string;
+  priority: string;
+  interested: string;
   dateRange: string;
   search: string;
   sort: string;
@@ -17,6 +19,8 @@ export const DEFAULT_FILTERS: FilterState = {
   status: 'pending',
   category: '',
   type: '',
+  priority: '',
+  interested: '',
   dateRange: '',
   search: '',
   sort: 'close-date-asc',
@@ -58,6 +62,8 @@ export function useFilters() {
     if (filters.status) query.status = filters.status;
     if (filters.category) query.category = filters.category;
     if (filters.type) query.type = filters.type;
+    if (filters.priority) query.priority = filters.priority;
+    if (filters.interested) query.interested = filters.interested;
     if (filters.dateRange) query.dateRange = filters.dateRange;
     if (filters.town.length > 0) query.town = filters.town;
     return query;

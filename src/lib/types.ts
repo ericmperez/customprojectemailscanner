@@ -21,6 +21,7 @@ export interface Licitacion {
   contactEmail?: string;
   biddingCloseDate: string;
   biddingCloseTime: string;
+  estimatedValue: string;
   extractionMethod: string;
   emailId: string;
   approvalStatus: 'pending' | 'approved' | 'rejected';
@@ -34,6 +35,7 @@ export interface Stats {
   pending: number;
   approved: number;
   rejected: number;
+  interested: number;
 }
 
 export interface Visit {

@@ -162,60 +162,98 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
             })}
           </div>
 
-          {/* Visit list below calendar */}
-          {events.length > 0 && (
-            <div className="rounded-md border p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium">Visitas Programadas</h3>
-                <span className="text-xs bg-primary/10 text-primary rounded-full px-2 py-0.5">
-                  {events.length}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {events.map((event) => {
-                  const dateValue = new Date(`${event.visitDate}T00:00:00`);
-                  const dateLabel = Number.isNaN(dateValue.getTime())
-                    ? event.visitDate
-                    : dateValue.toLocaleDateString('es-PR', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      });
+          {/* Visit summary by pueblo */}
+          {events.length > 0 && (() => {
+            const byPueblo: Record<string, Visit[]> = {};
+            for (const ev of events) {
+              const pueblo = ev.location || 'Sin pueblo';
+              if (!byPueblo[pueblo]) byPueblo[pueblo] = [];
+              byPueblo[pueblo].push(ev);
+            }
+            const sortedPueblos = Object.keys(byPueblo).sort((a, b) => a.localeCompare(b, 'es'));
 
-                  return (
-                    <div
-                      key={event.id}
-                      className="flex items-center justify-between gap-4 rounded-md border bg-card p-3 hover:bg-muted/50 transition-colors cursor-pointer"
-                      onClick={() => onOpenDetail(event.id)}
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {event.title || event.subject}
-                        </p>
-                        <div className="flex gap-3 text-xs text-muted-foreground flex-wrap mt-0.5">
-                          <span>📅 {dateLabel}</span>
-                          <span>🕒 {formatTimeLabel(event.visitTime) || 'Sin hora'}</span>
-                          <span>📍 {event.visitLocation || 'No especificado'}</span>
-                        </div>
-                      </div>
-                      {event.pdfUrl && event.pdfUrl !== '#' && (
-                        <a
-                          href={event.pdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 text-primary text-sm hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          📄 PDF
-                        </a>
-                      )}
+            return (
+              <div className="space-y-4">
+                {/* Total count + pueblo breakdown badges */}
+                <div className="rounded-md border p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-medium">Visitas Programadas</h3>
+                    <span className="text-sm font-semibold bg-primary/10 text-primary rounded-full px-3 py-1">
+                      {events.length} {events.length === 1 ? 'visita' : 'visitas'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {sortedPueblos.map((pueblo) => (
+                      <span
+                        key={pueblo}
+                        className="inline-flex items-center gap-1 text-xs rounded-full border px-2.5 py-1 bg-muted/50"
+                      >
+                        <span className="font-medium">{pueblo}</span>
+                        <span className="bg-primary/15 text-primary rounded-full px-1.5 text-[10px] font-bold">
+                          {byPueblo[pueblo].length}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Visits grouped by pueblo */}
+                {sortedPueblos.map((pueblo) => (
+                  <div key={pueblo} className="rounded-md border p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <h4 className="font-medium text-sm">{pueblo}</h4>
+                      <span className="text-xs bg-muted text-muted-foreground rounded-full px-2 py-0.5">
+                        {byPueblo[pueblo].length}
+                      </span>
                     </div>
-                  );
-                })}
+                    <div className="space-y-2">
+                      {byPueblo[pueblo].map((event) => {
+                        const dateValue = new Date(`${event.visitDate}T00:00:00`);
+                        const dateLabel = Number.isNaN(dateValue.getTime())
+                          ? event.visitDate
+                          : dateValue.toLocaleDateString('es-PR', {
+                              weekday: 'long',
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric',
+                            });
+
+                        return (
+                          <div
+                            key={event.id}
+                            className="flex items-center justify-between gap-4 rounded-md border bg-card p-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                            onClick={() => onOpenDetail(event.id)}
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {event.title || event.subject}
+                              </p>
+                              <div className="flex gap-3 text-xs text-muted-foreground flex-wrap mt-0.5">
+                                <span>{dateLabel}</span>
+                                <span>{formatTimeLabel(event.visitTime) || 'Sin hora'}</span>
+                                <span>{event.visitLocation || 'No especificado'}</span>
+                              </div>
+                            </div>
+                            {event.pdfUrl && event.pdfUrl !== '#' && (
+                              <a
+                                href={event.pdfUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="shrink-0 text-primary text-sm hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                PDF
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {events.length === 0 && !loading && (
             <p className="text-center text-muted-foreground py-8">

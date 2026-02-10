@@ -32,6 +32,12 @@ class LicitacionesService {
     return updated;
   }
 
+  async updateFields(id: number | string, fields: { interested?: boolean; decisionStatus?: string }): Promise<Licitacion | null> {
+    const updated = await this.sheetsService.updateFields(Number(id), fields);
+    console.log(`Updated fields for licitación ${id}:`, fields);
+    return updated;
+  }
+
   async deleteLicitacion(id: number | string): Promise<{ success: boolean; deletedRow: number; subject: string }> {
     const result = await this.sheetsService.deleteLicitacion(Number(id));
     console.log(`Deleted licitación ${id}`);
@@ -43,7 +49,7 @@ class LicitacionesService {
       return await this.sheetsService.getStats();
     } catch (error) {
       console.error('Error getting dashboard stats:', error);
-      return { total: 0, pending: 0, approved: 0, rejected: 0 };
+      return { total: 0, pending: 0, approved: 0, rejected: 0, interested: 0 };
     }
   }
 

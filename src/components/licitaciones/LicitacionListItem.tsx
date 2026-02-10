@@ -1,6 +1,6 @@
 'use client';
 
-import { cn, formatSiteVisitDate } from '@/lib/utils';
+import { cn, formatSiteVisitDate, computeWorthItScore } from '@/lib/utils';
 import type { Licitacion } from '@/lib/types';
 
 interface LicitacionListItemProps {
@@ -10,6 +10,8 @@ interface LicitacionListItemProps {
   onToggleFavorite: (id: number) => void;
   onToggleSelection: (rowNumber: number) => void;
   onOpenDetail: (id: number) => void;
+  onToggleInterested: (id: number, interested: boolean) => void;
+  onQuickDismiss: (id: number) => void;
 }
 
 export function LicitacionListItem({
@@ -24,6 +26,9 @@ export function LicitacionListItem({
   const isVisit = visitLocation && visitLocation.toLowerCase() !== 'no disponible';
   const siteVisitDateDisplay = formatSiteVisitDate(lic.siteVisitDate);
   const emailDate = formatSiteVisitDate(lic.emailDate) || 'Sin fecha';
+  const priorityLower = (lic.priority || '').toLowerCase();
+  const priorityLabel = priorityLower === 'high' ? 'Alta' : priorityLower === 'medium' ? 'Media' : priorityLower === 'low' ? 'Baja' : '';
+  const score = computeWorthItScore(lic);
 
   return (
     <div
@@ -57,11 +62,27 @@ export function LicitacionListItem({
         {lic.summary && lic.summary !== 'No disponible' && (
           <p className="text-xs text-muted-foreground truncate mt-0.5">{lic.summary}</p>
         )}
-        <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
+        <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap items-center">
           <span>
             📅 {isVisit && siteVisitDateDisplay !== 'No disponible' ? siteVisitDateDisplay : emailDate}
           </span>
           {lic.category && <span>📂 {lic.category}</span>}
+          {priorityLabel && (
+            <span className={cn(
+              'px-1.5 py-0.5 rounded-full text-xs font-medium',
+              priorityLower === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
+              priorityLower === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
+              'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
+            )}>
+              {priorityLabel}
+            </span>
+          )}
+          <span className={cn(
+            'font-bold text-xs',
+            score >= 7 ? 'text-emerald-600 dark:text-emerald-400' : score >= 4 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400'
+          )} title={`Puntuacion: ${score}/10`}>
+            {score}/10
+          </span>
           {lic.contactName && <span>👤 {lic.contactName}</span>}
         </div>
       </div>

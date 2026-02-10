@@ -146,10 +146,74 @@ export function resolvePdfUrl(rawLink: string | null | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// Sort helpers
+// Confidence & Scoring helpers
 // ---------------------------------------------------------------------------
 
 import type { Licitacion } from './types';
+
+/**
+ * Extract confidence percentage from extractionMethod field.
+ * Expects format like "GPT-4o (85%)" → 85
+ */
+export function parseConfidence(extractionMethod: string | null | undefined): number | null {
+  if (!extractionMethod) return null;
+  const match = String(extractionMethod).match(/(\d+)\s*%/);
+  if (match) return parseInt(match[1], 10);
+  return null;
+}
+
+/**
+ * Compute a 1-10 "Worth It" score for quick prioritization.
+ * - Priority: High=3, Medium=2, Low=1 (max 3 pts)
+ * - Deadline proximity: ≤3 days=3, ≤7 days=2, ≤14 days=1 (max 3 pts)
+ * - Has estimated value: +2 pts
+ * - Has site visit: +2 pts
+ * - Cap at 10
+ */
+export function computeWorthItScore(lic: Licitacion): number {
+  let score = 0;
+
+  // Priority points
+  const priority = (lic.priority || '').toLowerCase();
+  if (priority === 'high' || priority === 'alta') score += 3;
+  else if (priority === 'medium' || priority === 'media') score += 2;
+  else if (priority === 'low' || priority === 'baja') score += 1;
+
+  // Deadline proximity
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  let deadline: Date | null = null;
+
+  if (lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible') {
+    const d = new Date(lic.biddingCloseDate);
+    if (!Number.isNaN(d.getTime())) deadline = d;
+  }
+  if (lic.siteVisitDate && lic.siteVisitDate !== 'No disponible') {
+    const d = new Date(lic.siteVisitDate);
+    if (!Number.isNaN(d.getTime()) && (!deadline || d < deadline)) deadline = d;
+  }
+
+  if (deadline) {
+    const daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysRemaining >= 0 && daysRemaining <= 3) score += 3;
+    else if (daysRemaining >= 0 && daysRemaining <= 7) score += 2;
+    else if (daysRemaining >= 0 && daysRemaining <= 14) score += 1;
+  }
+
+  // Estimated value bonus
+  const ev = (lic.estimatedValue || '').trim();
+  if (ev && ev !== 'No disponible') score += 2;
+
+  // Site visit bonus
+  const vl = (lic.visitLocation || '').trim();
+  if (vl && vl.toLowerCase() !== 'no disponible') score += 2;
+
+  return Math.min(score, 10);
+}
+
+// ---------------------------------------------------------------------------
+// Sort helpers
+// ---------------------------------------------------------------------------
 
 export function sortLicitaciones(licitaciones: Licitacion[], sortBy: string): Licitacion[] {
   const sorted = [...licitaciones];
@@ -189,6 +253,9 @@ export function sortLicitaciones(licitaciones: Licitacion[], sortBy: string): Li
     case 'title-desc':
       return sorted.sort((a, b) => (b.subject || '').localeCompare(a.subject || '', 'es'));
 
+    case 'score-desc':
+      return sorted.sort((a, b) => computeWorthItScore(b) - computeWorthItScore(a));
+
     default:
       return sorted;
   }
@@ -216,6 +283,7 @@ export function arrayToCSV(data: Licitacion[]): string {
     { key: 'contactPhone' as const, label: 'Teléfono' },
     { key: 'emailDate' as const, label: 'Fecha Email' },
     { key: 'pdfFilename' as const, label: 'Archivo PDF' },
+    { key: 'estimatedValue' as const, label: 'Valor Estimado' },
   ];
 
   const headerRow = columns.map((col) => `"${col.label}"`).join(',');
