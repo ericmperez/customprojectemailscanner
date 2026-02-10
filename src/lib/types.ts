@@ -80,8 +80,16 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+export interface QuoteItem {
+  item: string;
+  qty: number;
+  unit: string;
+}
+
 export interface PriceResult {
   item: string;
+  qty: number;
+  unit: string;
   price: string;
   sourceUrl: string;
   sourceName: string;
@@ -92,4 +100,29 @@ export interface PriceSearchResponse {
   results: PriceResult[];
   query: string;
   searchedAt: string;
+}
+
+// Confidence field classification
+export const CONFIDENCE_FIELDS = [
+  'title',
+  'location',
+  'description',
+  'summary',
+  'category',
+  'siteVisitDate',
+  'siteVisitTime',
+  'visitLocation',
+  'contactName',
+  'contactPhone',
+  'biddingCloseDate',
+  'biddingCloseTime',
+  'estimatedValue',
+] as const;
+
+export type ConfidenceFieldName = (typeof CONFIDENCE_FIELDS)[number];
+
+export interface ConfidenceFieldSettings {
+  critical: ConfidenceFieldName[];
+  optional: ConfidenceFieldName[];
+  ignored: ConfidenceFieldName[];
 }
