@@ -3,9 +3,13 @@ import type { ChatCompletionContentPart } from 'openai/resources/chat/completion
 // pdf-parse v2 uses named export with class-based API
 import { PDFParse } from 'pdf-parse';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 export interface ExtractedLicitacionData {
   title: string;
@@ -173,7 +177,7 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
   }
 
   // Step 3: Call GPT-4o
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: 'gpt-4o',
     response_format: { type: 'json_object' },
     temperature: 0.1,
