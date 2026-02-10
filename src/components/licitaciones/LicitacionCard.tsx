@@ -1,6 +1,7 @@
 'use client';
 
 import { cn, truncate, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore } from '@/lib/utils';
+import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
 import type { Licitacion } from '@/lib/types';
 
 interface LicitacionCardProps {
@@ -127,6 +128,7 @@ export function LicitacionCard({
         checked={isSelected}
         onChange={(e) => { e.stopPropagation(); onToggleSelection(lic.rowNumber); }}
         onClick={(e) => e.stopPropagation()}
+        aria-label="Seleccionar licitación"
       />
 
       {/* Header */}
@@ -149,6 +151,7 @@ export function LicitacionCard({
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(lic.rowNumber); }}
             className="text-lg hover:scale-110 transition-transform"
             title="Favorito"
+            aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
           >
             {isFavorite ? '⭐' : '☆'}
           </button>
@@ -156,6 +159,7 @@ export function LicitacionCard({
             onClick={(e) => { e.stopPropagation(); onToggleInterested(lic.id, !lic.interested); }}
             className="text-lg hover:scale-110 transition-transform"
             title={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
+            aria-label={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
           >
             {lic.interested ? '❤️' : '🤍'}
           </button>
@@ -164,6 +168,7 @@ export function LicitacionCard({
               onClick={(e) => { e.stopPropagation(); onQuickDismiss(lic.id); }}
               className="text-sm hover:scale-110 transition-transform text-gray-400 hover:text-red-500"
               title="Descartar"
+              aria-label="Descartar licitación"
             >
               ✕
             </button>
@@ -300,6 +305,11 @@ export function LicitacionCard({
         )}
       </div>
 
+      {/* Price Search */}
+      {lic.description && lic.description !== 'No disponible' && (
+        <PriceSearchSection licitacionId={lic.id} variant="card" />
+      )}
+
       {/* Actions */}
       <div className="flex gap-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
         {status === 'pending' ? (
@@ -307,12 +317,14 @@ export function LicitacionCard({
             <button
               className="flex-1 rounded-md bg-emerald-600 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-emerald-700 transition-colors active:bg-emerald-800"
               onClick={() => onApprove(lic.id)}
+              aria-label="Aprobar licitación"
             >
               ✓ Aprobar
             </button>
             <button
               className="flex-1 rounded-md bg-red-600 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-red-700 transition-colors active:bg-red-800"
               onClick={() => onReject(lic.id)}
+              aria-label="Rechazar licitación"
             >
               ✗ Rechazar
             </button>
@@ -321,6 +333,7 @@ export function LicitacionCard({
           <button
             className="flex-1 rounded-md bg-amber-500 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-amber-600 transition-colors active:bg-amber-700"
             onClick={() => onResetPending(lic.id)}
+            aria-label="Volver a pendiente"
           >
             ↺ Volver a Pendiente
           </button>

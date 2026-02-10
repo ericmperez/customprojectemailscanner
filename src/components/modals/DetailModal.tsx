@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore } from '@/lib/utils';
+import { ConfirmationDialog } from './ConfirmationDialog';
+import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
 import type { Licitacion } from '@/lib/types';
 
 interface DetailModalProps {
@@ -23,6 +25,10 @@ interface DetailModalProps {
 export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh }: DetailModalProps) {
   const [lic, setLic] = useState<Licitacion | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; loading: boolean }>({
+    open: false,
+    loading: false,
+  });
 
   const fetchDetail = useCallback(async (id: number) => {
     setLoading(true);
@@ -52,18 +58,26 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
     }
   }, [open, licitacionId, licitacion, fetchDetail]);
 
-  const handleDelete = async () => {
-    if (!licitacionId || !confirm('¿Está seguro de que desea eliminar esta licitación?')) return;
+  const handleDeleteClick = () => {
+    setDeleteConfirm({ open: true, loading: false });
+  };
+
+  const executeDelete = async () => {
+    if (!licitacionId) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
     try {
       const response = await fetch(`/api/licitaciones/${licitacionId}`, { method: 'DELETE' });
       const result = await response.json();
       if (result.success) {
+        setDeleteConfirm({ open: false, loading: false });
         onClose();
         onRefresh();
+        return;
       }
     } catch (error) {
       console.error('Error deleting:', error);
     }
+    setDeleteConfirm({ open: false, loading: false });
   };
 
   const pdfUrl = lic ? (lic.pdfUrl || resolvePdfUrl(lic.pdfLink)) : '#';
@@ -178,6 +192,11 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
               </Section>
             )}
 
+            {/* Price Search */}
+            {lic.description && lic.description !== 'No disponible' && (
+              <PriceSearchSection licitacionId={lic.id} variant="modal" />
+            )}
+
             {/* Summary */}
             {lic.summary && (
               <Section title="Resumen">
@@ -205,7 +224,7 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="destructive" size="sm" onClick={handleDelete} className="flex-1 sm:flex-none">
+            <Button variant="destructive" size="sm" onClick={handleDeleteClick} className="flex-1 sm:flex-none">
               🗑️ Eliminar
             </Button>
             <Button variant="outline" onClick={onClose} className="flex-1 sm:flex-none">
@@ -214,6 +233,19 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
           </div>
         </DialogFooter>
       </DialogContent>
+
+      <ConfirmationDialog
+        open={deleteConfirm.open}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setDeleteConfirm({ open: false, loading: false });
+        }}
+        title="Eliminar licitación"
+        description="¿Está seguro de que desea eliminar esta licitación? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        variant="destructive"
+        loading={deleteConfirm.loading}
+        onConfirm={executeDelete}
+      />
     </Dialog>
   );
 }

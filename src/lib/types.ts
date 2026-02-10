@@ -79,3 +79,17 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+export interface PriceResult {
+  item: string;
+  price: string;
+  sourceUrl: string;
+  sourceName: string;
+  notes: string;
+}
+
+export interface PriceSearchResponse {
+  results: PriceResult[];
+  query: string;
+  searchedAt: string;
+}
