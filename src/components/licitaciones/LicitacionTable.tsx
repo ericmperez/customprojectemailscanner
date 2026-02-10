@@ -1,0 +1,124 @@
+'use client';
+
+import { formatSiteVisitDate, badgeText } from '@/lib/utils';
+import type { Licitacion } from '@/lib/types';
+
+interface LicitacionTableProps {
+  licitaciones: Licitacion[];
+  isFavorite: (id: number) => boolean;
+  isSelected: (rowNumber: number) => boolean;
+  onToggleFavorite: (id: number) => void;
+  onToggleSelection: (rowNumber: number) => void;
+  onSelectAll: (rowNumbers: number[]) => void;
+  onOpenDetail: (id: number) => void;
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
+}
+
+export function LicitacionTable({
+  licitaciones,
+  isFavorite,
+  isSelected,
+  onToggleFavorite,
+  onToggleSelection,
+  onSelectAll,
+  onOpenDetail,
+  onApprove,
+  onReject,
+}: LicitacionTableProps) {
+  const allSelected = licitaciones.length > 0 && licitaciones.every((l) => isSelected(l.rowNumber));
+
+  return (
+    <div className="overflow-auto rounded-md border">
+      <table className="w-full text-sm">
+        <thead className="bg-muted">
+          <tr>
+            <th className="p-2 text-left w-8">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() => {
+                  if (allSelected) {
+                    onSelectAll([]);
+                  } else {
+                    onSelectAll(licitaciones.map((l) => l.rowNumber));
+                  }
+                }}
+              />
+            </th>
+            <th className="p-2 text-left w-8"></th>
+            <th className="p-2 text-left">Titulo</th>
+            <th className="p-2 text-left">Tipo</th>
+            <th className="p-2 text-left">Categoria</th>
+            <th className="p-2 text-left">Fecha</th>
+            <th className="p-2 text-left">Contacto</th>
+            <th className="p-2 text-left">Estado</th>
+            <th className="p-2 text-left w-20">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {licitaciones.map((lic) => {
+            const visitLocation = (lic.visitLocation || '').toString().trim();
+            const isVisit = visitLocation && visitLocation.toLowerCase() !== 'no disponible';
+            const siteVisitDateDisplay = formatSiteVisitDate(lic.siteVisitDate);
+            const emailDate = formatSiteVisitDate(lic.emailDate) || 'Sin fecha';
+
+            return (
+              <tr
+                key={lic.id}
+                className="border-t hover:bg-muted/50 cursor-pointer transition-colors"
+                onClick={() => onOpenDetail(lic.id)}
+              >
+                <td className="p-2" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected(lic.rowNumber)}
+                    onChange={() => onToggleSelection(lic.rowNumber)}
+                  />
+                </td>
+                <td className="p-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="hover:scale-110 transition-transform"
+                    onClick={() => onToggleFavorite(lic.rowNumber)}
+                  >
+                    {isFavorite(lic.rowNumber) ? '⭐' : '☆'}
+                  </button>
+                </td>
+                <td className="p-2 font-medium max-w-[250px] truncate">
+                  {lic.title || lic.subject || 'Sin titulo'}
+                </td>
+                <td className="p-2 whitespace-nowrap">
+                  {isVisit ? '🏗️ Visita' : '🛒 Compra'}
+                </td>
+                <td className="p-2">{lic.category || '-'}</td>
+                <td className="p-2 whitespace-nowrap">
+                  {isVisit && siteVisitDateDisplay !== 'No disponible' ? siteVisitDateDisplay : emailDate}
+                </td>
+                <td className="p-2">{lic.contactName || '-'}</td>
+                <td className="p-2">{badgeText(lic.approvalStatus)}</td>
+                <td className="p-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex gap-1">
+                    <button
+                      className="hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded p-1"
+                      onClick={() => onApprove(lic.rowNumber)}
+                      title="Aprobar"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="hover:bg-red-100 dark:hover:bg-red-900 rounded p-1"
+                      onClick={() => onReject(lic.rowNumber)}
+                      title="Rechazar"
+                    >
+                      ✗
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}

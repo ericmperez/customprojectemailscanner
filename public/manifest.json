@@ -1,11 +1,11 @@
 {
   "name": "Licitaciones Dashboard",
   "short_name": "Licitaciones",
-  "description": "Dashboard para gestión de licitaciones y visitas",
+  "description": "Dashboard para gestion de licitaciones y visitas",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#667eea",
+  "theme_color": "#4f46e5",
   "orientation": "any",
   "icons": [
     {
@@ -39,4 +39,3 @@
     }
   ]
 }
-
