@@ -155,6 +155,11 @@ export function LicitacionCard({
         </div>
       </div>
 
+      {/* Summary */}
+      {lic.summary && lic.summary !== 'No disponible' && (
+        <p className="text-sm text-muted-foreground italic mb-2 ml-6 line-clamp-2">{lic.summary}</p>
+      )}
+
       {/* Meta */}
       <div className="flex gap-3 text-xs text-muted-foreground mb-2 flex-wrap">
         {isVisit && siteVisitDateDisplay !== 'No disponible' ? (

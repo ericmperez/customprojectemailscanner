@@ -54,6 +54,9 @@ export function LicitacionListItem({
             {lic.title || lic.subject || 'Sin titulo'}
           </span>
         </div>
+        {lic.summary && lic.summary !== 'No disponible' && (
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{lic.summary}</p>
+        )}
         <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
           <span>
             📅 {isVisit && siteVisitDateDisplay !== 'No disponible' ? siteVisitDateDisplay : emailDate}

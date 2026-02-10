@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 
+import { UserButton } from '@clerk/nextjs';
 import { StatsBar } from './StatsBar';
 import { FilterBar } from './FilterBar';
 import { LicitacionCard } from '@/components/licitaciones/LicitacionCard';
@@ -271,11 +272,14 @@ export function DashboardShell() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">📋 Licitaciones Dashboard</h1>
-          <StatsBar
-            stats={stats}
-            activeStatus={filters.status}
-            onStatusClick={(status) => updateFilter('status', status)}
-          />
+          <div className="flex items-center gap-3">
+            <StatsBar
+              stats={stats}
+              activeStatus={filters.status}
+              onStatusClick={(status) => updateFilter('status', status)}
+            />
+            <UserButton afterSignOutUrl="/sign-in" />
+          </div>
         </div>
 
         {/* Filters */}

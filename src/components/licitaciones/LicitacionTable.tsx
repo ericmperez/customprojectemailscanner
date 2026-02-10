@@ -84,8 +84,15 @@ export function LicitacionTable({
                     {isFavorite(lic.rowNumber) ? '⭐' : '☆'}
                   </button>
                 </td>
-                <td className="p-2 font-medium max-w-[250px] truncate">
-                  {lic.title || lic.subject || 'Sin titulo'}
+                <td className="p-2 max-w-[300px]">
+                  <div className="font-medium truncate">
+                    {lic.title || lic.subject || 'Sin titulo'}
+                  </div>
+                  {lic.summary && lic.summary !== 'No disponible' && (
+                    <div className="text-xs text-muted-foreground truncate mt-0.5">
+                      {lic.summary}
+                    </div>
+                  )}
                 </td>
                 <td className="p-2 whitespace-nowrap">
                   {isVisit ? '🏗️ Visita' : '🛒 Compra'}
