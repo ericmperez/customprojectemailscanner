@@ -4,10 +4,5 @@
       "path": "/api/cron/process-emails",
       "schedule": "0 10 * * *"
     }
-  ],
-  "functions": {
-    "api/cron/process-emails": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }

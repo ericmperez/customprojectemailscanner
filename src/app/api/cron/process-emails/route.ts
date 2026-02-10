@@ -9,6 +9,8 @@ import {
   getAllProcessedEmailIds,
 } from '@/lib/services/supabase.service';
 
+export const maxDuration = 60;
+
 const MAX_EMAILS_PER_RUN = 5;
 const LOOKBACK_DAYS = 90;
 
