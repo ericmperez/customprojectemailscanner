@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 
+import { UserButton } from '@clerk/nextjs';
 import { StatsBar } from './StatsBar';
 import { FilterBar } from './FilterBar';
 import { LicitacionCard } from '@/components/licitaciones/LicitacionCard';
@@ -277,7 +278,7 @@ export function DashboardShell() {
               activeStatus={filters.status}
               onStatusClick={(status) => updateFilter('status', status)}
             />
-            {/* Auth button placeholder */}
+            <UserButton afterSignOutUrl="/sign-in" />
           </div>
         </div>
 
