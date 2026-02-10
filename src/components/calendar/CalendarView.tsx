@@ -23,7 +23,7 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
   const loadEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const calFilters = { ...filters, status: 'approved' };
+      const { status: _ignoreStatus, ...calFilters } = filters;
       const params = new URLSearchParams();
       Object.entries(calFilters).forEach(([key, value]) => {
         if (Array.isArray(value)) {
