@@ -13,6 +13,8 @@ interface LicitacionTableProps {
   onOpenDetail: (id: number) => void;
   onApprove: (id: number) => void;
   onReject: (id: number) => void;
+  onToggleInterested: (id: number, interested: boolean) => void;
+  onQuickDismiss: (id: number) => void;
 }
 
 export function LicitacionTable({
@@ -25,6 +27,8 @@ export function LicitacionTable({
   onOpenDetail,
   onApprove,
   onReject,
+  onToggleInterested,
+  onQuickDismiss,
 }: LicitacionTableProps) {
   const allSelected = licitaciones.length > 0 && licitaciones.every((l) => isSelected(l.rowNumber));
 
@@ -46,6 +50,7 @@ export function LicitacionTable({
                 }}
               />
             </th>
+            <th className="p-2 text-left w-8"></th>
             <th className="p-2 text-left w-8"></th>
             <th className="p-2 text-left">Titulo</th>
             <th className="p-2 text-left">Tipo</th>
@@ -88,6 +93,15 @@ export function LicitacionTable({
                     onClick={() => onToggleFavorite(lic.rowNumber)}
                   >
                     {isFavorite(lic.rowNumber) ? '⭐' : '☆'}
+                  </button>
+                </td>
+                <td className="p-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="hover:scale-110 transition-transform"
+                    onClick={() => onToggleInterested(lic.id, !lic.interested)}
+                    title={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
+                  >
+                    {lic.interested ? '❤️' : '🤍'}
                   </button>
                 </td>
                 <td className="p-2 max-w-[300px]">
@@ -146,6 +160,15 @@ export function LicitacionTable({
                     >
                       ✗
                     </button>
+                    {(lic.approvalStatus || 'pending') === 'pending' && (
+                      <button
+                        className="hover:bg-red-100 dark:hover:bg-red-900 rounded p-1 text-gray-400 hover:text-red-500"
+                        onClick={() => onQuickDismiss(lic.id)}
+                        title="Descartar"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

@@ -312,17 +312,24 @@ export function DashboardShell() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-6 space-y-4">
+      <div className="mx-auto max-w-7xl px-3 py-3 space-y-3 sm:px-4 sm:py-6 sm:space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">📋 Licitaciones Dashboard</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg sm:text-2xl font-bold">📋 Licitaciones</h1>
+            <div className="sm:hidden">
+              <UserButton afterSignOutUrl="/sign-in" />
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             <StatsBar
               stats={stats}
               activeStatus={filters.status}
               onStatusClick={(status) => updateFilter('status', status)}
             />
-            <UserButton afterSignOutUrl="/sign-in" />
+            <div className="hidden sm:block">
+              <UserButton afterSignOutUrl="/sign-in" />
+            </div>
           </div>
         </div>
 
@@ -352,7 +359,7 @@ export function DashboardShell() {
 
         {/* Bulk actions bar */}
         {selectedCount > 0 && (
-          <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+          <div className="flex items-center gap-2 sm:gap-3 rounded-lg border bg-card p-2 sm:p-3 flex-wrap">
             <span className="text-sm font-medium">{selectedCount} seleccionada(s)</span>
             <button
               className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
@@ -462,19 +469,42 @@ export function DashboardShell() {
               </div>
             )}
 
-            {/* Table view */}
+            {/* Table view - falls back to list on mobile */}
             {!loading && displayedLicitaciones.length > 0 && viewMode === 'table' && (
-              <LicitacionTable
-                licitaciones={displayedLicitaciones}
-                isFavorite={isFavorite}
-                isSelected={isSelected}
-                onToggleFavorite={toggleFavorite}
-                onToggleSelection={toggleSelection}
-                onSelectAll={selectAll}
-                onOpenDetail={openDetail}
-                onApprove={handleApprove}
-                onReject={handleReject}
-              />
+              <>
+                {/* Table on desktop */}
+                <div className="hidden sm:block">
+                  <LicitacionTable
+                    licitaciones={displayedLicitaciones}
+                    isFavorite={isFavorite}
+                    isSelected={isSelected}
+                    onToggleFavorite={toggleFavorite}
+                    onToggleSelection={toggleSelection}
+                    onSelectAll={selectAll}
+                    onOpenDetail={openDetail}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    onToggleInterested={handleToggleInterested}
+                    onQuickDismiss={handleQuickDismiss}
+                  />
+                </div>
+                {/* Fallback to list on mobile */}
+                <div className="sm:hidden space-y-1">
+                  {displayedLicitaciones.map((lic) => (
+                    <LicitacionListItem
+                      key={lic.id}
+                      lic={lic}
+                      isFavorite={isFavorite(lic.rowNumber)}
+                      isSelected={isSelected(lic.rowNumber)}
+                      onToggleFavorite={toggleFavorite}
+                      onToggleSelection={toggleSelection}
+                      onOpenDetail={openDetail}
+                      onToggleInterested={handleToggleInterested}
+                      onQuickDismiss={handleQuickDismiss}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </>
         )}

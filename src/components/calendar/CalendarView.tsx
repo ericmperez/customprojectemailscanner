@@ -121,7 +121,7 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
           <div className="grid grid-cols-7 gap-px bg-border rounded-md overflow-hidden">
             {days.map((day, i) => {
               if (day === null) {
-                return <div key={`empty-${i}`} className="bg-card min-h-[80px] p-1" />;
+                return <div key={`empty-${i}`} className="bg-card min-h-[48px] sm:min-h-[80px] p-0.5 sm:p-1" />;
               }
 
               const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -132,7 +132,7 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
                 <div
                   key={dateKey}
                   className={cn(
-                    'bg-card min-h-[80px] p-1 relative',
+                    'bg-card min-h-[48px] sm:min-h-[80px] p-0.5 sm:p-1 relative',
                     isToday && 'ring-2 ring-primary ring-inset',
                     dayEvents.length > 0 && 'bg-primary/5'
                   )}
@@ -140,20 +140,40 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
                   <div className={cn('text-xs font-medium mb-0.5', isToday && 'text-primary font-bold')}>
                     {day}
                   </div>
-                  {dayEvents.slice(0, 3).map((event) => (
+                  {/* Show fewer events on mobile */}
+                  {dayEvents.slice(0, 2).map((event) => (
                     <div
                       key={event.id}
-                      className="text-[10px] leading-tight bg-primary/10 text-primary rounded px-1 py-0.5 mb-0.5 cursor-pointer hover:bg-primary/20 transition-colors truncate"
+                      className="text-[10px] sm:text-[11px] leading-tight bg-primary/10 text-primary rounded px-1 py-0.5 sm:py-0.5 mb-0.5 cursor-pointer hover:bg-primary/20 transition-colors truncate"
                       onClick={() => onOpenDetail(event.id)}
                       title={event.title || event.subject}
                     >
-                      {formatTimeLabel(event.visitTime) || ''}
-                      {' '}
-                      {truncate(event.title || event.subject, 20)}
+                      <span className="hidden sm:inline">{formatTimeLabel(event.visitTime) || ''} </span>
+                      {truncate(event.title || event.subject, 12)}
                     </div>
                   ))}
+                  {/* Show third event only on desktop */}
+                  {dayEvents.length > 2 && (
+                    <div className="hidden sm:block">
+                      {dayEvents.slice(2, 3).map((event) => (
+                        <div
+                          key={event.id}
+                          className="text-[11px] leading-tight bg-primary/10 text-primary rounded px-1 py-0.5 mb-0.5 cursor-pointer hover:bg-primary/20 transition-colors truncate"
+                          onClick={() => onOpenDetail(event.id)}
+                          title={event.title || event.subject}
+                        >
+                          {formatTimeLabel(event.visitTime) || ''} {truncate(event.title || event.subject, 20)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {dayEvents.length > 2 && (
+                    <div className="text-[10px] text-muted-foreground sm:hidden">
+                      +{dayEvents.length - 2}
+                    </div>
+                  )}
                   {dayEvents.length > 3 && (
-                    <div className="text-[10px] text-muted-foreground">
+                    <div className="text-[10px] text-muted-foreground hidden sm:block">
                       +{dayEvents.length - 3} mas
                     </div>
                   )}

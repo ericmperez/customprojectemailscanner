@@ -71,7 +71,7 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[100dvh] sm:max-h-[85vh] overflow-y-auto h-[100dvh] sm:h-auto rounded-none sm:rounded-lg p-4 sm:p-6">
         <DialogHeader>
           {lic && (
             <div
@@ -145,18 +145,19 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
               {lic.contactPhone && (
                 <div className="text-sm">
                   <span className="text-muted-foreground font-medium">Telefono: </span>
-                  <a href={`tel:${lic.contactPhone.replace(/\D/g, '')}`} className="text-primary hover:underline">
-                    📞 {lic.contactPhone}
-                  </a>
-                  {' '}
-                  <a
-                    href={`https://wa.me/1${lic.contactPhone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    💬 WhatsApp
-                  </a>
+                  <div className="flex gap-2 mt-1 sm:inline-flex sm:mt-0">
+                    <a href={`tel:${lic.contactPhone.replace(/\D/g, '')}`} className="text-primary hover:underline inline-flex items-center gap-1 py-1 px-2 rounded-md border sm:border-0 sm:p-0">
+                      📞 {lic.contactPhone}
+                    </a>
+                    <a
+                      href={`https://wa.me/1${lic.contactPhone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline inline-flex items-center gap-1 py-1 px-2 rounded-md border sm:border-0 sm:p-0"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  </div>
                 </div>
               )}
             </Section>
@@ -193,10 +194,10 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
           </div>
         )}
 
-        <DialogFooter className="flex justify-between">
+        <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between mt-2">
           <div className="flex gap-2">
             {hasPdf && (
-              <Button asChild>
+              <Button asChild className="flex-1 sm:flex-none">
                 <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
                   📄 Abrir PDF
                 </a>
@@ -204,10 +205,10 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Button variant="destructive" size="sm" onClick={handleDelete} className="flex-1 sm:flex-none">
               🗑️ Eliminar
             </Button>
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="flex-1 sm:flex-none">
               Cerrar
             </Button>
           </div>

@@ -21,6 +21,8 @@ export function LicitacionListItem({
   onToggleFavorite,
   onToggleSelection,
   onOpenDetail,
+  onToggleInterested,
+  onQuickDismiss,
 }: LicitacionListItemProps) {
   const visitLocation = (lic.visitLocation || '').toString().trim();
   const isVisit = visitLocation && visitLocation.toLowerCase() !== 'no disponible';
@@ -33,7 +35,7 @@ export function LicitacionListItem({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-md border bg-card px-3 py-2 hover:bg-muted/50 transition-colors',
+        'flex items-center gap-2 sm:gap-3 rounded-md border bg-card px-2 py-2.5 sm:px-3 sm:py-2 hover:bg-muted/50 transition-colors active:bg-muted/70',
         isSelected && 'ring-2 ring-primary'
       )}
     >
@@ -48,6 +50,13 @@ export function LicitacionListItem({
         onClick={(e) => { e.stopPropagation(); onToggleFavorite(lic.rowNumber); }}
       >
         {isFavorite ? '⭐' : '☆'}
+      </button>
+      <button
+        className="text-base hover:scale-110 transition-transform shrink-0"
+        onClick={(e) => { e.stopPropagation(); onToggleInterested(lic.id, !lic.interested); }}
+        title={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
+      >
+        {lic.interested ? '❤️' : '🤍'}
       </button>
       <div
         className="flex-1 min-w-0 cursor-pointer"
@@ -84,8 +93,20 @@ export function LicitacionListItem({
             {score}/10
           </span>
           {lic.contactName && <span>👤 {lic.contactName}</span>}
+          {lic.estimatedValue && lic.estimatedValue !== 'No disponible' && (
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">💰 {lic.estimatedValue}</span>
+          )}
         </div>
       </div>
+      {(lic.approvalStatus || 'pending') === 'pending' && (
+        <button
+          className="text-sm hover:scale-110 transition-transform text-gray-400 hover:text-red-500 shrink-0"
+          onClick={(e) => { e.stopPropagation(); onQuickDismiss(lic.id); }}
+          title="Descartar"
+        >
+          ✕
+        </button>
+      )}
     </div>
   );
 }

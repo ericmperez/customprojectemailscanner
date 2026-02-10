@@ -131,10 +131,10 @@ export function LicitacionCard({
 
       {/* Header */}
       <div className="flex justify-between items-start gap-2 mb-2 ml-6">
-        <h3 className="font-semibold text-sm leading-snug line-clamp-2">
+        <h3 className="font-semibold text-sm leading-snug line-clamp-2 min-w-0">
           {lic.title || lic.subject || 'Sin titulo'}
         </h3>
-        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 flex-wrap justify-end max-w-[45%] sm:max-w-none">
           {/* Worth It score */}
           <span
             className={cn(
@@ -305,13 +305,13 @@ export function LicitacionCard({
         {status === 'pending' ? (
           <>
             <button
-              className="flex-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 transition-colors"
+              className="flex-1 rounded-md bg-emerald-600 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-emerald-700 transition-colors active:bg-emerald-800"
               onClick={() => onApprove(lic.id)}
             >
               ✓ Aprobar
             </button>
             <button
-              className="flex-1 rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+              className="flex-1 rounded-md bg-red-600 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-red-700 transition-colors active:bg-red-800"
               onClick={() => onReject(lic.id)}
             >
               ✗ Rechazar
@@ -319,7 +319,7 @@ export function LicitacionCard({
           </>
         ) : (
           <button
-            className="flex-1 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 transition-colors"
+            className="flex-1 rounded-md bg-amber-500 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-amber-600 transition-colors active:bg-amber-700"
             onClick={() => onResetPending(lic.id)}
           >
             ↺ Volver a Pendiente
