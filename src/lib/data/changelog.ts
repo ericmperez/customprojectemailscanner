@@ -16,8 +16,39 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.5.0',
+    date: '2026-02-11',
+    headline: 'Compartir visitas por WhatsApp y correccion de emails',
+    features: [
+      {
+        type: 'fix',
+        title: 'Corregido error al buscar emails',
+        description:
+          'Se corrigio un error de DOMMatrix que impedia procesar emails en Vercel. La importacion de pdf-parse ahora es dinamica para compatibilidad con serverless.',
+      },
+      {
+        type: 'feature',
+        title: 'Compartir visitas por WhatsApp',
+        description:
+          'Boton para compartir tarjeta de visita directamente por WhatsApp desde las tarjetas y el modal de detalle.',
+      },
+      {
+        type: 'improvement',
+        title: 'Vista de tabla por defecto',
+        description:
+          'La vista de tabla es ahora la vista predeterminada. Se removio la columna de valor estimado y la fecha ahora siempre muestra la fecha del email.',
+      },
+      {
+        type: 'feature',
+        title: 'Sistema de novedades',
+        description:
+          'Nueva pagina de novedades con historial de cambios y notificacion de nuevas versiones.',
+      },
+    ],
+  },
+  {
     version: '1.4.0',
-    date: '2025-02-11',
+    date: '2026-02-11',
     headline: 'Tabla mejorada y recordatorio de changelog',
     features: [
       {

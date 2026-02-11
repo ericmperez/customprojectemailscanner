@@ -1,7 +1,6 @@
 import OpenAI from 'openai';
 import type { ChatCompletionContentPart } from 'openai/resources/chat/completions';
-// pdf-parse v2 uses named export with class-based API
-import { PDFParse } from 'pdf-parse';
+// pdf-parse v2 is imported dynamically to avoid DOMMatrix errors in serverless
 import { withRetry } from '@/lib/utils/retry';
 import type { ConfidenceFieldSettings } from '@/lib/types';
 import { getConfidenceSettings } from '@/lib/services/supabase.service';
@@ -118,21 +117,23 @@ function getSystemPrompt(): string {
  * Returns the text content or null if extraction fails.
  */
 async function extractPdfText(pdfBase64: string): Promise<string | null> {
-  let parser: InstanceType<typeof PDFParse> | null = null;
   try {
+    const { PDFParse } = await import('pdf-parse');
     const buffer = Buffer.from(pdfBase64, 'base64');
-    parser = new PDFParse({ data: new Uint8Array(buffer), verbosity: 0 });
-    const result = await parser.getText();
-    const text = result.text?.trim();
-    if (text && text.length > 20) {
-      return text;
+    const parser = new PDFParse({ data: new Uint8Array(buffer), verbosity: 0 });
+    try {
+      const result = await parser.getText();
+      const text = result.text?.trim();
+      if (text && text.length > 20) {
+        return text;
+      }
+      return null; // Too short = likely scanned image PDF
+    } finally {
+      parser.destroy();
     }
-    return null; // Too short = likely scanned image PDF
   } catch (err) {
     console.warn('[openai] pdf-parse failed, using visual-only extraction:', err);
     return null;
-  } finally {
-    parser?.destroy();
   }
 }
 
