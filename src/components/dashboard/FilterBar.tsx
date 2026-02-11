@@ -32,6 +32,8 @@ interface FilterBarProps {
   onDeletePreset: (id: string) => void;
   onRenamePreset: (id: string, newName: string) => void;
   onOpenSettings: () => void;
+  onOpenNovedades: () => void;
+  hasNewVersion?: boolean;
 }
 
 export function FilterBar({
@@ -56,6 +58,8 @@ export function FilterBar({
   onDeletePreset,
   onRenamePreset,
   onOpenSettings,
+  onOpenNovedades,
+  hasNewVersion,
 }: FilterBarProps) {
   const [townDropdownOpen, setTownDropdownOpen] = useState(false);
   const [townSearch, setTownSearch] = useState('');
@@ -352,6 +356,18 @@ export function FilterBar({
           aria-label="Configuracion de confianza"
         >
           <Settings className="h-4 w-4" />
+        </button>
+
+        <button
+          className="relative text-lg px-1 hover:opacity-70 transition-opacity"
+          onClick={onOpenNovedades}
+          title="Novedades"
+          aria-label="Ver novedades"
+        >
+          🆕
+          {hasNewVersion && (
+            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+          )}
         </button>
 
         <button

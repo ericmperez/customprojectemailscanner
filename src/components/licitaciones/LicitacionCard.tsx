@@ -3,6 +3,7 @@
 import { cn, truncate, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore } from '@/lib/utils';
 import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
 import type { Licitacion } from '@/lib/types';
+import { hasVisitInfo, buildWhatsAppVisitCardUrl } from '@/lib/utils/whatsapp';
 
 interface LicitacionCardProps {
   lic: Licitacion;
@@ -301,6 +302,19 @@ export function LicitacionCard({
           <div>
             <span className="text-muted-foreground font-medium">Valor Est.</span>
             <p className="text-emerald-600 dark:text-emerald-400 font-medium">{lic.estimatedValue}</p>
+          </div>
+        )}
+        {hasVisitInfo(lic) && (
+          <div>
+            <a
+              href={buildWhatsAppVisitCardUrl(lic)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline inline-flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              📤 Compartir Visita
+            </a>
           </div>
         )}
       </div>

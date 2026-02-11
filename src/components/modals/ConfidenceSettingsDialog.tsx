@@ -25,6 +25,7 @@ const FIELD_LABELS: Record<ConfidenceFieldName, string> = {
   siteVisitDate: 'Fecha de Visita',
   siteVisitTime: 'Hora de Visita',
   visitLocation: 'Lugar de Visita',
+  visitRequirements: 'Requisitos de Visita',
   contactName: 'Nombre de Contacto',
   contactPhone: 'Telefono de Contacto',
   biddingCloseDate: 'Fecha de Cierre',

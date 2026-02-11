@@ -13,6 +13,7 @@ import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, par
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
 import type { Licitacion } from '@/lib/types';
+import { hasVisitInfo, buildWhatsAppVisitCardUrl } from '@/lib/utils/whatsapp';
 
 interface DetailModalProps {
   open: boolean;
@@ -181,8 +182,19 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
               <DetailItem label="Fecha Visita" value={formatSiteVisitDate(lic.siteVisitDate)} />
               <DetailItem label="Hora Visita" value={formatTimeLabel(lic.siteVisitTime) || 'Sin hora'} />
               <DetailItem label="Lugar de Visita" value={lic.visitLocation} />
+              <DetailItem label="Requisitos de Visita" value={lic.visitRequirements} />
               <DetailItem label="Cierre Licitacion" value={lic.biddingCloseDate} />
               <DetailItem label="Hora Cierre" value={formatTimeLabel(lic.biddingCloseTime) || 'Sin hora'} />
+              {hasVisitInfo(lic) && (
+                <a
+                  href={buildWhatsAppVisitCardUrl(lic)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
+                >
+                  📤 Compartir Tarjeta de Visita por WhatsApp
+                </a>
+              )}
             </Section>
 
             {/* Description */}
