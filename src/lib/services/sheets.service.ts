@@ -42,6 +42,7 @@ const HEADERS = [
   'Decision Status',
   'Titulo',
   'Valor Estimado',
+  'Requisitos de Visita',
 ];
 
 const HEADER_KEY_MAP: Record<string, string> = {
@@ -70,6 +71,7 @@ const HEADER_KEY_MAP: Record<string, string> = {
   'Decision Status': 'decisionStatus',
   'Titulo': 'title',
   'Valor Estimado': 'estimatedValue',
+  'Requisitos de Visita': 'visitRequirements',
 };
 
 const DEFAULT_STATUS = 'pending';
@@ -217,6 +219,9 @@ class SheetsService {
     }
     if (data.estimatedValue !== undefined || !existingRow) {
       updates['Valor Estimado'] = String(data.estimatedValue || 'No disponible');
+    }
+    if (data.visitRequirements !== undefined || !existingRow) {
+      updates['Requisitos de Visita'] = String(data.visitRequirements || 'No disponible');
     }
 
     Object.entries(updates).forEach(([key, value]) => {

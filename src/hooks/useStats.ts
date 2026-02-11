@@ -5,6 +5,7 @@ import type { Stats } from '@/lib/types';
 
 export function useStats() {
   const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, approved: 0, rejected: 0, interested: 0 });
+  const [lastFetch, setLastFetch] = useState<string | null>(null);
 
   const loadStats = useCallback(async () => {
     try {
@@ -12,11 +13,12 @@ export function useStats() {
       const result = await response.json();
       if (result.success) {
         setStats(result.data);
+        setLastFetch(result.lastFetch ?? null);
       }
     } catch (error) {
       console.error('Error loading stats:', error);
     }
   }, []);
 
-  return { stats, loadStats };
+  return { stats, lastFetch, loadStats };
 }

@@ -16,6 +16,7 @@ export interface Licitacion {
   siteVisitDate: string;
   siteVisitTime: string;
   visitLocation: string;
+  visitRequirements: string;
   contactName: string;
   contactPhone: string;
   contactEmail?: string;
@@ -48,6 +49,7 @@ export interface Visit {
   category: string;
   approvalStatus: string;
   decisionStatus: string;
+  visitRequirements?: string;
   visitDate: string;
   visitTime: string | null;
   rawVisitDate: string;
@@ -112,6 +114,7 @@ export const CONFIDENCE_FIELDS = [
   'siteVisitDate',
   'siteVisitTime',
   'visitLocation',
+  'visitRequirements',
   'contactName',
   'contactPhone',
   'biddingCloseDate',

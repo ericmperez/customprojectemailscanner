@@ -7,6 +7,7 @@ import {
   markEmailAsProcessed,
   uploadPdf,
   getAllProcessedEmailIds,
+  saveLastFetchTimestamp,
 } from '@/lib/services/supabase.service';
 import { isBiddingOpen, isMinutaOrAsistencia } from '@/lib/services/cron.utils';
 
@@ -171,6 +172,7 @@ export async function GET(request: NextRequest) {
           siteVisitDate: extracted.siteVisitDate,
           siteVisitTime: extracted.siteVisitTime,
           visitLocation: extracted.visitLocation,
+          visitRequirements: extracted.visitRequirements,
           contactName: extracted.contactName,
           contactPhone: extracted.contactPhone,
           biddingCloseDate: extracted.biddingCloseDate,
@@ -210,6 +212,9 @@ export async function GET(request: NextRequest) {
         stats.details.push(`✗ ${messageId}: ${errMsg}`);
       }
     }
+
+    // Record the last fetch timestamp
+    await saveLastFetchTimestamp();
 
     return NextResponse.json({
       success: true,

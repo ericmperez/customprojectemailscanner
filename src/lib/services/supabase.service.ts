@@ -172,6 +172,42 @@ export async function getConfidenceSettings(): Promise<ConfidenceFieldSettings> 
 }
 
 /**
+ * Save the last email fetch timestamp to app_settings.
+ */
+export async function saveLastFetchTimestamp(): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('app_settings')
+    .upsert(
+      { key: 'last_email_fetch', value: { timestamp: new Date().toISOString() }, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+
+  if (error) {
+    console.error('Error saving last fetch timestamp:', error);
+  }
+}
+
+/**
+ * Get the last email fetch timestamp from app_settings.
+ */
+export async function getLastFetchTimestamp(): Promise<string | null> {
+  try {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'last_email_fetch')
+      .single();
+
+    if (error || !data) return null;
+    return (data.value as { timestamp: string }).timestamp ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Save confidence field settings to app_settings table (upsert).
  */
 export async function saveConfidenceSettings(

@@ -34,7 +34,7 @@ export function DashboardShell() {
 
   // Hooks
   const { licitaciones, loading, loadLicitaciones, searchFilter } = useLicitaciones();
-  const { stats, loadStats } = useStats();
+  const { stats, lastFetch, loadStats } = useStats();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { viewMode, setViewMode } = useViewMode();
   const { selectedCards, toggleSelection, selectAll, clearSelection, isSelected, selectedCount } =
@@ -348,7 +348,15 @@ export function DashboardShell() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg sm:text-2xl font-bold">📋 Licitaciones</h1>
+            <div>
+              <h1 className="text-lg sm:text-2xl font-bold">📋 Licitaciones</h1>
+              {lastFetch && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Último fetch: {new Date(lastFetch).toLocaleDateString('es-PR', { day: 'numeric', month: 'short', year: 'numeric' })}{' '}
+                  {new Date(lastFetch).toLocaleTimeString('es-PR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+            </div>
             <div className="sm:hidden">
               <UserButton afterSignOutUrl="/sign-in" />
             </div>

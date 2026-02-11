@@ -24,6 +24,7 @@ export interface ExtractedLicitacionData {
   siteVisitDate: string;
   siteVisitTime: string;
   visitLocation: string;
+  visitRequirements: string;
   contactName: string;
   contactPhone: string;
   biddingCloseDate: string;
@@ -52,6 +53,7 @@ Extract the following fields. If a field is not found, use "No disponible".
 - siteVisitDate: Date of mandatory/optional site visit in MM/DD/YYYY format. Convert Spanish month names: enero=01, febrero=02, marzo=03, abril=04, mayo=05, junio=06, julio=07, agosto=08, septiembre=09, octubre=10, noviembre=11, diciembre=12
 - siteVisitTime: Time of site visit in HH:MM AM/PM format
 - visitLocation: The specific address or location where the site visit takes place
+- visitRequirements: What the bidder must bring to the site visit — safety equipment (casco, botas, chaleco), certifications (OSHA, EPA), documents (seguro, licencia), or any other prerequisites. Look for "requisitos de visita", "equipo de seguridad", "certificaciones requeridas", or similar phrases.
 - contactName: Name of the contact person
 - contactPhone: Contact phone number. Puerto Rico format: (787) XXX-XXXX or (939) XXX-XXXX. Normalize to this format.
 - biddingCloseDate: Deadline to submit bids in MM/DD/YYYY format. Apply same Spanish month conversion.
@@ -79,6 +81,7 @@ Extract the following fields. If a field is not found, use "No disponible".
   "siteVisitDate": "02/15/2026",
   "siteVisitTime": "10:00 AM",
   "visitLocation": "EBAS Torrecilla, Carr. 187 Km 5.2, Loíza",
+  "visitRequirements": "Casco, botas de seguridad, chaleco reflectivo, certificación OSHA 10",
   "contactName": "Juan Pérez Rivera",
   "contactPhone": "(787) 555-1234",
   "biddingCloseDate": "02/28/2026",
@@ -227,6 +230,7 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
     siteVisitDate: parsed.siteVisitDate || 'No disponible',
     siteVisitTime: parsed.siteVisitTime || 'No disponible',
     visitLocation: parsed.visitLocation || 'No disponible',
+    visitRequirements: parsed.visitRequirements || 'No disponible',
     contactName: parsed.contactName || 'No disponible',
     contactPhone: parsed.contactPhone || 'No disponible',
     biddingCloseDate: parsed.biddingCloseDate || 'No disponible',
