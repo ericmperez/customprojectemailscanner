@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { UserButton } from '@clerk/nextjs';
 import { StatsBar } from './StatsBar';
 import { FilterBar } from './FilterBar';
+import { EmailsPerDayChart } from './EmailsPerDayChart';
 import { LicitacionCard } from '@/components/licitaciones/LicitacionCard';
 import { LicitacionListItem } from '@/components/licitaciones/LicitacionListItem';
 import { LicitacionTable } from '@/components/licitaciones/LicitacionTable';
@@ -459,6 +460,11 @@ export function DashboardShell() {
           onOpenNovedades={() => setNovedadesOpen(true)}
           hasNewVersion={hasNewVersion}
         />
+
+        {/* Emails per day chart */}
+        {!loading && licitaciones.length > 0 && (
+          <EmailsPerDayChart licitaciones={licitaciones} />
+        )}
 
         {/* Bulk actions bar */}
         {selectedCount > 0 && (

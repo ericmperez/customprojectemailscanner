@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
 import LicitacionesService from '@/lib/services/licitaciones.service';
+import { formatNoteWithAttribution } from '@/lib/utils/notes';
 
 const licitacionesService = new LicitacionesService();
 
@@ -17,8 +19,13 @@ export async function PATCH(
   }
 
   try {
+    const user = await currentUser();
+    const userName =
+      [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Usuario';
+
     const body = await request.json().catch(() => ({}));
-    const notes = typeof body.notes === 'string' ? body.notes.slice(0, 5000) : '';
+    const rawNotes = typeof body.notes === 'string' ? body.notes.slice(0, 5000) : '';
+    const notes = formatNoteWithAttribution(rawNotes || 'Devuelta a pendiente', userName);
 
     const licitacion = await licitacionesService.updateApprovalStatus(numId, 'pending', notes);
     return NextResponse.json({ success: true, data: licitacion });
