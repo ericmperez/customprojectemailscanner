@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { ConfidenceFieldSettings } from '@/lib/types';
 
 function getClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
@@ -128,4 +129,64 @@ export async function getAllProcessedEmailIds(): Promise<string[]> {
   }
 
   return ids;
+}
+
+// Default confidence field settings (matches original hardcoded values)
+const DEFAULT_CONFIDENCE_SETTINGS: ConfidenceFieldSettings = {
+  critical: ['location', 'description', 'biddingCloseDate', 'contactPhone'],
+  optional: [
+    'title',
+    'summary',
+    'category',
+    'siteVisitDate',
+    'siteVisitTime',
+    'visitLocation',
+    'contactName',
+    'biddingCloseTime',
+    'estimatedValue',
+  ],
+  ignored: [],
+};
+
+/**
+ * Fetch confidence field settings from app_settings table.
+ * Falls back to hardcoded defaults if not found or on error.
+ */
+export async function getConfidenceSettings(): Promise<ConfidenceFieldSettings> {
+  try {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'confidence_fields')
+      .single();
+
+    if (error || !data) {
+      return DEFAULT_CONFIDENCE_SETTINGS;
+    }
+
+    return data.value as ConfidenceFieldSettings;
+  } catch {
+    return DEFAULT_CONFIDENCE_SETTINGS;
+  }
+}
+
+/**
+ * Save confidence field settings to app_settings table (upsert).
+ */
+export async function saveConfidenceSettings(
+  settings: ConfidenceFieldSettings
+): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('app_settings')
+    .upsert(
+      { key: 'confidence_fields', value: settings, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+
+  if (error) {
+    console.error('Error saving confidence settings:', error);
+    throw error;
+  }
 }
