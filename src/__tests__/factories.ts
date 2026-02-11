@@ -22,6 +22,7 @@ export function buildLicitacion(overrides: Partial<Licitacion> = {}): Licitacion
     siteVisitDate: '2025-03-15',
     siteVisitTime: '10:00',
     visitLocation: 'EBAS Torrecilla, Loíza',
+    visitRequirements: 'No disponible',
     contactName: 'Juan Pérez',
     contactPhone: '(787) 555-1234',
     contactEmail: 'juan@example.com',

@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import LicitacionesService from '@/lib/services/licitaciones.service';
-import { getLastFetchTimestamp } from '@/lib/services/supabase.service';
+import { getLastFetchInfo } from '@/lib/services/supabase.service';
 
 const licitacionesService = new LicitacionesService();
 
 export async function GET() {
   try {
-    const [stats, lastFetch] = await Promise.all([
+    const [stats, lastFetchInfo] = await Promise.all([
       licitacionesService.getStats(),
-      getLastFetchTimestamp(),
+      getLastFetchInfo(),
     ]);
-    return NextResponse.json({ success: true, data: stats, lastFetch });
+    return NextResponse.json({ success: true, data: stats, lastFetch: lastFetchInfo });
   } catch (error) {
     console.error('Error fetching stats:', error);
     return NextResponse.json(

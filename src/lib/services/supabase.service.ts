@@ -172,14 +172,18 @@ export async function getConfidenceSettings(): Promise<ConfidenceFieldSettings> 
 }
 
 /**
- * Save the last email fetch timestamp to app_settings.
+ * Save the last email fetch timestamp to app_settings, including who triggered it.
  */
-export async function saveLastFetchTimestamp(): Promise<void> {
+export async function saveLastFetchTimestamp(triggeredBy: string): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase
     .from('app_settings')
     .upsert(
-      { key: 'last_email_fetch', value: { timestamp: new Date().toISOString() }, updated_at: new Date().toISOString() },
+      {
+        key: 'last_email_fetch',
+        value: { timestamp: new Date().toISOString(), triggeredBy },
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: 'key' }
     );
 
@@ -188,10 +192,15 @@ export async function saveLastFetchTimestamp(): Promise<void> {
   }
 }
 
+export interface LastFetchInfo {
+  timestamp: string;
+  triggeredBy: string;
+}
+
 /**
- * Get the last email fetch timestamp from app_settings.
+ * Get the last email fetch info from app_settings.
  */
-export async function getLastFetchTimestamp(): Promise<string | null> {
+export async function getLastFetchInfo(): Promise<LastFetchInfo | null> {
   try {
     const supabase = getClient();
     const { data, error } = await supabase
@@ -201,10 +210,22 @@ export async function getLastFetchTimestamp(): Promise<string | null> {
       .single();
 
     if (error || !data) return null;
-    return (data.value as { timestamp: string }).timestamp ?? null;
+    const val = data.value as { timestamp?: string; triggeredBy?: string };
+    return {
+      timestamp: val.timestamp ?? '',
+      triggeredBy: val.triggeredBy ?? 'Desconocido',
+    };
   } catch {
     return null;
   }
+}
+
+/**
+ * Get just the last email fetch timestamp string (convenience wrapper).
+ */
+export async function getLastFetchTimestamp(): Promise<string | null> {
+  const info = await getLastFetchInfo();
+  return info?.timestamp ?? null;
 }
 
 /**

@@ -15,6 +15,7 @@ import { ApprovalModal } from '@/components/modals/ApprovalModal';
 import { DetailModal } from '@/components/modals/DetailModal';
 import { ConfirmationDialog } from '@/components/modals/ConfirmationDialog';
 import { ConfidenceSettingsDialog } from '@/components/modals/ConfidenceSettingsDialog';
+import { WhatsNewDialog } from '@/components/modals/WhatsNewDialog';
 import { Loader2 } from 'lucide-react';
 
 import { useLicitaciones } from '@/hooks/useLicitaciones';
@@ -25,6 +26,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { useFilters, DEFAULT_FILTERS } from '@/hooks/useFilters';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useWhatsNew } from '@/hooks/useWhatsNew';
 import { arrayToCSV, downloadCSV, exportToICalendar } from '@/lib/utils';
 import type { Licitacion } from '@/lib/types';
 
@@ -67,6 +69,9 @@ export function DashboardShell() {
     loading: false,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fetchingEmails, setFetchingEmails] = useState(false);
+  const { hasNewVersion, hydrated, markAsSeen } = useWhatsNew();
+  const [novedadesOpen, setNovedadesOpen] = useState(false);
 
   // Derived data: apply client-side search + favorites filter
   const displayedLicitaciones = useMemo(() => {
@@ -89,6 +94,21 @@ export function DashboardShell() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Auto-show what's new modal on first visit with new version
+  useEffect(() => {
+    if (hydrated && hasNewVersion && !loading) {
+      setNovedadesOpen(true);
+    }
+  }, [hydrated, hasNewVersion, loading]);
+
+  const handleNovedadesOpenChange = useCallback(
+    (open: boolean) => {
+      setNovedadesOpen(open);
+      if (!open) markAsSeen();
+    },
+    [markAsSeen]
+  );
 
   // Approval actions
   const handleApprove = useCallback((id: number) => {
@@ -322,6 +342,29 @@ export function DashboardShell() {
     [displayedLicitaciones]
   );
 
+  // Manual email fetch
+  const handleManualFetch = useCallback(async () => {
+    setFetchingEmails(true);
+    try {
+      const response = await fetch('/api/fetch-emails', { method: 'POST' });
+      const result = await response.json();
+      if (result.success) {
+        const count = result.stats?.processed ?? 0;
+        toast.success(
+          count > 0
+            ? `${count} email(s) procesado(s)`
+            : 'No se encontraron emails nuevos'
+        );
+        refresh();
+      } else {
+        toast.error(result.error || 'Error al buscar emails');
+      }
+    } catch {
+      toast.error('Error al buscar emails');
+    }
+    setFetchingEmails(false);
+  }, [refresh]);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onSearch: () => searchInputRef.current?.focus(),
@@ -349,11 +392,28 @@ export function DashboardShell() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg sm:text-2xl font-bold">📋 Licitaciones</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg sm:text-2xl font-bold">📋 Licitaciones</h1>
+                <button
+                  onClick={handleManualFetch}
+                  disabled={fetchingEmails}
+                  className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50 inline-flex items-center gap-1.5"
+                  title="Buscar nuevos emails manualmente"
+                >
+                  {fetchingEmails ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    '📨'
+                  )}
+                  <span className="hidden sm:inline">{fetchingEmails ? 'Buscando...' : 'Buscar emails'}</span>
+                </button>
+              </div>
               {lastFetch && (
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Último fetch: {new Date(lastFetch).toLocaleDateString('es-PR', { day: 'numeric', month: 'short', year: 'numeric' })}{' '}
-                  {new Date(lastFetch).toLocaleTimeString('es-PR', { hour: '2-digit', minute: '2-digit' })}
+                  Último fetch: {new Date(lastFetch.timestamp).toLocaleDateString('es-PR', { day: 'numeric', month: 'short', year: 'numeric' })}{' '}
+                  {new Date(lastFetch.timestamp).toLocaleTimeString('es-PR', { hour: '2-digit', minute: '2-digit' })}
+                  {' · '}
+                  por {lastFetch.triggeredBy}
                 </p>
               )}
             </div>
@@ -396,6 +456,8 @@ export function DashboardShell() {
           onDeletePreset={deletePreset}
           onRenamePreset={renamePreset}
           onOpenSettings={() => setSettingsOpen(true)}
+          onOpenNovedades={() => setNovedadesOpen(true)}
+          hasNewVersion={hasNewVersion}
         />
 
         {/* Bulk actions bar */}
@@ -604,6 +666,11 @@ export function DashboardShell() {
       <ConfidenceSettingsDialog
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
+      />
+
+      <WhatsNewDialog
+        open={novedadesOpen}
+        onOpenChange={handleNovedadesOpenChange}
       />
     </div>
   );

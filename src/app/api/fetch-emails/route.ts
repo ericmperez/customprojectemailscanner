@@ -1,28 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { currentUser } from '@clerk/nextjs/server';
 import { processNewEmails } from '@/lib/services/email-processor';
 import { saveLastFetchTimestamp } from '@/lib/services/supabase.service';
 
 export const maxDuration = 60;
 
-export async function GET(request: NextRequest) {
+export async function POST() {
   const startTime = Date.now();
 
-  // Verify CRON_SECRET (Vercel sends it as Authorization: Bearer <token>)
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${cronSecret}`) {
+  try {
+    const user = await currentUser();
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
-  }
 
-  try {
+    const userName =
+      [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+      user.emailAddresses[0]?.emailAddress ||
+      'Usuario';
+
     const stats = await processNewEmails(startTime);
 
-    await saveLastFetchTimestamp('Cron automático');
+    await saveLastFetchTimestamp(userName);
 
     return NextResponse.json({
       success: true,
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    console.error('[cron] Fatal error:', errMsg);
+    console.error('[manual-fetch] Fatal error:', errMsg);
     return NextResponse.json(
       { success: false, error: errMsg, duration: `${Date.now() - startTime}ms` },
       { status: 500 }

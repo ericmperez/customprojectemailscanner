@@ -48,6 +48,7 @@ describe('LicitacionesService', () => {
     siteVisitDate: '2025-02-01',
     siteVisitTime: '10:00',
     visitLocation: 'EBAS Torrecilla',
+    visitRequirements: 'No disponible',
     contactName: 'Juan',
     contactPhone: '(787) 555-1234',
     biddingCloseDate: '2025-03-01',
