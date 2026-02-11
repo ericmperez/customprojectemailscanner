@@ -16,6 +16,31 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.6.0',
+    date: '2026-02-11',
+    headline: 'Interfaz simplificada, cron cada hora y ajustes de IA',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Interfaz simplificada',
+        description:
+          'Se removio el boton de descarte rapido y la columna de estado. Las licitaciones aprobadas ahora se resaltan en verde.',
+      },
+      {
+        type: 'improvement',
+        title: 'Busqueda de emails cada hora',
+        description:
+          'El cron ahora busca emails automaticamente cada hora en vez de una vez al dia.',
+      },
+      {
+        type: 'feature',
+        title: 'Ajustes de IA y edicion de campos',
+        description:
+          'Nuevo tab de ajustes de IA y posibilidad de editar campos directamente desde el modal de detalle.',
+      },
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-02-11',
     headline: 'Compartir visitas por WhatsApp y correccion de emails',

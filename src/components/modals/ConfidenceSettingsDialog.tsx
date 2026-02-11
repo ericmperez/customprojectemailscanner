@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useConfidenceSettings } from '@/hooks/useConfidenceSettings';
+import { AISettingsTab } from './AISettingsTab';
 import { CONFIDENCE_FIELDS } from '@/lib/types';
 import type { ConfidenceFieldName, ConfidenceFieldSettings } from '@/lib/types';
 
@@ -56,6 +57,7 @@ const DEFAULT_SETTINGS: ConfidenceFieldSettings = {
 };
 
 type FieldCategory = 'critical' | 'optional' | 'ignored';
+type TabId = 'confidence' | 'ai';
 
 function getFieldCategory(
   field: ConfidenceFieldName,
@@ -77,6 +79,7 @@ export function ConfidenceSettingsDialog({
 }: ConfidenceSettingsDialogProps) {
   const { settings, loading, saving, save } = useConfidenceSettings();
   const [draft, setDraft] = useState<ConfidenceFieldSettings>(DEFAULT_SETTINGS);
+  const [activeTab, setActiveTab] = useState<TabId>('confidence');
 
   // Sync draft when settings load or dialog opens
   useEffect(() => {
@@ -84,6 +87,11 @@ export function ConfidenceSettingsDialog({
       setDraft(settings);
     }
   }, [settings, open]);
+
+  // Reset tab when dialog opens
+  useEffect(() => {
+    if (open) setActiveTab('confidence');
+  }, [open]);
 
   const handleCategoryChange = (field: ConfidenceFieldName, newCategory: FieldCategory) => {
     setDraft((prev) => {
@@ -116,82 +124,117 @@ export function ConfidenceSettingsDialog({
     JSON.stringify({ critical: [...draft.critical].sort(), optional: [...draft.optional].sort(), ignored: [...draft.ignored].sort() }) !==
       JSON.stringify({ critical: [...settings.critical].sort(), optional: [...settings.optional].sort(), ignored: [...settings.ignored].sort() });
 
+  const TABS: { id: TabId; label: string }[] = [
+    { id: 'confidence', label: 'Confianza' },
+    { id: 'ai', label: 'Instrucciones AI' },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={saving ? undefined : onOpenChange}>
       <DialogContent className="sm:max-w-xl max-h-[85vh] flex flex-col" showCloseButton={!saving}>
         <DialogHeader>
-          <DialogTitle>Configuracion de Confianza</DialogTitle>
+          <DialogTitle>Configuracion</DialogTitle>
           <DialogDescription>
-            Clasifica cada campo como Critico (60% peso), Opcional (40% peso) o Ignorado.
-            Cambios aplican solo a futuras extracciones.
+            {activeTab === 'confidence'
+              ? 'Clasifica cada campo como Critico (60% peso), Opcional (40% peso) o Ignorado.'
+              : 'Personaliza como el AI extrae datos de los PDFs.'}
+            {' '}Cambios aplican solo a futuras extracciones.
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <div className="overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 pr-2 font-medium">Campo</th>
-                  <th className="text-left py-2 font-medium">Clasificacion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CONFIDENCE_FIELDS.map((field) => {
-                  const category = getFieldCategory(field, draft);
-                  return (
-                    <tr key={field} className="border-b last:border-0">
-                      <td className="py-2 pr-2">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`inline-block w-2 h-2 rounded-full shrink-0 ${
-                              category === 'critical'
-                                ? 'bg-emerald-500'
-                                : category === 'optional'
-                                  ? 'bg-blue-500'
-                                  : 'bg-gray-400'
-                            }`}
-                          />
-                          <span className={category === 'ignored' ? 'text-muted-foreground' : ''}>
-                            {FIELD_LABELS[field]}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-2">
-                        <select
-                          className={`rounded-md border px-2 py-1 text-xs font-medium ${CATEGORY_COLORS[category]}`}
-                          value={category}
-                          onChange={(e) =>
-                            handleCategoryChange(field, e.target.value as FieldCategory)
-                          }
-                          disabled={saving}
-                        >
-                          <option value="critical">Critico</option>
-                          <option value="optional">Opcional</option>
-                          <option value="ignored">Ignorado</option>
-                        </select>
-                      </td>
+        {/* Tab buttons */}
+        <div className="flex gap-1 border-b pb-0 -mb-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-t-md border border-b-0 transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-background text-foreground border-border -mb-px'
+                  : 'bg-muted/50 text-muted-foreground border-transparent hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        {activeTab === 'confidence' && (
+          <>
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 pr-2 font-medium">Campo</th>
+                      <th className="text-left py-2 font-medium">Clasificacion</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {CONFIDENCE_FIELDS.map((field) => {
+                      const category = getFieldCategory(field, draft);
+                      return (
+                        <tr key={field} className="border-b last:border-0">
+                          <td className="py-2 pr-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                                  category === 'critical'
+                                    ? 'bg-emerald-500'
+                                    : category === 'optional'
+                                      ? 'bg-blue-500'
+                                      : 'bg-gray-400'
+                                }`}
+                              />
+                              <span className={category === 'ignored' ? 'text-muted-foreground' : ''}>
+                                {FIELD_LABELS[field]}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2">
+                            <select
+                              className={`rounded-md border px-2 py-1 text-xs font-medium ${CATEGORY_COLORS[category]}`}
+                              value={category}
+                              onChange={(e) =>
+                                handleCategoryChange(field, e.target.value as FieldCategory)
+                              }
+                              disabled={saving}
+                            >
+                              <option value="critical">Critico</option>
+                              <option value="optional">Opcional</option>
+                              <option value="ignored">Ignorado</option>
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleReset} disabled={saving || loading}>
+                Restablecer
+              </Button>
+              <Button onClick={handleSave} disabled={saving || loading || !hasChanges}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar
+              </Button>
+            </DialogFooter>
+          </>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleReset} disabled={saving || loading}>
-            Restablecer
-          </Button>
-          <Button onClick={handleSave} disabled={saving || loading || !hasChanges}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Guardar
-          </Button>
-        </DialogFooter>
+        {activeTab === 'ai' && (
+          <div className="overflow-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-2">
+            <AISettingsTab />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

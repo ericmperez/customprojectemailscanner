@@ -129,3 +129,11 @@ export interface ConfidenceFieldSettings {
   optional: ConfidenceFieldName[];
   ignored: ConfidenceFieldName[];
 }
+
+export interface CorrectionExample {
+  field: string;
+  original: string;
+  corrected: string;
+  context?: string;
+  savedAt: string;
+}

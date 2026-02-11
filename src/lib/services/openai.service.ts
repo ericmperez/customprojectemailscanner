@@ -3,7 +3,7 @@ import type { ChatCompletionContentPart } from 'openai/resources/chat/completion
 // pdf-parse v2 is imported dynamically to avoid DOMMatrix errors in serverless
 import { withRetry } from '@/lib/utils/retry';
 import type { ConfidenceFieldSettings } from '@/lib/types';
-import { getConfidenceSettings } from '@/lib/services/supabase.service';
+import { getConfidenceSettings, getAISettings } from '@/lib/services/supabase.service';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -99,17 +99,39 @@ Problems: title is a form name not a description, description is too vague, loca
 Respond ONLY with valid JSON matching the field names above. No markdown, no explanation.`;
 
 /**
- * Optional additional tips loaded from environment variable.
- * Add AI_EXTRACTION_TIPS to .env.local to give GPT-4o extra guidance
- * based on patterns you notice, e.g.:
- *   AI_EXTRACTION_TIPS="When you see 'PAS' it means 'Planta de Agua y Saneamiento'. Always look for the town name near the AAA region code."
+ * Build the system prompt, injecting env-var tips, user custom instructions,
+ * and correction examples from Supabase.
  */
-function getSystemPrompt(): string {
+async function getSystemPrompt(): Promise<string> {
+  let prompt = SYSTEM_PROMPT;
+
+  // Env var tips (backwards-compatible)
   const tips = process.env.AI_EXTRACTION_TIPS;
   if (tips) {
-    return SYSTEM_PROMPT + '\n\n**Additional extraction tips:**\n' + tips;
+    prompt += '\n\n**Additional extraction tips:**\n' + tips;
   }
-  return SYSTEM_PROMPT;
+
+  // Fetch user-defined AI settings from Supabase
+  try {
+    const { instructions, examples } = await getAISettings();
+
+    if (instructions.trim()) {
+      prompt += '\n\n**Additional instructions from the user:**\n' + instructions.trim();
+    }
+
+    if (examples.length > 0) {
+      // Include up to 5 most recent examples
+      const recent = examples.slice(-5);
+      const lines = recent.map(
+        (ex) => `- "${ex.field}": "${ex.original}" → should be "${ex.corrected}"`
+      );
+      prompt += '\n\n**Corrections from previous extractions (learn from these):**\n' + lines.join('\n');
+    }
+  } catch (err) {
+    console.warn('[openai] Failed to load AI settings, using base prompt:', err);
+  }
+
+  return prompt;
 }
 
 /**
@@ -184,6 +206,7 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
   }
 
   // Step 3: Call GPT-4o
+  const systemPrompt = await getSystemPrompt();
   const response = await withRetry(
     () =>
       getOpenAI().chat.completions.create(
@@ -193,7 +216,7 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
           temperature: 0.1,
           max_tokens: 2500,
           messages: [
-            { role: 'system', content: getSystemPrompt() },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: contentParts },
           ],
         },

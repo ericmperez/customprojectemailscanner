@@ -5,6 +5,17 @@ const licitacionesService = new LicitacionesService();
 
 const VALID_DECISION_STATUSES = ['researching', 'interested', 'bid-submitted', 'won', 'lost'];
 
+const EDITABLE_STRING_FIELDS = [
+  'title',
+  'location',
+  'description',
+  'contactName',
+  'contactPhone',
+  'siteVisitDate',
+  'biddingCloseDate',
+  'estimatedValue',
+] as const;
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,7 +31,7 @@ export async function PATCH(
 
   try {
     const body = await request.json().catch(() => ({}));
-    const fields: { interested?: boolean; decisionStatus?: string } = {};
+    const fields: Record<string, unknown> = {};
 
     if (typeof body.interested === 'boolean') {
       fields.interested = body.interested;
@@ -36,6 +47,13 @@ export async function PATCH(
       fields.decisionStatus = body.decisionStatus;
     }
 
+    // Accept editable string fields
+    for (const field of EDITABLE_STRING_FIELDS) {
+      if (typeof body[field] === 'string') {
+        fields[field] = body[field];
+      }
+    }
+
     if (Object.keys(fields).length === 0) {
       return NextResponse.json(
         { success: false, error: 'No valid fields to update' },
@@ -43,8 +61,8 @@ export async function PATCH(
       );
     }
 
-    const licitacion = await licitacionesService.updateFields(numId, fields);
-    return NextResponse.json({ success: true, data: licitacion });
+    const { updated: licitacion, oldValues } = await licitacionesService.updateFields(numId, fields);
+    return NextResponse.json({ success: true, data: licitacion, oldValues });
   } catch (error) {
     console.error(`Error updating fields for licitación ${id}:`, error);
     return NextResponse.json(

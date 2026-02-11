@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { ConfidenceFieldSettings } from '@/lib/types';
+import type { ConfidenceFieldSettings, CorrectionExample } from '@/lib/types';
 
 function getClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
@@ -244,6 +244,81 @@ export async function saveConfidenceSettings(
 
   if (error) {
     console.error('Error saving confidence settings:', error);
+    throw error;
+  }
+}
+
+// ── AI Settings (Custom Instructions + Correction Examples) ──────────
+
+export interface AISettings {
+  instructions: string;
+  examples: CorrectionExample[];
+}
+
+/**
+ * Fetch AI custom instructions and correction examples from app_settings.
+ */
+export async function getAISettings(): Promise<AISettings> {
+  try {
+    const supabase = getClient();
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('key, value')
+      .in('key', ['ai_custom_instructions', 'ai_extraction_examples']);
+
+    if (error || !data) {
+      return { instructions: '', examples: [] };
+    }
+
+    let instructions = '';
+    let examples: CorrectionExample[] = [];
+
+    for (const row of data) {
+      if (row.key === 'ai_custom_instructions') {
+        instructions = (row.value as { text?: string })?.text ?? '';
+      } else if (row.key === 'ai_extraction_examples') {
+        examples = ((row.value as { items?: CorrectionExample[] })?.items ?? []) as CorrectionExample[];
+      }
+    }
+
+    return { instructions, examples };
+  } catch {
+    return { instructions: '', examples: [] };
+  }
+}
+
+/**
+ * Save AI custom instructions text to app_settings (upsert).
+ */
+export async function saveAIInstructions(text: string): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('app_settings')
+    .upsert(
+      { key: 'ai_custom_instructions', value: { text }, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+
+  if (error) {
+    console.error('Error saving AI instructions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save AI correction examples to app_settings (upsert).
+ */
+export async function saveAIExamples(examples: CorrectionExample[]): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('app_settings')
+    .upsert(
+      { key: 'ai_extraction_examples', value: { items: examples }, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+
+  if (error) {
+    console.error('Error saving AI examples:', error);
     throw error;
   }
 }

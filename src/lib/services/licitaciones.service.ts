@@ -36,10 +36,10 @@ class LicitacionesService {
     return updated;
   }
 
-  async updateFields(id: number | string, fields: { interested?: boolean; decisionStatus?: string }): Promise<Licitacion | null> {
-    const updated = await this.sheetsService.updateFields(Number(id), fields);
+  async updateFields(id: number | string, fields: Record<string, unknown>): Promise<{ updated: Licitacion | null; oldValues: Record<string, string> }> {
+    const result = await this.sheetsService.updateFields(Number(id), fields);
     console.log(`Updated fields for licitación ${id}:`, fields);
-    return updated;
+    return result;
   }
 
   async deleteLicitacion(id: number | string): Promise<{ success: boolean; deletedRow: number; subject: string }> {

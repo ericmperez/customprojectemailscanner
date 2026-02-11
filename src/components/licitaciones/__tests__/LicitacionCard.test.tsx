@@ -19,7 +19,6 @@ describe('LicitacionCard', () => {
     onReject: vi.fn(),
     onResetPending: vi.fn(),
     onToggleInterested: vi.fn(),
-    onQuickDismiss: vi.fn(),
   };
 
   beforeEach(() => {

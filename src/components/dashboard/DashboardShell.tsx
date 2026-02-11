@@ -145,28 +145,6 @@ export function DashboardShell() {
     [refresh]
   );
 
-  const handleQuickDismiss = useCallback(
-    async (id: number) => {
-      try {
-        const response = await fetch(`/api/licitaciones/${id}/reject`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ notes: '' }),
-        });
-        const result = await response.json();
-        if (result.success) {
-          toast.success('Licitacion descartada');
-          refresh();
-        } else {
-          toast.error('Error al descartar');
-        }
-      } catch {
-        toast.error('Error al descartar');
-      }
-    },
-    [refresh]
-  );
-
   const handleResetPending = useCallback(
     (id: number) => {
       setResetConfirm({ open: true, id, loading: false });
@@ -556,7 +534,6 @@ export function DashboardShell() {
                     onReject={handleReject}
                     onResetPending={handleResetPending}
                     onToggleInterested={handleToggleInterested}
-                    onQuickDismiss={handleQuickDismiss}
                   />
                 ))}
               </div>
@@ -575,7 +552,6 @@ export function DashboardShell() {
                     onToggleSelection={toggleSelection}
                     onOpenDetail={openDetail}
                     onToggleInterested={handleToggleInterested}
-                    onQuickDismiss={handleQuickDismiss}
                   />
                 ))}
               </div>
@@ -611,7 +587,6 @@ export function DashboardShell() {
                       onToggleSelection={toggleSelection}
                       onOpenDetail={openDetail}
                       onToggleInterested={handleToggleInterested}
-                      onQuickDismiss={handleQuickDismiss}
                     />
                   ))}
                 </div>

@@ -11,7 +11,6 @@ interface LicitacionListItemProps {
   onToggleSelection: (rowNumber: number) => void;
   onOpenDetail: (id: number) => void;
   onToggleInterested: (id: number, interested: boolean) => void;
-  onQuickDismiss: (id: number) => void;
 }
 
 export function LicitacionListItem({
@@ -22,7 +21,6 @@ export function LicitacionListItem({
   onToggleSelection,
   onOpenDetail,
   onToggleInterested,
-  onQuickDismiss,
 }: LicitacionListItemProps) {
   const visitLocation = (lic.visitLocation || '').toString().trim();
   const isVisit = visitLocation && visitLocation.toLowerCase() !== 'no disponible';
@@ -36,6 +34,7 @@ export function LicitacionListItem({
     <div
       className={cn(
         'flex items-center gap-2 sm:gap-3 rounded-md border bg-card px-2 py-2.5 sm:px-3 sm:py-2 hover:bg-muted/50 transition-colors active:bg-muted/70',
+        (lic.approvalStatus || 'pending') === 'approved' && 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60',
         isSelected && 'ring-2 ring-primary'
       )}
     >
@@ -101,16 +100,6 @@ export function LicitacionListItem({
           )}
         </div>
       </div>
-      {(lic.approvalStatus || 'pending') === 'pending' && (
-        <button
-          className="text-sm hover:scale-110 transition-transform text-gray-400 hover:text-red-500 shrink-0"
-          onClick={(e) => { e.stopPropagation(); onQuickDismiss(lic.id); }}
-          title="Descartar"
-          aria-label="Descartar licitación"
-        >
-          ✕
-        </button>
-      )}
     </div>
   );
 }

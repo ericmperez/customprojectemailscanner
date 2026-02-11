@@ -448,20 +448,24 @@ class SheetsService {
     return this.getLicitacionByRow(rowNumber);
   }
 
-  async updateFields(rowNumber: number, fields: { interested?: boolean; decisionStatus?: string }): Promise<Licitacion | null> {
+  async updateFields(rowNumber: number, fields: Record<string, unknown>): Promise<{ updated: Licitacion | null; oldValues: Record<string, string> }> {
     const current = await this.getLicitacionByRow(rowNumber);
     if (!current) throw new Error(`Licitación with row ${rowNumber} not found`);
 
-    const updated: Record<string, unknown> = { ...current };
-    if (fields.interested !== undefined) {
-      updated.interested = fields.interested;
-    }
-    if (fields.decisionStatus !== undefined) {
-      updated.decisionStatus = fields.decisionStatus;
+    const oldValues: Record<string, string> = {};
+    const currentRecord = current as unknown as Record<string, unknown>;
+    const updated: Record<string, unknown> = { ...currentRecord };
+
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) {
+        oldValues[key] = String(currentRecord[key] ?? '');
+        updated[key] = value;
+      }
     }
 
     await this.writeRow(rowNumber, this.buildRowFromData(updated, this.rowFromObject(current)));
-    return this.getLicitacionByRow(rowNumber);
+    const result = await this.getLicitacionByRow(rowNumber);
+    return { updated: result, oldValues };
   }
 
   async deleteLicitacion(rowNumber: number): Promise<{ success: boolean; deletedRow: number; subject: string }> {

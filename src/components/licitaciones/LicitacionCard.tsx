@@ -16,7 +16,6 @@ interface LicitacionCardProps {
   onReject: (id: number) => void;
   onResetPending: (id: number) => void;
   onToggleInterested: (id: number, interested: boolean) => void;
-  onQuickDismiss: (id: number) => void;
 }
 
 function computeUrgency(lic: Licitacion) {
@@ -96,7 +95,6 @@ export function LicitacionCard({
   onReject,
   onResetPending,
   onToggleInterested,
-  onQuickDismiss,
 }: LicitacionCardProps) {
   const status = (lic.approvalStatus || 'pending').toLowerCase();
   const visitLocation = (lic.visitLocation || '').toString().trim();
@@ -115,7 +113,7 @@ export function LicitacionCard({
     <div
       className={cn(
         'rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer relative',
-        status === 'approved' && 'border-l-4 border-l-emerald-500',
+        status === 'approved' && 'border-l-4 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/40',
         status === 'rejected' && 'border-l-4 border-l-red-500',
         status === 'pending' && 'border-l-4 border-l-amber-500',
         isSelected && 'ring-2 ring-primary'
@@ -164,16 +162,6 @@ export function LicitacionCard({
           >
             {lic.interested ? '❤️' : '🤍'}
           </button>
-          {status === 'pending' && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onQuickDismiss(lic.id); }}
-              className="text-sm hover:scale-110 transition-transform text-gray-400 hover:text-red-500"
-              title="Descartar"
-              aria-label="Descartar licitación"
-            >
-              ✕
-            </button>
-          )}
           {urgency && (
             <span
               className={cn(
