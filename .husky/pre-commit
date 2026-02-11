@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# Pre-commit hook: remind to update changelog when source files change
+# Skip if SKIP_CHANGELOG_CHECK is set (e.g. SKIP_CHANGELOG_CHECK=1 git commit)
+
+if [ -n "$SKIP_CHANGELOG_CHECK" ]; then
+  exit 0
+fi
+
+CHANGELOG_FILE="src/lib/data/changelog.ts"
+
+# Get staged files (only added/modified, not deleted)
+STAGED_SRC=$(git diff --cached --name-only --diff-filter=ACM -- 'src/' | grep -v '__tests__' | grep -v '\.test\.' || true)
+
+# If no source files staged, nothing to check
+if [ -z "$STAGED_SRC" ]; then
+  exit 0
+fi
+
+# Check if changelog is among the staged files
+CHANGELOG_STAGED=$(git diff --cached --name-only -- "$CHANGELOG_FILE" || true)
+
+if [ -z "$CHANGELOG_STAGED" ]; then
+  echo ""
+  echo "⚠️  Archivos fuente modificados sin actualizar Novedades"
+  echo ""
+  echo "   Archivos staged:"
+  echo "$STAGED_SRC" | head -10 | sed 's/^/     /'
+  TOTAL=$(echo "$STAGED_SRC" | wc -l | tr -d ' ')
+  if [ "$TOTAL" -gt 10 ]; then
+    echo "     ... y $((TOTAL - 10)) mas"
+  fi
+  echo ""
+  echo "   Actualiza: $CHANGELOG_FILE"
+  echo ""
+  echo "   Para saltar esta verificacion:"
+  echo "     SKIP_CHANGELOG_CHECK=1 git commit ..."
+  echo ""
+  exit 1
+fi

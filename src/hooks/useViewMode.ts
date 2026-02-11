@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 export type ViewMode = 'cards' | 'list' | 'table';
 
 export function useViewMode() {
-  const [viewMode, setViewModeState] = useState<ViewMode>('cards');
+  const [viewMode, setViewModeState] = useState<ViewMode>('table');
 
   // Sync from localStorage after hydration
   useEffect(() => {

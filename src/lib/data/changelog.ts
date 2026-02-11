@@ -16,6 +16,25 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.4.0',
+    date: '2025-02-11',
+    headline: 'Tabla mejorada y recordatorio de changelog',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Tabla de licitaciones rediseñada',
+        description:
+          'La vista de tabla ahora muestra plazo en dias con indicadores de urgencia y resalta filas aprobadas en verde. Se removieron columnas innecesarias para una vista mas limpia.',
+      },
+      {
+        type: 'feature',
+        title: 'Recordatorio de novedades pre-commit',
+        description:
+          'Un hook de git bloquea commits si se cambian archivos fuente sin actualizar el changelog de novedades.',
+      },
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2025-02-10',
     headline: 'Configuracion de confianza y suite de pruebas',

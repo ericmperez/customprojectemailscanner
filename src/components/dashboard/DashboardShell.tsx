@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { UserButton } from '@clerk/nextjs';
 import { StatsBar } from './StatsBar';
 import { FilterBar } from './FilterBar';
-import { EmailsPerDayChart } from './EmailsPerDayChart';
 import { LicitacionCard } from '@/components/licitaciones/LicitacionCard';
 import { LicitacionListItem } from '@/components/licitaciones/LicitacionListItem';
 import { LicitacionTable } from '@/components/licitaciones/LicitacionTable';
@@ -461,11 +460,6 @@ export function DashboardShell() {
           hasNewVersion={hasNewVersion}
         />
 
-        {/* Emails per day chart */}
-        {!loading && licitaciones.length > 0 && (
-          <EmailsPerDayChart licitaciones={licitaciones} />
-        )}
-
         {/* Bulk actions bar */}
         {selectedCount > 0 && (
           <div className="flex items-center gap-2 sm:gap-3 rounded-lg border bg-card p-2 sm:p-3 flex-wrap">
@@ -603,7 +597,6 @@ export function DashboardShell() {
                     onApprove={handleApprove}
                     onReject={handleReject}
                     onToggleInterested={handleToggleInterested}
-                    onQuickDismiss={handleQuickDismiss}
                   />
                 </div>
                 {/* Fallback to list on mobile */}
