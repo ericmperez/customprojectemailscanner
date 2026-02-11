@@ -63,8 +63,7 @@ export function FilterBar({
 }: FilterBarProps) {
   const [townDropdownOpen, setTownDropdownOpen] = useState(false);
   const [townSearch, setTownSearch] = useState('');
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
-  const [actionsExpanded, setActionsExpanded] = useState(false);
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const filteredTowns = filterOptions.towns.filter((t) =>
@@ -78,9 +77,8 @@ export function FilterBar({
         ? filters.town[0]
         : `${filters.town.length} pueblos`;
 
-  // Count active filters (excluding search and sort)
-  const activeFilterCount = [
-    filters.status,
+  // Count active advanced filters (excluding status, search, sort)
+  const advancedFilterCount = [
     filters.category,
     filters.type,
     filters.priority,
@@ -88,9 +86,9 @@ export function FilterBar({
   ].filter(Boolean).length + (filters.town.length > 0 ? 1 : 0);
 
   return (
-    <div className="space-y-3 rounded-lg border bg-card p-3 sm:p-4">
-      {/* Top row: Search + Sort + mobile toggles */}
-      <div className="flex gap-2 flex-wrap">
+    <div className="space-y-2">
+      {/* Blue toolbar: Search + Sort + View + Refresh + Theme */}
+      <div className="flex gap-2 flex-wrap items-center rounded-lg border-l-4 border-l-blue-500 bg-card p-2 sm:p-3">
         <div className="flex-1 min-w-0">
           <label className="sr-only" htmlFor="search-licitaciones">Buscar licitaciones</label>
           <Input
@@ -119,33 +117,9 @@ export function FilterBar({
           <option value="score-desc">Puntuacion</option>
         </select>
 
-        {/* Mobile: Filter toggle button */}
-        <button
-          className="sm:hidden rounded-md border bg-background px-3 py-2 text-sm font-medium flex items-center gap-1.5"
-          onClick={() => setFiltersExpanded(!filtersExpanded)}
-        >
-          Filtros
-          {activeFilterCount > 0 && (
-            <span className="bg-primary text-primary-foreground text-xs rounded-full px-1.5 min-w-[20px] text-center">
-              {activeFilterCount}
-            </span>
-          )}
-          <span className="text-xs">{filtersExpanded ? '▲' : '▼'}</span>
-        </button>
-
-        {/* Mobile: Actions toggle */}
-        <button
-          className="sm:hidden rounded-md border bg-background px-3 py-2 text-sm"
-          onClick={() => setActionsExpanded(!actionsExpanded)}
-        >
-          ⋯
-        </button>
-      </div>
-
-      {/* Filter selects - always visible on desktop, collapsible on mobile */}
-      <div className={`${filtersExpanded ? 'flex' : 'hidden'} sm:flex gap-2 flex-wrap items-center`}>
+        {/* Status filter - always visible */}
         <select
-          className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
+          className="rounded-md border bg-background px-2 py-2 text-sm min-w-0 sm:px-3"
           value={filters.status}
           onChange={(e) => onFilterChange('status', e.target.value)}
           aria-label="Filtrar por estado"
@@ -156,116 +130,190 @@ export function FilterBar({
           <option value="rejected">Rechazadas</option>
         </select>
 
-        <select
-          className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
-          value={filters.category}
-          onChange={(e) => onFilterChange('category', e.target.value)}
-          aria-label="Filtrar por categoría"
+        {/* More filters toggle */}
+        <button
+          className="rounded-md border bg-background px-2 py-2 text-sm font-medium flex items-center gap-1.5 hover:bg-muted"
+          onClick={() => setMoreFiltersOpen(!moreFiltersOpen)}
         >
-          <option value="">Categorias</option>
-          {filterOptions.categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-
-        {/* Town multi-select dropdown */}
-        <div className="relative flex-1 min-w-[120px] sm:flex-none" ref={dropdownRef}>
-          <button
-            type="button"
-            className="rounded-md border bg-background px-2 py-2 text-sm flex items-center gap-2 w-full sm:w-auto sm:min-w-[160px] sm:px-3"
-            onClick={() => setTownDropdownOpen(!townDropdownOpen)}
-            aria-label="Filtrar por pueblo"
-          >
-            <span className="truncate">{townLabel}</span>
-            <span className="text-xs ml-auto">{townDropdownOpen ? '▲' : '▼'}</span>
-          </button>
-          {townDropdownOpen && (
-            <div className="absolute z-50 mt-1 w-full sm:w-64 rounded-md border bg-card shadow-lg p-2 max-h-60 overflow-auto">
-              <Input
-                placeholder="Buscar pueblo..."
-                value={townSearch}
-                onChange={(e) => setTownSearch(e.target.value)}
-                className="mb-2"
-              />
-              {filteredTowns.map((town) => (
-                <label
-                  key={town}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded text-sm cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.town.includes(town)}
-                    onChange={(e) => {
-                      const next = e.target.checked
-                        ? [...filters.town, town]
-                        : filters.town.filter((t) => t !== town);
-                      onFilterChange('town', next);
-                    }}
-                  />
-                  {town}
-                </label>
-              ))}
-              <div className="flex justify-between mt-2 pt-2 border-t">
-                <button
-                  className="text-xs text-primary hover:underline"
-                  onClick={() => onFilterChange('town', filterOptions.towns)}
-                >
-                  Seleccionar todos
-                </button>
-                <button
-                  className="text-xs text-primary hover:underline"
-                  onClick={() => onFilterChange('town', [])}
-                >
-                  Limpiar
-                </button>
-              </div>
-            </div>
+          Filtros
+          {advancedFilterCount > 0 && (
+            <span className="bg-blue-500 text-white text-xs rounded-full px-1.5 min-w-[20px] text-center">
+              {advancedFilterCount}
+            </span>
           )}
+          <span className="text-xs">{moreFiltersOpen ? '▲' : '▼'}</span>
+        </button>
+
+        <div className="hidden sm:flex items-center gap-1">
+          {/* View mode toggle */}
+          <div className="flex rounded-md border">
+            {(['cards', 'list', 'table'] as ViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                className={`px-2.5 py-1.5 text-sm ${viewMode === mode ? 'bg-blue-500 text-white' : 'hover:bg-muted'}`}
+                onClick={() => onSetViewMode(mode)}
+                title={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
+                aria-label={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
+              >
+                {mode === 'cards' ? '⊞' : mode === 'list' ? '☰' : '⊟'}
+              </button>
+            ))}
+          </div>
+
+          <Button variant="default" size="sm" onClick={onRefresh} className="bg-blue-600 hover:bg-blue-700">
+            Refrescar
+          </Button>
+
+          <button
+            className="text-lg px-1 hover:opacity-70 transition-opacity"
+            onClick={onToggleTheme}
+            title="Cambiar tema"
+            aria-label="Cambiar tema claro/oscuro"
+          >
+            🌓
+          </button>
         </div>
 
-        <select
-          className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
-          value={filters.type}
-          onChange={(e) => onFilterChange('type', e.target.value)}
-          aria-label="Filtrar por tipo"
-        >
-          <option value="">Tipo</option>
-          <option value="visits">Visitas</option>
-          <option value="purchases">Compras</option>
-        </select>
-
-        <select
-          className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
-          value={filters.priority}
-          onChange={(e) => onFilterChange('priority', e.target.value)}
-          aria-label="Filtrar por prioridad"
-        >
-          <option value="">Prioridad</option>
-          <option value="High">Alta</option>
-          <option value="Medium">Media</option>
-          <option value="Low">Baja</option>
-        </select>
-
-        <select
-          className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
-          value={filters.dateRange}
-          onChange={(e) => onFilterChange('dateRange', e.target.value)}
-          aria-label="Filtrar por fecha"
-        >
-          <option value="">Fechas</option>
-          <option value="next-week">Proxima semana</option>
-          <option value="next-2-weeks">Proximas 2 semanas</option>
-          <option value="next-month">Proximo mes</option>
-          <option value="this-week">Esta semana</option>
-          <option value="today">Hoy</option>
-          <option value="past">Pasadas</option>
-        </select>
+        {/* Mobile: compact actions */}
+        <div className="flex sm:hidden items-center gap-1">
+          <div className="flex rounded-md border">
+            {(['cards', 'list', 'table'] as ViewMode[]).map((mode) => (
+              <button
+                key={mode}
+                className={`px-2 py-1.5 text-sm ${viewMode === mode ? 'bg-blue-500 text-white' : 'hover:bg-muted'}`}
+                onClick={() => onSetViewMode(mode)}
+              >
+                {mode === 'cards' ? '⊞' : mode === 'list' ? '☰' : '⊟'}
+              </button>
+            ))}
+          </div>
+          <button
+            className="text-lg px-1 hover:opacity-70"
+            onClick={onToggleTheme}
+          >
+            🌓
+          </button>
+        </div>
       </div>
 
-      {/* Quick filters - scrollable on mobile */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible sm:flex-wrap items-center">
+      {/* Expandable advanced filters */}
+      {moreFiltersOpen && (
+        <div className="flex gap-2 flex-wrap items-center rounded-lg border bg-card/50 p-2 sm:p-3 animate-in slide-in-from-top-1 duration-200">
+          <select
+            className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
+            value={filters.category}
+            onChange={(e) => onFilterChange('category', e.target.value)}
+            aria-label="Filtrar por categoría"
+          >
+            <option value="">Categorias</option>
+            {filterOptions.categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+
+          {/* Town multi-select dropdown */}
+          <div className="relative flex-1 min-w-[120px] sm:flex-none" ref={dropdownRef}>
+            <button
+              type="button"
+              className="rounded-md border bg-background px-2 py-2 text-sm flex items-center gap-2 w-full sm:w-auto sm:min-w-[160px] sm:px-3"
+              onClick={() => setTownDropdownOpen(!townDropdownOpen)}
+              aria-label="Filtrar por pueblo"
+            >
+              <span className="truncate">{townLabel}</span>
+              <span className="text-xs ml-auto">{townDropdownOpen ? '▲' : '▼'}</span>
+            </button>
+            {townDropdownOpen && (
+              <div className="absolute z-50 mt-1 w-full sm:w-64 rounded-md border bg-card shadow-lg p-2 max-h-60 overflow-auto">
+                <Input
+                  placeholder="Buscar pueblo..."
+                  value={townSearch}
+                  onChange={(e) => setTownSearch(e.target.value)}
+                  className="mb-2"
+                />
+                {filteredTowns.map((town) => (
+                  <label
+                    key={town}
+                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded text-sm cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.town.includes(town)}
+                      onChange={(e) => {
+                        const next = e.target.checked
+                          ? [...filters.town, town]
+                          : filters.town.filter((t) => t !== town);
+                        onFilterChange('town', next);
+                      }}
+                    />
+                    {town}
+                  </label>
+                ))}
+                <div className="flex justify-between mt-2 pt-2 border-t">
+                  <button
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => onFilterChange('town', filterOptions.towns)}
+                  >
+                    Seleccionar todos
+                  </button>
+                  <button
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => onFilterChange('town', [])}
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <select
+            className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
+            value={filters.type}
+            onChange={(e) => onFilterChange('type', e.target.value)}
+            aria-label="Filtrar por tipo"
+          >
+            <option value="">Tipo</option>
+            <option value="visits">Visitas</option>
+            <option value="purchases">Compras</option>
+          </select>
+
+          <select
+            className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
+            value={filters.priority}
+            onChange={(e) => onFilterChange('priority', e.target.value)}
+            aria-label="Filtrar por prioridad"
+          >
+            <option value="">Prioridad</option>
+            <option value="High">Alta</option>
+            <option value="Medium">Media</option>
+            <option value="Low">Baja</option>
+          </select>
+
+          <select
+            className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
+            value={filters.dateRange}
+            onChange={(e) => onFilterChange('dateRange', e.target.value)}
+            aria-label="Filtrar por fecha"
+          >
+            <option value="">Fechas</option>
+            <option value="next-week">Proxima semana</option>
+            <option value="next-2-weeks">Proximas 2 semanas</option>
+            <option value="next-month">Proximo mes</option>
+            <option value="this-week">Esta semana</option>
+            <option value="today">Hoy</option>
+            <option value="past">Pasadas</option>
+          </select>
+
+          <Button variant="outline" size="sm" onClick={onClearFilters}>
+            Limpiar
+          </Button>
+        </div>
+      )}
+
+      {/* Red toolbar: Quick filters + Actions */}
+      <div className="flex gap-2 overflow-x-auto items-center rounded-lg border-l-4 border-l-red-500 bg-card p-2 sm:p-3">
         <Button
           variant="outline"
           size="sm"
@@ -309,48 +357,27 @@ export function FilterBar({
           onDeletePreset={onDeletePreset}
           onRenamePreset={onRenamePreset}
         />
-      </div>
 
-      {/* Action buttons - always visible on desktop, collapsible on mobile */}
-      <div className={`${actionsExpanded ? 'flex' : 'hidden'} sm:flex gap-2 flex-wrap items-center`}>
-        <Button variant="outline" size="sm" onClick={onClearFilters}>
-          Limpiar Filtros
-        </Button>
-        <Button variant="outline" size="sm" onClick={onExportCSV}>
+        {/* Separator */}
+        <div className="hidden sm:block h-6 w-px bg-border shrink-0" />
+
+        <Button variant="outline" size="sm" className="shrink-0" onClick={onExportCSV}>
           CSV
         </Button>
-        <Button variant="outline" size="sm" onClick={onExportICS}>
+        <Button variant="outline" size="sm" className="shrink-0" onClick={onExportICS}>
           .ics
         </Button>
         <Button
           variant="outline"
           size="sm"
+          className="shrink-0"
           onClick={onToggleCalendar}
         >
           {isCalendarView ? 'Tarjetas' : 'Calendario'}
         </Button>
 
-        {/* View mode toggle */}
-        <div className="flex rounded-md border">
-          {(['cards', 'list', 'table'] as ViewMode[]).map((mode) => (
-            <button
-              key={mode}
-              className={`px-2.5 py-1.5 text-sm ${viewMode === mode ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-              onClick={() => onSetViewMode(mode)}
-              title={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
-              aria-label={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
-            >
-              {mode === 'cards' ? '⊞' : mode === 'list' ? '☰' : '⊟'}
-            </button>
-          ))}
-        </div>
-
-        <Button variant="default" size="sm" onClick={onRefresh}>
-          Refrescar
-        </Button>
-
         <button
-          className="rounded-md border bg-background p-2 hover:bg-muted transition-colors"
+          className="shrink-0 rounded-md border bg-background p-2 hover:bg-muted transition-colors"
           onClick={onOpenSettings}
           title="Configuracion de confianza"
           aria-label="Configuracion de confianza"
@@ -359,7 +386,7 @@ export function FilterBar({
         </button>
 
         <button
-          className="relative text-lg px-1 hover:opacity-70 transition-opacity"
+          className="shrink-0 relative text-lg px-1 hover:opacity-70 transition-opacity"
           onClick={onOpenNovedades}
           title="Novedades"
           aria-label="Ver novedades"
@@ -370,14 +397,10 @@ export function FilterBar({
           )}
         </button>
 
-        <button
-          className="text-lg px-1 hover:opacity-70 transition-opacity"
-          onClick={onToggleTheme}
-          title="Cambiar tema"
-          aria-label="Cambiar tema claro/oscuro"
-        >
-          🌓
-        </button>
+        {/* Mobile-only: Refresh */}
+        <Button variant="default" size="sm" onClick={onRefresh} className="sm:hidden shrink-0 bg-red-600 hover:bg-red-700">
+          Refrescar
+        </Button>
       </div>
     </div>
   );
