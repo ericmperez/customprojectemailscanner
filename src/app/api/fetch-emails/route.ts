@@ -22,7 +22,7 @@ export async function POST() {
       user.emailAddresses[0]?.emailAddress ||
       'Usuario';
 
-    const stats = await processNewEmails(startTime);
+    const stats = await processNewEmails(startTime, 0);
 
     await saveLastFetchTimestamp(userName);
 

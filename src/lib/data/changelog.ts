@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogRelease[] = [
   {
     version: '1.10.0',
     date: '2026-02-12',
-    headline: 'Busqueda por archivos BID',
+    headline: 'Busqueda por archivos BID y fetch manual sin limite',
     features: [
       {
         type: 'improvement',

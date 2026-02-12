@@ -201,11 +201,11 @@ export function computeWorthItScore(lic: Licitacion): number {
   }
 
   // Estimated value bonus
-  const ev = (lic.estimatedValue || '').trim();
+  const ev = String(lic.estimatedValue || '').trim();
   if (ev && ev !== 'No disponible') score += 2;
 
   // Site visit bonus
-  const vl = (lic.visitLocation || '').trim();
+  const vl = String(lic.visitLocation || '').trim();
   if (vl && vl.toLowerCase() !== 'no disponible') score += 2;
 
   return Math.min(score, 10);

@@ -26,8 +26,9 @@ export interface ProcessingStats {
 
 /**
  * Core email processing logic shared between cron and manual triggers.
+ * @param maxEmails - 0 means no limit (process all found emails)
  */
-export async function processNewEmails(startTime: number): Promise<ProcessingStats> {
+export async function processNewEmails(startTime: number, maxEmails: number = MAX_EMAILS_PER_RUN): Promise<ProcessingStats> {
   const stats: ProcessingStats = {
     emailsFound: 0,
     alreadyProcessed: 0,
@@ -60,8 +61,8 @@ export async function processNewEmails(startTime: number): Promise<ProcessingSta
     `[fetch] ${newMessageIds.length} new emails (${stats.alreadyProcessed} already processed)`
   );
 
-  // 4. Process up to MAX_EMAILS_PER_RUN
-  const batch = newMessageIds.slice(0, MAX_EMAILS_PER_RUN);
+  // 4. Process emails (limited for cron, unlimited for manual)
+  const batch = maxEmails > 0 ? newMessageIds.slice(0, maxEmails) : newMessageIds;
   const sheets = new SheetsService();
 
   for (const messageId of batch) {
