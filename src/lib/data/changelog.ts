@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.10.0',
+    date: '2026-02-12',
+    headline: 'Busqueda por archivos BID',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Deteccion de adjuntos BID',
+        description:
+          'Ahora se detectan automaticamente emails con archivos PDF que comienzan con BID, capturando licitaciones que no tienen palabras clave en el asunto.',
+      },
+    ],
+  },
+  {
     version: '1.9.0',
     date: '2026-02-12',
     headline: 'Validacion inteligente, correcciones semanticas y log de calidad',
