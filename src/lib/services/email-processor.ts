@@ -9,7 +9,7 @@ import {
 } from '@/lib/services/supabase.service';
 import { isBiddingOpen, isMinutaOrAsistencia } from '@/lib/services/cron.utils';
 
-const MAX_EMAILS_PER_RUN = 3;
+const MAX_EMAILS_PER_RUN = 5;
 const TIME_BUDGET_MS = 45_000;
 const LOOKBACK_DAYS = 90;
 

@@ -48,7 +48,7 @@ class GmailService {
    * Paginates through all results using nextPageToken.
    */
   async searchLicitacionEmails(afterDate?: Date): Promise<string[]> {
-    let query = '(subject:(Licitación OR Licitacion OR Subasta) OR from:acueductos) has:attachment filename:pdf';
+    let query = '(subject:(Licitación OR Licitacion OR Subasta OR Invitación OR Invitacion OR Cotización OR Cotizacion OR Propuesta OR Pliego OR Notificación OR Notificacion OR Pet.Oferta) OR from:acueductos OR from:juntadesubastas OR from:gobierno.pr) has:attachment filename:pdf';
 
     if (afterDate) {
       const yyyy = afterDate.getFullYear();

@@ -16,6 +16,31 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.7.0',
+    date: '2026-02-11',
+    headline: 'Busqueda de emails ampliada',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Mas palabras clave en busqueda',
+        description:
+          'Ahora se buscan emails con Invitación, Cotización, Propuesta, Pliego, Notificación y Pet.Oferta ademas de Licitación y Subasta.',
+      },
+      {
+        type: 'improvement',
+        title: 'Dominios de gobierno incluidos',
+        description:
+          'Se incluyen automaticamente emails de @acueductos, @juntadesubastas y @gobierno.pr aunque no tengan palabras clave en el asunto.',
+      },
+      {
+        type: 'improvement',
+        title: 'Procesamiento mas rapido',
+        description:
+          'Se aumentó el limite de emails por ejecución de 3 a 5 para procesar correos pendientes mas rapido.',
+      },
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-02-11',
     headline: 'Interfaz simplificada, cron cada hora y ajustes de IA',
