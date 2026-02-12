@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogRelease[] = [
   {
     version: '1.8.0',
     date: '2026-02-11',
-    headline: 'Tarjetas rediseñadas',
+    headline: 'Tarjetas rediseñadas y mayor capacidad de emails',
     features: [
       {
         type: 'improvement',
