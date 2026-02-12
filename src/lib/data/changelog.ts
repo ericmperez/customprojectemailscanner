@@ -16,6 +16,25 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.8.0',
+    date: '2026-02-11',
+    headline: 'Tarjetas rediseñadas',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Tarjetas mas compactas',
+        description:
+          'Las tarjetas ahora muestran solo la info esencial para triaje rapido. Detalles completos se ven al abrir la licitacion.',
+      },
+      {
+        type: 'improvement',
+        title: 'Mejor experiencia movil',
+        description:
+          'Checkbox, favorito y corazon con areas de toque de 44px. Badges con shadcn Badge para evitar desbordamiento.',
+      },
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-02-11',
     headline: 'Busqueda de emails ampliada',

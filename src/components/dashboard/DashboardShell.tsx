@@ -484,14 +484,22 @@ export function DashboardShell() {
             {loading && (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="rounded-lg border bg-card p-4 animate-pulse space-y-3">
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
-                    <div className="h-3 bg-muted rounded w-full" />
-                    <div className="h-3 bg-muted rounded w-2/3" />
-                    <div className="flex gap-2 pt-2">
-                      <div className="h-8 bg-muted rounded flex-1" />
-                      <div className="h-8 bg-muted rounded flex-1" />
+                  <div key={i} className="rounded-xl border bg-card shadow-sm animate-pulse">
+                    <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+                      <div className="w-5 h-5 bg-muted rounded" />
+                      <div className="h-5 bg-muted rounded-full w-12" />
+                      <div className="h-5 bg-muted rounded-full w-16" />
+                      <div className="flex-1" />
+                      <div className="w-8 h-5 bg-muted rounded" />
+                    </div>
+                    <div className="px-4 pb-3 space-y-1.5">
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                      <div className="h-3 bg-muted rounded w-2/3" />
+                    </div>
+                    <div className="flex gap-3 px-4 pb-3 pt-2 border-t mx-4">
+                      <div className="h-10 bg-muted rounded-lg flex-1" />
+                      <div className="h-10 bg-muted rounded-lg flex-1" />
                     </div>
                   </div>
                 ))}

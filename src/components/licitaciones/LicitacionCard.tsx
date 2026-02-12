@@ -1,9 +1,9 @@
 'use client';
 
-import { cn, truncate, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore } from '@/lib/utils';
-import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
+import { cn, formatSiteVisitDate, computeWorthItScore } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import type { Licitacion } from '@/lib/types';
-import { hasVisitInfo, buildWhatsAppVisitCardUrl } from '@/lib/utils/whatsapp';
 
 interface LicitacionCardProps {
   lic: Licitacion;
@@ -99,247 +99,156 @@ export function LicitacionCard({
   const status = (lic.approvalStatus || 'pending').toLowerCase();
   const visitLocation = (lic.visitLocation || '').toString().trim();
   const isVisit = visitLocation && visitLocation.toLowerCase() !== 'no disponible';
-
-  const siteVisitDateDisplay = formatSiteVisitDate(lic.siteVisitDate);
-  const siteVisitTimeDisplay = formatTimeLabel(lic.siteVisitTime);
-  const emailDate = lic.emailDate ? new Date(lic.emailDate).toLocaleDateString('es-PR') : 'N/A';
-  const pdfLink = lic.pdfUrl || resolvePdfUrl(lic.pdfLink);
   const urgency = computeUrgency(lic);
-  const confidence = parseConfidence(lic.extractionMethod);
   const worthItScore = computeWorthItScore(lic);
-  const priorityLower = (lic.priority || '').toLowerCase();
+
+  const closeDateDisplay = lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible'
+    ? lic.biddingCloseDate
+    : null;
+  const visitDateDisplay = formatSiteVisitDate(lic.siteVisitDate);
+  const hasVisitDate = visitDateDisplay !== 'No disponible';
+  const estimatedValue = lic.estimatedValue && lic.estimatedValue !== 'No disponible'
+    ? lic.estimatedValue
+    : null;
+
+  // Build meta parts: category · location
+  const metaParts: string[] = [];
+  if (lic.category) metaParts.push(lic.category);
+  if (lic.location) metaParts.push(lic.location);
 
   return (
     <div
       className={cn(
-        'rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer relative',
+        'rounded-xl border bg-card shadow-sm transition-all hover:shadow-md cursor-pointer',
         status === 'approved' && 'border-l-4 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/40',
-        status === 'rejected' && 'border-l-4 border-l-red-500',
+        status === 'rejected' && 'border-l-4 border-l-red-500 opacity-75',
         status === 'pending' && 'border-l-4 border-l-amber-500',
         isSelected && 'ring-2 ring-primary'
       )}
       onClick={() => onOpenDetail(lic.id)}
     >
-      {/* Checkbox */}
-      <input
-        type="checkbox"
-        className="absolute top-3 left-3 z-10"
-        checked={isSelected}
-        onChange={(e) => { e.stopPropagation(); onToggleSelection(lic.rowNumber); }}
-        onClick={(e) => e.stopPropagation()}
-        aria-label="Seleccionar licitación"
-      />
+      {/* Zone 1: Top Strip */}
+      <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+        {/* Checkbox - 44px touch target */}
+        <div
+          className="flex items-center justify-center w-11 h-11 shrink-0 -ml-1.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onToggleSelection(lic.rowNumber)}
+            aria-label="Seleccionar licitación"
+            className="size-5"
+          />
+        </div>
 
-      {/* Header */}
-      <div className="flex justify-between items-start gap-2 mb-2 ml-6">
-        <h3 className="font-semibold text-sm leading-snug line-clamp-2 min-w-0">
-          {lic.title || lic.subject || 'Sin titulo'}
-        </h3>
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 flex-wrap justify-end max-w-[45%] sm:max-w-none">
-          {/* Worth It score */}
-          <span
-            className={cn(
-              'text-xs font-bold px-1.5 py-0.5 rounded whitespace-nowrap',
-              worthItScore >= 7 ? 'text-emerald-700 dark:text-emerald-300' : worthItScore >= 4 ? 'text-amber-700 dark:text-amber-300' : 'text-gray-500'
-            )}
-            title={`Puntuacion: ${worthItScore}/10`}
-          >
+        {/* Badges */}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+          <Badge variant="outline" className={cn(
+            'text-xs font-bold',
+            worthItScore >= 7 ? 'border-emerald-500 text-emerald-700 dark:text-emerald-300' :
+            worthItScore >= 4 ? 'border-amber-500 text-amber-700 dark:text-amber-300' :
+            'border-gray-300 text-gray-500'
+          )}>
             {worthItScore}/10
-          </span>
+          </Badge>
+
+          <Badge variant="outline" className={cn(
+            'text-xs',
+            isVisit ? 'border-blue-400 text-blue-700 dark:text-blue-300' : 'text-muted-foreground'
+          )}>
+            {isVisit ? '🏗️ Visita' : '🛒 Compra'}
+          </Badge>
+
+          {urgency && (
+            <Badge className={cn(
+              'text-xs',
+              urgency.level === 'critical'
+                ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border-red-200'
+                : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-200'
+            )}>
+              {urgency.level === 'critical' ? '🔥' : '⚠️'} {urgency.text}
+            </Badge>
+          )}
+        </div>
+
+        {/* Quick actions - 44px touch targets */}
+        <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite(lic.rowNumber); }}
-            className="text-lg hover:scale-110 transition-transform"
+            onClick={() => onToggleFavorite(lic.rowNumber)}
+            className="w-11 h-11 flex items-center justify-center text-lg hover:scale-110 transition-transform"
             title="Favorito"
             aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
           >
             {isFavorite ? '⭐' : '☆'}
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onToggleInterested(lic.id, !lic.interested); }}
-            className="text-lg hover:scale-110 transition-transform"
+            onClick={() => onToggleInterested(lic.id, !lic.interested)}
+            className="w-11 h-11 flex items-center justify-center text-lg hover:scale-110 transition-transform"
             title={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
             aria-label={lic.interested ? 'Quitar interés' : 'Marcar interesada'}
           >
             {lic.interested ? '❤️' : '🤍'}
           </button>
-          {urgency && (
-            <span
-              className={cn(
-                'text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap',
-                urgency.level === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-              )}
-            >
-              {urgency.level === 'critical' ? '🔥' : '⚠️'} {urgency.text}
-            </span>
-          )}
-          {/* Priority badge */}
-          {priorityLower && (
-            <span
-              className={cn(
-                'text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap',
-                priorityLower === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' :
-                priorityLower === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
-                'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
-              )}
-            >
-              {priorityLower === 'high' ? 'Alta' : priorityLower === 'medium' ? 'Media' : 'Baja'}
-            </span>
-          )}
-          {/* Confidence pill */}
-          {confidence !== null && (
-            <span
-              className={cn(
-                'text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap',
-                confidence >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' :
-                confidence >= 60 ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' :
-                'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
-              )}
-            >
-              {confidence}%
-            </span>
-          )}
-          <span
-            className={cn(
-              'text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap',
-              isVisit ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-            )}
-          >
-            {isVisit ? '🏗️ Visita' : '🛒 Compra'}
-          </span>
         </div>
       </div>
 
-      {/* Summary */}
-      {lic.summary && lic.summary !== 'No disponible' && (
-        <p className="text-sm text-muted-foreground italic mb-2 ml-6 line-clamp-2">{lic.summary}</p>
-      )}
+      {/* Zone 2: Content Body */}
+      <div className="px-4 pb-3">
+        <h3 className="font-semibold text-sm leading-snug line-clamp-2 mb-1">
+          {lic.title || lic.subject || 'Sin titulo'}
+        </h3>
 
-      {/* Meta */}
-      <div className="flex gap-3 text-xs text-muted-foreground mb-2 flex-wrap">
-        {isVisit && siteVisitDateDisplay !== 'No disponible' ? (
-          <>
-            <span>🗓️ Visita: {siteVisitDateDisplay}</span>
-            {siteVisitTimeDisplay && <span>🕐 {siteVisitTimeDisplay}</span>}
-          </>
-        ) : (
-          <span>📅 {emailDate}</span>
+        {metaParts.length > 0 && (
+          <p className="text-xs text-muted-foreground mb-1 line-clamp-1">
+            {metaParts.join(' · ')}
+          </p>
         )}
-        {lic.category && <span>📂 {lic.category}</span>}
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+          {isVisit && hasVisitDate ? (
+            <span>🗓️ Visita: {visitDateDisplay}</span>
+          ) : closeDateDisplay ? (
+            <span>📅 Cierre: {closeDateDisplay}</span>
+          ) : null}
+          {estimatedValue && (
+            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+              💰 {estimatedValue}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Location */}
-      {lic.location && (
-        <div className="mb-2">
-          <span className="text-xs text-muted-foreground font-medium">Ubicacion</span>
-          <p className="text-sm">{lic.location}</p>
-        </div>
-      )}
-
-      {/* Description */}
-      {lic.description && (
-        <div className="mb-2">
-          <span className="text-xs text-muted-foreground font-medium">Descripcion</span>
-          <p className="text-sm text-muted-foreground">{truncate(lic.description, 150)}</p>
-        </div>
-      )}
-
-      {/* Info grid */}
-      <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-        {lic.biddingCloseDate && lic.biddingCloseDate !== 'No disponible' && (
-          <div>
-            <span className="text-muted-foreground font-medium">Cierre</span>
-            <p>{lic.biddingCloseDate} {lic.biddingCloseTime || ''}</p>
-          </div>
-        )}
-        {siteVisitDateDisplay !== 'No disponible' && (
-          <div>
-            <span className="text-muted-foreground font-medium">Visita</span>
-            <p>{siteVisitDateDisplay} {siteVisitTimeDisplay || ''}</p>
-          </div>
-        )}
-        {lic.contactName && (
-          <div>
-            <span className="text-muted-foreground font-medium">Contacto</span>
-            <p>{lic.contactName}</p>
-            {lic.contactPhone && (
-              <a
-                href={`tel:${lic.contactPhone.replace(/\D/g, '')}`}
-                className="text-primary hover:underline"
-                onClick={(e) => e.stopPropagation()}
+      {/* Zone 3: Action Footer */}
+      <div className="px-4 pb-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex gap-3 pt-2 border-t">
+          {status === 'pending' ? (
+            <>
+              <button
+                className="flex-1 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors active:bg-emerald-800"
+                onClick={() => onApprove(lic.id)}
+                aria-label="Aprobar licitación"
               >
-                📞 {lic.contactPhone}
-              </a>
-            )}
-          </div>
-        )}
-        {pdfLink && pdfLink !== '#' && (
-          <div>
-            <span className="text-muted-foreground font-medium">PDF</span>
-            <a
-              href={pdfLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline block"
-              onClick={(e) => e.stopPropagation()}
-            >
-              📄 {lic.pdfFilename || 'Ver PDF'}
-            </a>
-          </div>
-        )}
-        {lic.estimatedValue && lic.estimatedValue !== 'No disponible' && (
-          <div>
-            <span className="text-muted-foreground font-medium">Valor Est.</span>
-            <p className="text-emerald-600 dark:text-emerald-400 font-medium">{lic.estimatedValue}</p>
-          </div>
-        )}
-        {hasVisitInfo(lic) && (
-          <div>
-            <a
-              href={buildWhatsAppVisitCardUrl(lic)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-1"
-              onClick={(e) => e.stopPropagation()}
-            >
-              📤 Compartir Visita
-            </a>
-          </div>
-        )}
-      </div>
-
-      {/* Price Search */}
-      {lic.description && lic.description !== 'No disponible' && (
-        <PriceSearchSection licitacionId={lic.id} variant="card" />
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
-        {status === 'pending' ? (
-          <>
+                ✓ Aprobar
+              </button>
+              <button
+                className="flex-1 rounded-lg bg-red-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition-colors active:bg-red-800"
+                onClick={() => onReject(lic.id)}
+                aria-label="Rechazar licitación"
+              >
+                ✗ Rechazar
+              </button>
+            </>
+          ) : (
             <button
-              className="flex-1 rounded-md bg-emerald-600 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-emerald-700 transition-colors active:bg-emerald-800"
-              onClick={() => onApprove(lic.id)}
-              aria-label="Aprobar licitación"
+              className="flex-1 rounded-lg bg-amber-500 px-3 py-2.5 text-sm font-medium text-white hover:bg-amber-600 transition-colors active:bg-amber-700"
+              onClick={() => onResetPending(lic.id)}
+              aria-label="Volver a pendiente"
             >
-              ✓ Aprobar
+              ↺ Volver a Pendiente
             </button>
-            <button
-              className="flex-1 rounded-md bg-red-600 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-red-700 transition-colors active:bg-red-800"
-              onClick={() => onReject(lic.id)}
-              aria-label="Rechazar licitación"
-            >
-              ✗ Rechazar
-            </button>
-          </>
-        ) : (
-          <button
-            className="flex-1 rounded-md bg-amber-500 px-3 py-2 sm:py-1.5 text-sm sm:text-xs font-medium text-white hover:bg-amber-600 transition-colors active:bg-amber-700"
-            onClick={() => onResetPending(lic.id)}
-            aria-label="Volver a pendiente"
-          >
-            ↺ Volver a Pendiente
-          </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
