@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAISettings, saveAIExamples } from '@/lib/services/supabase.service';
+import { getAISettings, saveAIExamples, saveCorrectionWithEmbedding } from '@/lib/services/supabase.service';
+import { generateEmbedding } from '@/lib/services/openai.service';
 import type { CorrectionExample } from '@/lib/types';
 
 const MAX_EXAMPLES = 20;
@@ -35,15 +36,29 @@ export async function POST(request: Request) {
       savedAt: new Date().toISOString(),
     };
 
-    const { examples } = await getAISettings();
+    // Save to correction_examples table with embedding (for semantic retrieval)
+    try {
+      const embeddingText = `${body.field}: ${body.original}`;
+      const embedding = await generateEmbedding(embeddingText);
+      await saveCorrectionWithEmbedding(
+        body.field,
+        body.original,
+        body.corrected,
+        body.context || undefined,
+        embedding
+      );
+    } catch (err) {
+      console.warn('[correction] Failed to save with embedding, continuing with app_settings:', err);
+    }
 
-    // Append new example, trim to max (FIFO — oldest removed)
+    // Also save to app_settings JSON blob (backwards compatibility)
+    const { examples } = await getAISettings();
     const updated = [...examples, newExample];
     if (updated.length > MAX_EXAMPLES) {
       updated.splice(0, updated.length - MAX_EXAMPLES);
     }
-
     await saveAIExamples(updated);
+
     return NextResponse.json({ success: true, data: { examples: updated } });
   } catch (error) {
     console.error('Error saving correction example:', error);

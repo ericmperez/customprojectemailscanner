@@ -3,7 +3,8 @@ import type { ChatCompletionContentPart } from 'openai/resources/chat/completion
 // pdf-parse v2 is imported dynamically to avoid DOMMatrix errors in serverless
 import { withRetry } from '@/lib/utils/retry';
 import type { ConfidenceFieldSettings } from '@/lib/types';
-import { getConfidenceSettings, getAISettings } from '@/lib/services/supabase.service';
+import { getConfidenceSettings, getAISettings, findRelevantCorrections, logExtraction } from '@/lib/services/supabase.service';
+import { validateExtraction } from '@/lib/services/validation.service';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -11,6 +12,21 @@ function getOpenAI(): OpenAI {
     _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 45_000 });
   }
   return _openai;
+}
+
+/**
+ * Generate embedding vector for a text string using text-embedding-3-small.
+ */
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const response = await withRetry(
+    () =>
+      getOpenAI().embeddings.create({
+        model: 'text-embedding-3-small',
+        input: text.slice(0, 8000), // limit input to ~8k chars
+      }),
+    { maxRetries: 1 }
+  );
+  return response.data[0].embedding;
 }
 
 export interface ExtractedLicitacionData {
@@ -100,9 +116,9 @@ Respond ONLY with valid JSON matching the field names above. No markdown, no exp
 
 /**
  * Build the system prompt, injecting env-var tips, user custom instructions,
- * and correction examples from Supabase.
+ * and correction examples (semantic retrieval if embedding provided, else recent).
  */
-async function getSystemPrompt(): Promise<string> {
+async function getSystemPrompt(documentEmbedding?: number[]): Promise<string> {
   let prompt = SYSTEM_PROMPT;
 
   // Env var tips (backwards-compatible)
@@ -119,13 +135,31 @@ async function getSystemPrompt(): Promise<string> {
       prompt += '\n\n**Additional instructions from the user:**\n' + instructions.trim();
     }
 
-    if (examples.length > 0) {
-      // Include up to 5 most recent examples
+    // Semantic retrieval: if we have a document embedding, find relevant corrections
+    let correctionLines: string[] = [];
+    if (documentEmbedding) {
+      try {
+        const relevant = await findRelevantCorrections(documentEmbedding, 5, 0.5);
+        if (relevant.length > 0) {
+          correctionLines = relevant.map(
+            (ex) => `- "${ex.field}": "${ex.original}" → should be "${ex.corrected}" (similarity: ${ex.similarity.toFixed(2)})`
+          );
+        }
+      } catch (err) {
+        console.warn('[openai] Semantic retrieval failed, falling back to recent:', err);
+      }
+    }
+
+    // Fallback: use recent examples from app_settings if no semantic results
+    if (correctionLines.length === 0 && examples.length > 0) {
       const recent = examples.slice(-5);
-      const lines = recent.map(
+      correctionLines = recent.map(
         (ex) => `- "${ex.field}": "${ex.original}" → should be "${ex.corrected}"`
       );
-      prompt += '\n\n**Corrections from previous extractions (learn from these):**\n' + lines.join('\n');
+    }
+
+    if (correctionLines.length > 0) {
+      prompt += '\n\n**Corrections from previous extractions (learn from these):**\n' + correctionLines.join('\n');
     }
   } catch (err) {
     console.warn('[openai] Failed to load AI settings, using base prompt:', err);
@@ -163,15 +197,29 @@ async function extractPdfText(pdfBase64: string): Promise<string | null> {
  * Send PDF to GPT-4o with dual input: extracted text + visual PDF.
  * pdf-parse provides reliable text content, while the PDF file
  * provides layout and table context that text extraction misses.
+ *
+ * Pipeline: text extraction → embedding → semantic retrieval → GPT-4o → validation → logging
  */
 export async function extractLicitacionData(
   pdfBase64: string,
-  filename: string
+  filename: string,
+  emailId?: string
 ): Promise<ExtractedLicitacionData> {
+  const startTime = Date.now();
+
   // Step 1: Extract text with pdf-parse
   const pdfText = await extractPdfText(pdfBase64);
 
-  // Step 2: Build message content parts
+  // Step 2: Generate document embedding for semantic retrieval
+  let documentEmbedding: number[] | undefined;
+  try {
+    const summary = `${filename} ${pdfText ? pdfText.slice(0, 500) : ''}`.trim();
+    documentEmbedding = await generateEmbedding(summary);
+  } catch (err) {
+    console.warn('[openai] Embedding generation failed, using fallback:', err);
+  }
+
+  // Step 3: Build message content parts
   const contentParts: ChatCompletionContentPart[] = [];
 
   // Always include the visual PDF
@@ -205,8 +253,8 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
     });
   }
 
-  // Step 3: Call GPT-4o
-  const systemPrompt = await getSystemPrompt();
+  // Step 4: Call GPT-4o with semantically-enhanced prompt
+  const systemPrompt = await getSystemPrompt(documentEmbedding);
   const response = await withRetry(
     () =>
       getOpenAI().chat.completions.create(
@@ -263,9 +311,38 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
     confidence: 0,
   };
 
-  // Fetch confidence field settings (one lightweight query, negligible vs GPT-4o call)
+  // Step 5: Post-extraction validation + auto-fix
+  const { validated, issues, fixes } = validateExtraction(data as unknown as Record<string, string>);
+  // Apply validated fields back
+  for (const [key, value] of Object.entries(validated)) {
+    if (key in data) {
+      (data as unknown as Record<string, string>)[key] = value;
+    }
+  }
+
+  if (fixes.length > 0) {
+    console.log(`[openai] Validation auto-fixes for "${filename}":`, fixes);
+  }
+  if (issues.length > 0) {
+    console.log(`[openai] Validation issues for "${filename}":`, issues);
+  }
+
+  // Step 6: Calculate confidence
   const fieldSettings = await getConfidenceSettings();
   data.confidence = calculateConfidence(data, !!pdfText, fieldSettings);
+
+  // Step 7: Log extraction (fire-and-forget)
+  const processingTime = Date.now() - startTime;
+  logExtraction({
+    email_id: emailId || 'unknown',
+    pdf_filename: filename,
+    confidence_score: data.confidence,
+    had_text_extraction: !!pdfText,
+    validation_issues: issues.length > 0 ? issues : undefined,
+    auto_fixes: fixes.length > 0 ? fixes : undefined,
+    processing_time_ms: processingTime,
+  }).catch(() => {});
+
   return data;
 }
 

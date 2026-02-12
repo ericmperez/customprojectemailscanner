@@ -16,6 +16,31 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.9.0',
+    date: '2026-02-12',
+    headline: 'Validacion inteligente, correcciones semanticas y log de calidad',
+    features: [
+      {
+        type: 'feature',
+        title: 'Validacion post-extraccion',
+        description:
+          'Los municipios, telefonos y fechas extraidos se validan y corrigen automaticamente. Municipios se verifican contra los 78 de PR con fuzzy matching.',
+      },
+      {
+        type: 'feature',
+        title: 'Correcciones semanticas',
+        description:
+          'Las correcciones que haces ahora se recuperan por similitud al documento actual usando embeddings, en vez de mostrar las 5 mas recientes.',
+      },
+      {
+        type: 'feature',
+        title: 'Log de calidad de extraccion',
+        description:
+          'Cada extraccion se registra con score de confianza, problemas de validacion, auto-correcciones y tiempo de procesamiento.',
+      },
+    ],
+  },
+  {
     version: '1.8.0',
     date: '2026-02-11',
     headline: 'Tarjetas rediseñadas y mayor capacidad de emails',
@@ -212,3 +237,4 @@ export const CHANGELOG: ChangelogRelease[] = [
 ];
 
 export const LATEST_VERSION = CHANGELOG[0].version;
+

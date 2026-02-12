@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAISettings } from '@/hooks/useAISettings';
-import type { CorrectionExample } from '@/lib/types';
+import type { VectorExample } from '@/hooks/useAISettings';
 
 const MAX_INSTRUCTIONS = 2000;
 
@@ -21,7 +21,15 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 export function AISettingsTab() {
-  const { instructions, examples, loading, saving, saveInstructions, saveExamples } = useAISettings();
+  const {
+    instructions,
+    vectorExamples,
+    loading,
+    saving,
+    saveInstructions,
+    deleteVectorExample,
+    clearAllExamples,
+  } = useAISettings();
   const [draft, setDraft] = useState('');
 
   useEffect(() => {
@@ -37,9 +45,8 @@ export function AISettingsTab() {
     }
   };
 
-  const handleDeleteExample = async (index: number) => {
-    const updated = examples.filter((_: CorrectionExample, i: number) => i !== index);
-    const ok = await saveExamples(updated);
+  const handleDeleteExample = async (id: string) => {
+    const ok = await deleteVectorExample(id);
     if (ok) {
       toast.success('Ejemplo eliminado');
     } else {
@@ -48,7 +55,7 @@ export function AISettingsTab() {
   };
 
   const handleClearExamples = async () => {
-    const ok = await saveExamples([]);
+    const ok = await clearAllExamples();
     if (ok) {
       toast.success('Todos los ejemplos eliminados');
     } else {
@@ -103,10 +110,10 @@ export function AISettingsTab() {
           <div>
             <label className="text-sm font-medium">Correcciones guardadas</label>
             <p className="text-xs text-muted-foreground">
-              Cuando editas un campo, la correccion se guarda como ejemplo para futuras extracciones.
+              Cuando editas un campo, la correccion se guarda como ejemplo para futuras extracciones. Se usan las correcciones mas relevantes al documento actual.
             </p>
           </div>
-          {examples.length > 0 && (
+          {vectorExamples.length > 0 && (
             <Button
               variant="outline"
               size="sm"
@@ -118,15 +125,15 @@ export function AISettingsTab() {
           )}
         </div>
 
-        {examples.length === 0 ? (
+        {vectorExamples.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-4 border rounded-md">
             No hay correcciones guardadas. Edita campos en el detalle de una licitacion para crear ejemplos.
           </div>
         ) : (
           <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
-            {examples.map((ex: CorrectionExample, i: number) => (
+            {vectorExamples.map((ex: VectorExample) => (
               <div
-                key={`${ex.field}-${ex.savedAt}`}
+                key={ex.id}
                 className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
               >
                 <div className="flex-1 min-w-0">
@@ -145,7 +152,7 @@ export function AISettingsTab() {
                   )}
                 </div>
                 <button
-                  onClick={() => handleDeleteExample(i)}
+                  onClick={() => handleDeleteExample(ex.id)}
                   disabled={saving}
                   className="text-muted-foreground hover:text-red-500 text-xs shrink-0 mt-1"
                   title="Eliminar ejemplo"
@@ -159,7 +166,7 @@ export function AISettingsTab() {
       </div>
 
       <p className="text-xs text-muted-foreground italic">
-        Cambios aplican solo a futuras extracciones. Se incluyen los 5 ejemplos mas recientes en el prompt.
+        Cambios aplican solo a futuras extracciones. Se incluyen las 5 correcciones mas relevantes al documento en el prompt.
       </p>
     </div>
   );

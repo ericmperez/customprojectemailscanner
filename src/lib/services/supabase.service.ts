@@ -322,3 +322,138 @@ export async function saveAIExamples(examples: CorrectionExample[]): Promise<voi
     throw error;
   }
 }
+
+// ── Correction Examples with Embeddings (pgvector) ───────────────────
+
+export interface CorrectionRow {
+  id: string;
+  field: string;
+  original: string;
+  corrected: string;
+  context: string | null;
+  saved_at: string;
+}
+
+/**
+ * Save a correction example with its embedding to the correction_examples table.
+ */
+export async function saveCorrectionWithEmbedding(
+  field: string,
+  original: string,
+  corrected: string,
+  context: string | undefined,
+  embedding: number[]
+): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase.from('correction_examples').insert({
+    field,
+    original,
+    corrected,
+    context: context || null,
+    embedding: JSON.stringify(embedding),
+  });
+
+  if (error) {
+    console.error('Error saving correction with embedding:', error);
+    throw error;
+  }
+}
+
+/**
+ * Find corrections semantically similar to the given embedding via pgvector RPC.
+ */
+export async function findRelevantCorrections(
+  embedding: number[],
+  limit = 5,
+  threshold = 0.5
+): Promise<{ field: string; original: string; corrected: string; context: string | null; similarity: number }[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc('match_corrections', {
+    query_embedding: JSON.stringify(embedding),
+    match_threshold: threshold,
+    match_count: limit,
+  });
+
+  if (error) {
+    console.error('Error finding relevant corrections:', error);
+    return [];
+  }
+
+  return (data ?? []) as { field: string; original: string; corrected: string; context: string | null; similarity: number }[];
+}
+
+/**
+ * Get all correction examples from the correction_examples table (for UI list).
+ */
+export async function getAllCorrectionExamples(): Promise<CorrectionRow[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('correction_examples')
+    .select('id, field, original, corrected, context, saved_at')
+    .order('saved_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching correction examples:', error);
+    return [];
+  }
+
+  return (data ?? []) as CorrectionRow[];
+}
+
+/**
+ * Delete a single correction example by UUID.
+ */
+export async function deleteCorrectionExample(id: string): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase.from('correction_examples').delete().eq('id', id);
+
+  if (error) {
+    console.error('Error deleting correction example:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear all correction examples (truncate).
+ */
+export async function clearCorrectionExamples(): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase.from('correction_examples').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+  if (error) {
+    console.error('Error clearing correction examples:', error);
+    throw error;
+  }
+}
+
+// ── Extraction Quality Log ───────────────────────────────────────────
+
+export interface ExtractionLogEntry {
+  email_id: string;
+  pdf_filename?: string;
+  confidence_score: number;
+  had_text_extraction: boolean;
+  validation_issues?: string[];
+  auto_fixes?: string[];
+  processing_time_ms?: number;
+}
+
+/**
+ * Log an extraction result for quality tracking. Fire-and-forget — errors are caught.
+ */
+export async function logExtraction(entry: ExtractionLogEntry): Promise<void> {
+  try {
+    const supabase = getClient();
+    await supabase.from('extraction_log').insert({
+      email_id: entry.email_id,
+      pdf_filename: entry.pdf_filename || null,
+      confidence_score: entry.confidence_score,
+      had_text_extraction: entry.had_text_extraction,
+      validation_issues: entry.validation_issues ?? [],
+      auto_fixes: entry.auto_fixes ?? [],
+      processing_time_ms: entry.processing_time_ms || null,
+    });
+  } catch (err) {
+    console.warn('[supabase] Failed to log extraction (non-blocking):', err);
+  }
+}

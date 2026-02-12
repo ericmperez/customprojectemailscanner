@@ -105,7 +105,7 @@ export async function processNewEmails(startTime: number): Promise<ProcessingSta
       console.log(`[fetch] Extracting data from: ${pdf.filename}`);
 
       // Send PDF to GPT-4o
-      const extracted = await extractLicitacionData(pdf.base64Data, pdf.filename);
+      const extracted = await extractLicitacionData(pdf.base64Data, pdf.filename, messageId);
       console.log(
         `[fetch] Extracted: ${extracted.title} | Location: ${extracted.location} | Confidence: ${extracted.confidence}%`
       );

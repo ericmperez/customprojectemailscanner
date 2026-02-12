@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getAISettings, saveAIInstructions, saveAIExamples } from '@/lib/services/supabase.service';
+import {
+  getAISettings,
+  saveAIInstructions,
+  saveAIExamples,
+  getAllCorrectionExamples,
+  deleteCorrectionExample,
+  clearCorrectionExamples,
+} from '@/lib/services/supabase.service';
 import type { CorrectionExample } from '@/lib/types';
 
 const MAX_INSTRUCTIONS_LENGTH = 2000;
@@ -8,7 +15,22 @@ const MAX_EXAMPLES = 20;
 export async function GET() {
   try {
     const settings = await getAISettings();
-    return NextResponse.json({ success: true, data: settings });
+
+    // Also fetch from correction_examples table (new source of truth)
+    let vectorExamples: { id: string; field: string; original: string; corrected: string; context: string | null; saved_at: string }[] = [];
+    try {
+      vectorExamples = await getAllCorrectionExamples();
+    } catch {
+      // Fall back to app_settings examples only
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...settings,
+        vectorExamples,
+      },
+    });
   } catch (error) {
     console.error('Error fetching AI settings:', error);
     return NextResponse.json(
@@ -51,8 +73,26 @@ export async function PUT(request: Request) {
       await saveAIExamples(body.examples);
     }
 
+    // Clear all correction examples (both tables)
+    if (body.clearExamples === true) {
+      await clearCorrectionExamples();
+      await saveAIExamples([]);
+    }
+
+    // Delete a single vector correction example by UUID
+    if (typeof body.deleteExampleId === 'string') {
+      await deleteCorrectionExample(body.deleteExampleId);
+    }
+
     const updated = await getAISettings();
-    return NextResponse.json({ success: true, data: updated });
+    let vectorExamples: { id: string; field: string; original: string; corrected: string; context: string | null; saved_at: string }[] = [];
+    try {
+      vectorExamples = await getAllCorrectionExamples();
+    } catch {
+      // ignore
+    }
+
+    return NextResponse.json({ success: true, data: { ...updated, vectorExamples } });
   } catch (error) {
     console.error('Error saving AI settings:', error);
     return NextResponse.json(
