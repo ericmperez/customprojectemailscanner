@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useOrganizationList, useOrganization, CreateOrganization } from '@clerk/nextjs';
 import { toast } from 'sonner';
@@ -16,7 +16,7 @@ const STEPS: { id: Step; label: string }[] = [
   { id: 'done', label: 'Listo' },
 ];
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { organization } = useOrganization();
@@ -37,7 +37,6 @@ export default function OnboardingPage() {
     }
   }, [organization, step]);
 
-  // If user already has an org, skip to gmail step
   const currentStepIndex = STEPS.findIndex((s) => s.id === step);
 
   const handleConnectGmail = async () => {
@@ -189,5 +188,19 @@ export default function OnboardingPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
   );
 }

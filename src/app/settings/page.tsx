@@ -1,8 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useOrganization } from '@clerk/nextjs';
 import { OrganizationProfile } from '@clerk/nextjs';
+import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +13,19 @@ import { AISettingsPanel } from '@/components/settings/AISettingsPanel';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { organization } = useOrganization();
+
+  // Handle Gmail OAuth callback query params
+  useEffect(() => {
+    if (searchParams.get('gmail_connected') === 'true') {
+      toast.success('Gmail conectado exitosamente');
+      router.replace('/settings', { scroll: false });
+    } else if (searchParams.get('gmail_error')) {
+      toast.error('Error al conectar Gmail: ' + searchParams.get('gmail_error'));
+      router.replace('/settings', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   return (
     <div className="min-h-screen bg-background">

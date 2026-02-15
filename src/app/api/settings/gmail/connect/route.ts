@@ -31,7 +31,7 @@ export async function GET() {
       state: orgId, // Pass orgId through state param for callback
     });
 
-    return NextResponse.redirect(authUrl);
+    return NextResponse.json({ success: true, data: { authUrl } });
   } catch (error) {
     console.error('Error initiating Gmail OAuth:', error);
     return NextResponse.json(
