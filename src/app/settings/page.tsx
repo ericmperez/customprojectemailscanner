@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useOrganization } from '@clerk/nextjs';
 import { OrganizationProfile } from '@clerk/nextjs';
@@ -11,12 +11,10 @@ import { Button } from '@/components/ui/button';
 import { GmailConnectionCard } from '@/components/settings/GmailConnectionCard';
 import { AISettingsPanel } from '@/components/settings/AISettingsPanel';
 
-export default function SettingsPage() {
+function GmailCallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { organization } = useOrganization();
 
-  // Handle Gmail OAuth callback query params
   useEffect(() => {
     if (searchParams.get('gmail_connected') === 'true') {
       toast.success('Gmail conectado exitosamente');
@@ -27,8 +25,18 @@ export default function SettingsPage() {
     }
   }, [searchParams, router]);
 
+  return null;
+}
+
+export default function SettingsPage() {
+  const router = useRouter();
+  const { organization } = useOrganization();
+
   return (
     <div className="min-h-screen bg-background">
+      <Suspense fallback={null}>
+        <GmailCallbackHandler />
+      </Suspense>
       <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

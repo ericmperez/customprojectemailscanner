@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOrgDbId, getUserName } from '@/lib/auth';
 import { processNewEmails } from '@/lib/services/email-processor';
+import { createGmailServiceForOrg } from '@/lib/services/gmail.service';
 import { saveLastFetchTimestamp, logActivity } from '@/lib/services/supabase.service';
 
 export const maxDuration = 60;
@@ -12,7 +13,9 @@ export async function POST() {
     const orgId = await getOrgDbId();
     const userName = await getUserName();
 
-    const stats = await processNewEmails(orgId, startTime, 0);
+    // Try per-org Gmail credentials first, fall back to env vars
+    const gmailService = await createGmailServiceForOrg(orgId);
+    const stats = await processNewEmails(orgId, startTime, 0, gmailService ?? undefined);
 
     await saveLastFetchTimestamp(orgId, userName);
 
