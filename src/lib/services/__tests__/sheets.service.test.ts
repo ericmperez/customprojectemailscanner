@@ -45,6 +45,7 @@ const HEADERS = [
   'Telefono Contacto', 'Fecha Cierre Licitacion', 'Hora Cierre Licitacion',
   'Metodo Extraccion', 'Email ID', 'Approval Status', 'Approval Notes',
   'Interested', 'Decision Status', 'Titulo', 'Valor Estimado',
+  'Requisitos de Visita', 'Emergencia',
 ];
 
 function makeRow(overrides: Partial<Record<string, string>> = {}): string[] {
@@ -74,6 +75,8 @@ function makeRow(overrides: Partial<Record<string, string>> = {}): string[] {
     'Decision Status': 'researching',
     'Titulo': 'Test Title',
     'Valor Estimado': '$45,000',
+    'Requisitos de Visita': 'No disponible',
+    'Emergencia': 'FALSE',
   };
   const merged = { ...defaults, ...overrides };
   return HEADERS.map((h) => merged[h] ?? '');
@@ -446,7 +449,8 @@ describe('SheetsService', () => {
       });
 
       const result = await service.updateFields(5, { interested: true });
-      expect(result).not.toBeNull();
+      expect(result.updated).not.toBeNull();
+      expect(result.oldValues).toBeDefined();
       expect(mockValuesUpdate).toHaveBeenCalled();
     });
 

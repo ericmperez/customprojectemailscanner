@@ -83,11 +83,13 @@ export function LicitacionTable({
                 key={lic.id}
                 className={cn(
                   'border-t cursor-pointer transition-colors',
-                  lic.approvalStatus === 'approved'
-                    ? 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60'
-                    : windowDays !== null && windowDays <= 2
-                      ? 'bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/60'
-                      : 'hover:bg-muted/50'
+                  lic.isEmergency
+                    ? 'bg-red-100 hover:bg-red-200 border-l-4 border-l-red-600'
+                    : lic.approvalStatus === 'approved'
+                      ? 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60'
+                      : windowDays !== null && windowDays <= 2
+                        ? 'bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/60'
+                        : 'hover:bg-muted/50'
                 )}
                 onClick={() => onOpenDetail(lic.id)}
               >
@@ -120,7 +122,7 @@ export function LicitacionTable({
                 </td>
                 <td className="p-2 max-w-[300px]">
                   <div className="font-medium truncate">
-                    {lic.title || lic.subject || 'Sin titulo'}
+                    {lic.isEmergency && '🚨 '}{lic.title || lic.subject || 'Sin titulo'}
                   </div>
                   {lic.summary && lic.summary !== 'No disponible' && (
                     <div className="text-xs text-muted-foreground truncate mt-0.5">

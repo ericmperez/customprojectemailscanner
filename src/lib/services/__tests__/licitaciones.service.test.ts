@@ -59,6 +59,7 @@ describe('LicitacionesService', () => {
     approvalStatus: 'pending',
     approvalNotes: '',
     interested: false,
+    isEmergency: false,
     decisionStatus: 'researching',
     ...overrides,
   });
@@ -149,12 +150,13 @@ describe('LicitacionesService', () => {
   describe('updateFields', () => {
     it('delegates to sheetsService.updateFields', async () => {
       const updated = makeLicitacion({ interested: true });
-      mockSheetsService.updateFields.mockResolvedValue(updated);
+      mockSheetsService.updateFields.mockResolvedValue({ updated, oldValues: { interested: 'false' } });
 
       const result = await service.updateFields('7', { interested: true });
 
       expect(mockSheetsService.updateFields).toHaveBeenCalledWith(7, { interested: true });
-      expect(result?.interested).toBe(true);
+      expect(result.updated?.interested).toBe(true);
+      expect(result.oldValues).toEqual({ interested: 'false' });
     });
   });
 

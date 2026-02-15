@@ -34,7 +34,9 @@ export function LicitacionListItem({
     <div
       className={cn(
         'flex items-center gap-2 sm:gap-3 rounded-md border bg-card px-2 py-2.5 sm:px-3 sm:py-2 hover:bg-muted/50 transition-colors active:bg-muted/70',
-        (lic.approvalStatus || 'pending') === 'approved' && 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60',
+        lic.isEmergency
+          ? 'border-2 border-red-600 bg-red-50'
+          : (lic.approvalStatus || 'pending') === 'approved' && 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60',
         isSelected && 'ring-2 ring-primary'
       )}
     >
@@ -65,7 +67,7 @@ export function LicitacionListItem({
         onClick={() => onOpenDetail(lic.id)}
       >
         <div className="flex items-center gap-2">
-          <span>{isVisit ? '🏗️' : '🛒'}</span>
+          <span>{lic.isEmergency && '🚨'}{isVisit ? '🏗️' : '🛒'}</span>
           <span className="font-medium text-sm truncate">
             {lic.title || lic.subject || 'Sin titulo'}
           </span>
@@ -74,6 +76,11 @@ export function LicitacionListItem({
           <p className="text-xs text-muted-foreground truncate mt-0.5">{lic.summary}</p>
         )}
         <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap items-center">
+          {lic.isEmergency && (
+            <span className="px-1.5 py-0.5 rounded-full bg-red-600 text-white font-bold text-xs">
+              EMERGENCIA
+            </span>
+          )}
           <span>
             📅 {isVisit && siteVisitDateDisplay !== 'No disponible' ? siteVisitDateDisplay : emailDate}
           </span>

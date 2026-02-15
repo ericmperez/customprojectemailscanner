@@ -173,6 +173,8 @@ export function parseConfidence(extractionMethod: string | null | undefined): nu
 export function computeWorthItScore(lic: Licitacion): number {
   let score = 0;
 
+  if (lic.isEmergency) score += 4;
+
   // Priority points
   const priority = (lic.priority || '').toLowerCase();
   if (priority === 'high' || priority === 'alta') score += 3;

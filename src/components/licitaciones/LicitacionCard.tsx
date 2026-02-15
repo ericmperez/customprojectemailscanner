@@ -120,9 +120,13 @@ export function LicitacionCard({
     <div
       className={cn(
         'rounded-xl border bg-card shadow-sm transition-all hover:shadow-md cursor-pointer',
-        status === 'approved' && 'border-l-4 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/40',
-        status === 'rejected' && 'border-l-4 border-l-red-500 opacity-75',
-        status === 'pending' && 'border-l-4 border-l-amber-500',
+        lic.isEmergency
+          ? 'border-2 border-red-600 bg-red-50 ring-2 ring-red-400/50 shadow-lg shadow-red-200'
+          : cn(
+              status === 'approved' && 'border-l-4 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-950/40',
+              status === 'rejected' && 'border-l-4 border-l-red-500 opacity-75',
+              status === 'pending' && 'border-l-4 border-l-amber-500',
+            ),
         isSelected && 'ring-2 ring-primary'
       )}
       onClick={() => onOpenDetail(lic.id)}
@@ -144,6 +148,11 @@ export function LicitacionCard({
 
         {/* Badges */}
         <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+          {lic.isEmergency && (
+            <Badge className="bg-red-600 text-white border-red-700 animate-pulse text-xs font-bold">
+              🚨 EMERGENCIA
+            </Badge>
+          )}
           <Badge variant="outline" className={cn(
             'text-xs font-bold',
             worthItScore >= 7 ? 'border-emerald-500 text-emerald-700 dark:text-emerald-300' :

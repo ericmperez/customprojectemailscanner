@@ -28,6 +28,7 @@ export interface Licitacion {
   approvalStatus: 'pending' | 'approved' | 'rejected';
   approvalNotes: string;
   interested: boolean;
+  isEmergency: boolean;
   decisionStatus: string;
 }
 

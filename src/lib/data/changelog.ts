@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.11.0',
+    date: '2026-02-13',
+    headline: 'Deteccion de emergencias',
+    features: [
+      {
+        type: 'feature',
+        title: 'Licitaciones de emergencia',
+        description:
+          'Los emails con "emergencia" en el asunto ahora se marcan automaticamente con borde rojo, badge pulsante y puntuacion elevada para maxima visibilidad.',
+      },
+    ],
+  },
+  {
     version: '1.10.0',
     date: '2026-02-12',
     headline: 'Busqueda por archivos BID y fetch manual sin limite',

@@ -43,6 +43,7 @@ const HEADERS = [
   'Titulo',
   'Valor Estimado',
   'Requisitos de Visita',
+  'Emergencia',
 ];
 
 const HEADER_KEY_MAP: Record<string, string> = {
@@ -72,6 +73,7 @@ const HEADER_KEY_MAP: Record<string, string> = {
   'Titulo': 'title',
   'Valor Estimado': 'estimatedValue',
   'Requisitos de Visita': 'visitRequirements',
+  'Emergencia': 'isEmergency',
 };
 
 const DEFAULT_STATUS = 'pending';
@@ -223,6 +225,9 @@ class SheetsService {
     if (data.visitRequirements !== undefined || !existingRow) {
       updates['Requisitos de Visita'] = String(data.visitRequirements || 'No disponible');
     }
+    if (data.isEmergency !== undefined || !existingRow) {
+      updates['Emergencia'] = data.isEmergency ? 'TRUE' : 'FALSE';
+    }
 
     Object.entries(updates).forEach(([key, value]) => {
       const colIndex = HEADERS.indexOf(key);
@@ -300,6 +305,7 @@ class SheetsService {
       lic.approvalStatus = (lic.approvalStatus as string) || DEFAULT_STATUS;
       lic.decisionStatus = (lic.decisionStatus as string) || DEFAULT_DECISION_STATUS;
       lic.interested = this.parseBoolean(lic.interested);
+      lic.isEmergency = this.parseBoolean(lic.isEmergency);
 
       const biddingDate = this.parseDateValue(lic.biddingCloseDate as string);
       if (biddingDate) lic.biddingCloseDate = this.formatDateLocal(biddingDate);
@@ -412,6 +418,7 @@ class SheetsService {
     lic.approvalStatus = (lic.approvalStatus as string) || DEFAULT_STATUS;
     lic.decisionStatus = (lic.decisionStatus as string) || DEFAULT_DECISION_STATUS;
     lic.interested = this.parseBoolean(lic.interested);
+    lic.isEmergency = this.parseBoolean(lic.isEmergency);
 
     const biddingDate = this.parseDateValue(lic.biddingCloseDate as string);
     if (biddingDate) lic.biddingCloseDate = this.formatDateLocal(biddingDate);

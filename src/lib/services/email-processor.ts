@@ -174,6 +174,7 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
         emailId: messageId,
         approvalStatus: 'pending',
         interested: false,
+        isEmergency: /emergencia/i.test(email.subject),
         decisionStatus: 'researching',
       };
 

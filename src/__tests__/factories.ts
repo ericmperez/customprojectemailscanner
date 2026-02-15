@@ -34,6 +34,7 @@ export function buildLicitacion(overrides: Partial<Licitacion> = {}): Licitacion
     approvalStatus: 'pending',
     approvalNotes: '',
     interested: false,
+    isEmergency: false,
     decisionStatus: 'researching',
     ...overrides,
   };
