@@ -30,12 +30,18 @@ function OnboardingContent() {
   const [step, setStep] = useState<Step>(initialStep);
   const [gmailStatus, setGmailStatus] = useState<'idle' | 'connecting' | 'connected' | 'skipped'>('idle');
 
-  // Advance to gmail step when org is created
+  // Single-org enforcement: if user already has an org and lands on
+  // the org-creation step, redirect to dashboard.
   useEffect(() => {
+    if (isLoaded && organization && step === 'org' && !queryStep) {
+      router.replace('/');
+      return;
+    }
+    // Advance to gmail step when org is just created (via queryStep or org detection)
     if (organization && step === 'org') {
       setStep('gmail');
     }
-  }, [organization, step]);
+  }, [isLoaded, organization, step, queryStep, router]);
 
   const currentStepIndex = STEPS.findIndex((s) => s.id === step);
 
