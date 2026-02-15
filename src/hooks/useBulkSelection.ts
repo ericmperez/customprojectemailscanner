@@ -3,22 +3,22 @@
 import { useState, useCallback } from 'react';
 
 export function useBulkSelection() {
-  const [selectedCards, setSelectedCards] = useState<Set<number>>(new Set());
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
 
-  const toggleSelection = useCallback((rowNumber: number) => {
+  const toggleSelection = useCallback((id: string) => {
     setSelectedCards((prev) => {
       const next = new Set(prev);
-      if (next.has(rowNumber)) {
-        next.delete(rowNumber);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        next.add(rowNumber);
+        next.add(id);
       }
       return next;
     });
   }, []);
 
-  const selectAll = useCallback((rowNumbers: number[]) => {
-    setSelectedCards(new Set(rowNumbers));
+  const selectAll = useCallback((ids: string[]) => {
+    setSelectedCards(new Set(ids));
   }, []);
 
   const clearSelection = useCallback(() => {
@@ -26,7 +26,7 @@ export function useBulkSelection() {
   }, []);
 
   const isSelected = useCallback(
-    (rowNumber: number) => selectedCards.has(rowNumber),
+    (id: string) => selectedCards.has(id),
     [selectedCards]
   );
 

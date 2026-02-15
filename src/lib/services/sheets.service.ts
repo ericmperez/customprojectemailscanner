@@ -367,7 +367,7 @@ class SheetsService {
         } catch { /* ignore */ }
       }
 
-      if (shouldReject) {
+      if (shouldReject && lic.rowNumber != null) {
         const notes = lic.approvalNotes
           ? `${lic.approvalNotes}\n${rejectReason}`
           : rejectReason;

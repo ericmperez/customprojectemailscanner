@@ -22,11 +22,12 @@ export interface ProcessedEmailRecord {
 /**
  * Check if an email has already been processed (deduplication).
  */
-export async function isEmailProcessed(emailId: string): Promise<boolean> {
+export async function isEmailProcessed(orgId: string, emailId: string): Promise<boolean> {
   const supabase = getClient();
   const { data, error } = await supabase
     .from('processed_emails')
     .select('id')
+    .eq('org_id', orgId)
     .eq('email_id', emailId)
     .limit(1);
 
@@ -42,10 +43,12 @@ export async function isEmailProcessed(emailId: string): Promise<boolean> {
  * Mark an email as processed in Supabase.
  */
 export async function markEmailAsProcessed(
+  orgId: string,
   record: ProcessedEmailRecord
 ): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase.from('processed_emails').insert({
+    org_id: orgId,
     email_id: record.email_id,
     subject: record.subject,
     location: record.location,
@@ -61,8 +64,10 @@ export async function markEmailAsProcessed(
 
 /**
  * Upload a PDF to Supabase Storage and return the public URL.
+ * Path structure: {orgId}/{emailId}/{filename} for per-org isolation.
  */
 export async function uploadPdf(
+  orgId: string,
   pdfBase64: string,
   filename: string,
   emailId: string
@@ -72,8 +77,8 @@ export async function uploadPdf(
   // Convert base64 to Buffer
   const buffer = Buffer.from(pdfBase64, 'base64');
 
-  // Create a unique path: emailId/filename
-  const storagePath = `${emailId}/${filename}`;
+  // Create an org-isolated path
+  const storagePath = `${orgId}/${emailId}/${filename}`;
 
   const { error } = await supabase.storage
     .from(PDF_BUCKET)
@@ -100,7 +105,7 @@ export async function uploadPdf(
 /**
  * Fetch all processed email IDs for efficient O(1) pre-filtering.
  */
-export async function getAllProcessedEmailIds(): Promise<string[]> {
+export async function getAllProcessedEmailIds(orgId: string): Promise<string[]> {
   const supabase = getClient();
   const ids: string[] = [];
   let offset = 0;
@@ -111,6 +116,7 @@ export async function getAllProcessedEmailIds(): Promise<string[]> {
     const { data, error } = await supabase
       .from('processed_emails')
       .select('email_id')
+      .eq('org_id', orgId)
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -152,12 +158,13 @@ const DEFAULT_CONFIDENCE_SETTINGS: ConfidenceFieldSettings = {
  * Fetch confidence field settings from app_settings table.
  * Falls back to hardcoded defaults if not found or on error.
  */
-export async function getConfidenceSettings(): Promise<ConfidenceFieldSettings> {
+export async function getConfidenceSettings(orgId: string): Promise<ConfidenceFieldSettings> {
   try {
     const supabase = getClient();
     const { data, error } = await supabase
       .from('app_settings')
       .select('value')
+      .eq('org_id', orgId)
       .eq('key', 'confidence_fields')
       .single();
 
@@ -174,17 +181,18 @@ export async function getConfidenceSettings(): Promise<ConfidenceFieldSettings> 
 /**
  * Save the last email fetch timestamp to app_settings, including who triggered it.
  */
-export async function saveLastFetchTimestamp(triggeredBy: string): Promise<void> {
+export async function saveLastFetchTimestamp(orgId: string, triggeredBy: string): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase
     .from('app_settings')
     .upsert(
       {
+        org_id: orgId,
         key: 'last_email_fetch',
         value: { timestamp: new Date().toISOString(), triggeredBy },
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'key' }
+      { onConflict: 'org_id,key' }
     );
 
   if (error) {
@@ -200,12 +208,13 @@ export interface LastFetchInfo {
 /**
  * Get the last email fetch info from app_settings.
  */
-export async function getLastFetchInfo(): Promise<LastFetchInfo | null> {
+export async function getLastFetchInfo(orgId: string): Promise<LastFetchInfo | null> {
   try {
     const supabase = getClient();
     const { data, error } = await supabase
       .from('app_settings')
       .select('value')
+      .eq('org_id', orgId)
       .eq('key', 'last_email_fetch')
       .single();
 
@@ -223,8 +232,8 @@ export async function getLastFetchInfo(): Promise<LastFetchInfo | null> {
 /**
  * Get just the last email fetch timestamp string (convenience wrapper).
  */
-export async function getLastFetchTimestamp(): Promise<string | null> {
-  const info = await getLastFetchInfo();
+export async function getLastFetchTimestamp(orgId: string): Promise<string | null> {
+  const info = await getLastFetchInfo(orgId);
   return info?.timestamp ?? null;
 }
 
@@ -232,14 +241,15 @@ export async function getLastFetchTimestamp(): Promise<string | null> {
  * Save confidence field settings to app_settings table (upsert).
  */
 export async function saveConfidenceSettings(
+  orgId: string,
   settings: ConfidenceFieldSettings
 ): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase
     .from('app_settings')
     .upsert(
-      { key: 'confidence_fields', value: settings, updated_at: new Date().toISOString() },
-      { onConflict: 'key' }
+      { org_id: orgId, key: 'confidence_fields', value: settings, updated_at: new Date().toISOString() },
+      { onConflict: 'org_id,key' }
     );
 
   if (error) {
@@ -258,12 +268,13 @@ export interface AISettings {
 /**
  * Fetch AI custom instructions and correction examples from app_settings.
  */
-export async function getAISettings(): Promise<AISettings> {
+export async function getAISettings(orgId: string): Promise<AISettings> {
   try {
     const supabase = getClient();
     const { data, error } = await supabase
       .from('app_settings')
       .select('key, value')
+      .eq('org_id', orgId)
       .in('key', ['ai_custom_instructions', 'ai_extraction_examples']);
 
     if (error || !data) {
@@ -290,13 +301,13 @@ export async function getAISettings(): Promise<AISettings> {
 /**
  * Save AI custom instructions text to app_settings (upsert).
  */
-export async function saveAIInstructions(text: string): Promise<void> {
+export async function saveAIInstructions(orgId: string, text: string): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase
     .from('app_settings')
     .upsert(
-      { key: 'ai_custom_instructions', value: { text }, updated_at: new Date().toISOString() },
-      { onConflict: 'key' }
+      { org_id: orgId, key: 'ai_custom_instructions', value: { text }, updated_at: new Date().toISOString() },
+      { onConflict: 'org_id,key' }
     );
 
   if (error) {
@@ -308,13 +319,13 @@ export async function saveAIInstructions(text: string): Promise<void> {
 /**
  * Save AI correction examples to app_settings (upsert).
  */
-export async function saveAIExamples(examples: CorrectionExample[]): Promise<void> {
+export async function saveAIExamples(orgId: string, examples: CorrectionExample[]): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase
     .from('app_settings')
     .upsert(
-      { key: 'ai_extraction_examples', value: { items: examples }, updated_at: new Date().toISOString() },
-      { onConflict: 'key' }
+      { org_id: orgId, key: 'ai_extraction_examples', value: { items: examples }, updated_at: new Date().toISOString() },
+      { onConflict: 'org_id,key' }
     );
 
   if (error) {
@@ -338,6 +349,7 @@ export interface CorrectionRow {
  * Save a correction example with its embedding to the correction_examples table.
  */
 export async function saveCorrectionWithEmbedding(
+  orgId: string,
   field: string,
   original: string,
   corrected: string,
@@ -346,6 +358,7 @@ export async function saveCorrectionWithEmbedding(
 ): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase.from('correction_examples').insert({
+    org_id: orgId,
     field,
     original,
     corrected,
@@ -363,6 +376,7 @@ export async function saveCorrectionWithEmbedding(
  * Find corrections semantically similar to the given embedding via pgvector RPC.
  */
 export async function findRelevantCorrections(
+  orgId: string,
   embedding: number[],
   limit = 5,
   threshold = 0.5
@@ -372,6 +386,7 @@ export async function findRelevantCorrections(
     query_embedding: JSON.stringify(embedding),
     match_threshold: threshold,
     match_count: limit,
+    p_org_id: orgId,
   });
 
   if (error) {
@@ -385,11 +400,12 @@ export async function findRelevantCorrections(
 /**
  * Get all correction examples from the correction_examples table (for UI list).
  */
-export async function getAllCorrectionExamples(): Promise<CorrectionRow[]> {
+export async function getAllCorrectionExamples(orgId: string): Promise<CorrectionRow[]> {
   const supabase = getClient();
   const { data, error } = await supabase
     .from('correction_examples')
     .select('id, field, original, corrected, context, saved_at')
+    .eq('org_id', orgId)
     .order('saved_at', { ascending: false });
 
   if (error) {
@@ -401,11 +417,15 @@ export async function getAllCorrectionExamples(): Promise<CorrectionRow[]> {
 }
 
 /**
- * Delete a single correction example by UUID.
+ * Delete a single correction example by UUID (scoped to org).
  */
-export async function deleteCorrectionExample(id: string): Promise<void> {
+export async function deleteCorrectionExample(orgId: string, id: string): Promise<void> {
   const supabase = getClient();
-  const { error } = await supabase.from('correction_examples').delete().eq('id', id);
+  const { error } = await supabase
+    .from('correction_examples')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('id', id);
 
   if (error) {
     console.error('Error deleting correction example:', error);
@@ -414,16 +434,82 @@ export async function deleteCorrectionExample(id: string): Promise<void> {
 }
 
 /**
- * Clear all correction examples (truncate).
+ * Clear all correction examples for an org.
  */
-export async function clearCorrectionExamples(): Promise<void> {
+export async function clearCorrectionExamples(orgId: string): Promise<void> {
   const supabase = getClient();
-  const { error } = await supabase.from('correction_examples').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  const { error } = await supabase
+    .from('correction_examples')
+    .delete()
+    .eq('org_id', orgId)
+    .neq('id', '00000000-0000-0000-0000-000000000000');
 
   if (error) {
     console.error('Error clearing correction examples:', error);
     throw error;
   }
+}
+
+// ── Activity Log ─────────────────────────────────────────────────────
+
+export interface ActivityEntry {
+  id: string;
+  action: string;
+  licitacion_id: string | null;
+  licitacion_title: string | null;
+  user_name: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+/**
+ * Log a user activity. Fire-and-forget — errors are caught.
+ */
+export async function logActivity(
+  orgId: string,
+  action: string,
+  licitacionId: string | null,
+  licitacionTitle: string | null,
+  userName: string,
+  details?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabase = getClient();
+    await supabase.from('activity_log').insert({
+      org_id: orgId,
+      action,
+      licitacion_id: licitacionId,
+      licitacion_title: licitacionTitle,
+      user_name: userName,
+      details: details || null,
+    });
+  } catch (err) {
+    console.warn('[supabase] Failed to log activity (non-blocking):', err);
+  }
+}
+
+/**
+ * Fetch paginated activity log entries, newest first.
+ */
+export async function getActivityLog(
+  orgId: string,
+  limit = 50,
+  offset = 0
+): Promise<ActivityEntry[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('activity_log')
+    .select('id, action, licitacion_id, licitacion_title, user_name, details, created_at')
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('Error fetching activity log:', error);
+    return [];
+  }
+
+  return (data ?? []) as ActivityEntry[];
 }
 
 // ── Extraction Quality Log ───────────────────────────────────────────
@@ -441,10 +527,11 @@ export interface ExtractionLogEntry {
 /**
  * Log an extraction result for quality tracking. Fire-and-forget — errors are caught.
  */
-export async function logExtraction(entry: ExtractionLogEntry): Promise<void> {
+export async function logExtraction(orgId: string, entry: ExtractionLogEntry): Promise<void> {
   try {
     const supabase = getClient();
     await supabase.from('extraction_log').insert({
+      org_id: orgId,
       email_id: entry.email_id,
       pdf_filename: entry.pdf_filename || null,
       confidence_score: entry.confidence_score,
@@ -456,4 +543,106 @@ export async function logExtraction(entry: ExtractionLogEntry): Promise<void> {
   } catch (err) {
     console.warn('[supabase] Failed to log extraction (non-blocking):', err);
   }
+}
+
+// ── Organization Credentials ─────────────────────────────────────────
+
+export interface OrgCredentials {
+  id: string;
+  org_id: string;
+  provider: string;
+  email_address: string | null;
+  access_token_enc: string | null;
+  refresh_token_enc: string | null;
+  token_expiry: string | null;
+  scopes: string[] | null;
+  is_active: boolean;
+}
+
+/**
+ * Get Gmail credentials for an org.
+ */
+export async function getOrgGmailCredentials(orgId: string): Promise<OrgCredentials | null> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('organization_credentials')
+    .select('*')
+    .eq('org_id', orgId)
+    .eq('provider', 'gmail')
+    .eq('is_active', true)
+    .single();
+
+  if (error || !data) return null;
+  return data as OrgCredentials;
+}
+
+/**
+ * Save or update Gmail credentials for an org.
+ */
+export async function saveOrgGmailCredentials(
+  orgId: string,
+  emailAddress: string,
+  accessTokenEnc: string,
+  refreshTokenEnc: string,
+  tokenExpiry: Date,
+  scopes: string[]
+): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('organization_credentials')
+    .upsert(
+      {
+        org_id: orgId,
+        provider: 'gmail',
+        email_address: emailAddress,
+        access_token_enc: accessTokenEnc,
+        refresh_token_enc: refreshTokenEnc,
+        token_expiry: tokenExpiry.toISOString(),
+        scopes,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'org_id,provider' }
+    );
+
+  if (error) {
+    console.error('Error saving Gmail credentials:', error);
+    throw error;
+  }
+}
+
+/**
+ * Deactivate Gmail credentials for an org.
+ */
+export async function deactivateOrgGmailCredentials(orgId: string): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('organization_credentials')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('org_id', orgId)
+    .eq('provider', 'gmail');
+
+  if (error) {
+    console.error('Error deactivating Gmail credentials:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all organizations with active Gmail credentials (for cron processing).
+ */
+export async function getOrgsWithActiveGmail(): Promise<{ org_id: string; email_address: string; access_token_enc: string; refresh_token_enc: string; token_expiry: string }[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('organization_credentials')
+    .select('org_id, email_address, access_token_enc, refresh_token_enc, token_expiry')
+    .eq('provider', 'gmail')
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('Error fetching orgs with active Gmail:', error);
+    return [];
+  }
+
+  return (data ?? []) as { org_id: string; email_address: string; access_token_enc: string; refresh_token_enc: string; token_expiry: string }[];
 }

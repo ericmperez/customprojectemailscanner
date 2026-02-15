@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getAISettings, saveAIExamples, saveCorrectionWithEmbedding } from '@/lib/services/supabase.service';
 import { generateEmbedding } from '@/lib/services/openai.service';
+import { getOrgDbId } from '@/lib/auth';
 import type { CorrectionExample } from '@/lib/types';
 
 const MAX_EXAMPLES = 20;
 
 export async function POST(request: Request) {
   try {
+    const orgId = await getOrgDbId();
     const body = await request.json();
 
     if (!body.field || typeof body.field !== 'string') {
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
       const embeddingText = `${body.field}: ${body.original}`;
       const embedding = await generateEmbedding(embeddingText);
       await saveCorrectionWithEmbedding(
+        orgId,
         body.field,
         body.original,
         body.corrected,
@@ -52,12 +55,12 @@ export async function POST(request: Request) {
     }
 
     // Also save to app_settings JSON blob (backwards compatibility)
-    const { examples } = await getAISettings();
+    const { examples } = await getAISettings(orgId);
     const updated = [...examples, newExample];
     if (updated.length > MAX_EXAMPLES) {
       updated.splice(0, updated.length - MAX_EXAMPLES);
     }
-    await saveAIExamples(updated);
+    await saveAIExamples(orgId, updated);
 
     return NextResponse.json({ success: true, data: { examples: updated } });
   } catch (error) {

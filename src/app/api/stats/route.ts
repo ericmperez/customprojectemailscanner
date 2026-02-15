@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
 import LicitacionesService from '@/lib/services/licitaciones.service';
 import { getLastFetchInfo } from '@/lib/services/supabase.service';
+import { getOrgDbId } from '@/lib/auth';
 
 const licitacionesService = new LicitacionesService();
 
 export async function GET() {
   try {
+    const orgId = await getOrgDbId();
     const [stats, lastFetchInfo] = await Promise.all([
-      licitacionesService.getStats(),
-      getLastFetchInfo(),
+      licitacionesService.getStats(orgId),
+      getLastFetchInfo(orgId),
     ]);
     return NextResponse.json({ success: true, data: stats, lastFetch: lastFetchInfo });
   } catch (error) {

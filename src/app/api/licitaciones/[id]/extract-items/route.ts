@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import LicitacionesService from '@/lib/services/licitaciones.service';
+import { getOrgDbId } from '@/lib/auth';
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -17,16 +18,16 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const numId = parseInt(id, 10);
-  if (isNaN(numId) || numId < 1) {
+  if (!id) {
     return NextResponse.json(
-      { success: false, error: 'ID must be a positive integer' },
+      { success: false, error: 'ID is required' },
       { status: 400 }
     );
   }
 
   try {
-    const lic = await licitacionesService.getLicitacionById(numId);
+    const orgId = await getOrgDbId();
+    const lic = await licitacionesService.getLicitacionById(orgId, id);
     if (!lic) {
       return NextResponse.json(
         { success: false, error: 'Licitacion not found' },

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import LicitacionesService from '@/lib/services/licitaciones.service';
+import { getOrgDbId } from '@/lib/auth';
 import type { Filters } from '@/lib/types';
 
 const licitacionesService = new LicitacionesService();
 
 export async function GET(request: NextRequest) {
   try {
+    const orgId = await getOrgDbId();
     const { searchParams } = request.nextUrl;
 
     const visitLocationParam = searchParams.getAll('visitLocation');
@@ -30,11 +32,11 @@ export async function GET(request: NextRequest) {
     if (!filters.town?.length) delete filters.town;
 
     // Run auto-reject for expired licitaciones (fire in background, don't block response)
-    licitacionesService.autoRejectExpired().catch((err) =>
+    licitacionesService.autoRejectExpired(orgId).catch((err) =>
       console.error('Auto-reject failed:', err)
     );
 
-    const licitaciones = await licitacionesService.getAllLicitaciones(filters);
+    const licitaciones = await licitacionesService.getAllLicitaciones(orgId, filters);
     return NextResponse.json({ success: true, data: licitaciones });
   } catch (error) {
     console.error('Error fetching licitaciones:', error);

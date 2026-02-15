@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { getOrgDbId, getUserName } from '@/lib/auth';
 import LicitacionesService from '@/lib/services/licitaciones.service';
 import { formatNoteWithAttribution } from '@/lib/utils/notes';
+import { logActivity } from '@/lib/services/supabase.service';
 
 const licitacionesService = new LicitacionesService();
 
@@ -10,27 +11,28 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const numId = parseInt(id, 10);
-  if (isNaN(numId) || numId < 1) {
+  if (!id || id.length < 1) {
     return NextResponse.json(
-      { success: false, error: 'ID must be a positive integer' },
+      { success: false, error: 'Invalid ID' },
       { status: 400 }
     );
   }
 
   try {
-    const user = await currentUser();
-    const userName =
-      [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Usuario';
+    const orgId = await getOrgDbId();
+    const userName = await getUserName();
 
     const body = await request.json().catch(() => ({}));
     const rawNotes = typeof body.notes === 'string' ? body.notes.slice(0, 5000) : '';
     const notes = formatNoteWithAttribution(rawNotes || 'Devuelta a pendiente', userName);
 
-    const licitacion = await licitacionesService.updateApprovalStatus(numId, 'pending', notes);
+    const licitacion = await licitacionesService.updateApprovalStatus(orgId, id, 'pending', notes);
+
+    logActivity(orgId, 'pending', id, licitacion?.title ?? null, userName);
+
     return NextResponse.json({ success: true, data: licitacion });
   } catch (error) {
-    console.error(`Error resetting licitación ${id}:`, error);
+    console.error(`Error resetting licitacion ${id}:`, error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

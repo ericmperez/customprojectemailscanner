@@ -1,5 +1,5 @@
 import GmailService from '@/lib/services/gmail.service';
-import SheetsService from '@/lib/services/sheets.service';
+import LicitacionesService from '@/lib/services/licitaciones.service';
 import { extractLicitacionData } from '@/lib/services/openai.service';
 import {
   isEmailProcessed,
@@ -26,9 +26,17 @@ export interface ProcessingStats {
 
 /**
  * Core email processing logic shared between cron and manual triggers.
+ * @param orgId - The organization ID to process for
+ * @param startTime - The start timestamp for time budgeting
  * @param maxEmails - 0 means no limit (process all found emails)
+ * @param gmailService - Optional pre-created GmailService; if not provided, creates one from env vars
  */
-export async function processNewEmails(startTime: number, maxEmails: number = MAX_EMAILS_PER_RUN): Promise<ProcessingStats> {
+export async function processNewEmails(
+  orgId: string,
+  startTime: number,
+  maxEmails: number = MAX_EMAILS_PER_RUN,
+  gmailService?: GmailService
+): Promise<ProcessingStats> {
   const stats: ProcessingStats = {
     emailsFound: 0,
     alreadyProcessed: 0,
@@ -44,7 +52,7 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
   const afterDate = new Date();
   afterDate.setDate(afterDate.getDate() - LOOKBACK_DAYS);
 
-  const gmail = new GmailService();
+  const gmail = gmailService || new GmailService();
   const messageIds = await gmail.searchLicitacionEmails(afterDate);
   stats.emailsFound = messageIds.length;
   console.log(`[fetch] Found ${messageIds.length} licitacion emails`);
@@ -52,7 +60,7 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
   if (messageIds.length === 0) return stats;
 
   // 2. Pre-fetch all processed email IDs for O(1) dedup
-  const processedIds = new Set(await getAllProcessedEmailIds());
+  const processedIds = new Set(await getAllProcessedEmailIds(orgId));
 
   // 3. Filter out already-processed emails
   const newMessageIds = messageIds.filter((id) => !processedIds.has(id));
@@ -63,7 +71,7 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
 
   // 4. Process emails (limited for cron, unlimited for manual)
   const batch = maxEmails > 0 ? newMessageIds.slice(0, maxEmails) : newMessageIds;
-  const sheets = new SheetsService();
+  const licitacionesService = new LicitacionesService();
 
   for (const messageId of batch) {
     // Time-budget check
@@ -75,7 +83,7 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
 
     try {
       // Double-check dedup (handles race conditions)
-      const alreadyDone = await isEmailProcessed(messageId);
+      const alreadyDone = await isEmailProcessed(orgId, messageId);
       if (alreadyDone) {
         stats.alreadyProcessed++;
         continue;
@@ -105,8 +113,8 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
       const pdf = pdfAttachments[0];
       console.log(`[fetch] Extracting data from: ${pdf.filename}`);
 
-      // Send PDF to GPT-4o
-      const extracted = await extractLicitacionData(pdf.base64Data, pdf.filename, messageId);
+      // Send PDF to GPT-4o (pass orgId for per-org AI settings)
+      const extracted = await extractLicitacionData(pdf.base64Data, pdf.filename, messageId, orgId);
       console.log(
         `[fetch] Extracted: ${extracted.title} | Location: ${extracted.location} | Confidence: ${extracted.confidence}%`
       );
@@ -117,7 +125,7 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
         console.log(
           `[fetch] Skipping closed bidding: ${extracted.biddingCloseDate} - ${email.subject}`
         );
-        await markEmailAsProcessed({
+        await markEmailAsProcessed(orgId, {
           email_id: messageId,
           subject: email.subject,
           location: extracted.location,
@@ -127,12 +135,9 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
         continue;
       }
 
-      // Upload PDF to Supabase Storage
-      const { publicUrl } = await uploadPdf(pdf.base64Data, pdf.filename, messageId);
+      // Upload PDF to Supabase Storage (org-isolated path)
+      const { publicUrl } = await uploadPdf(orgId, pdf.base64Data, pdf.filename, messageId);
       console.log(`[fetch] PDF uploaded: ${publicUrl}`);
-
-      // Build the HYPERLINK formula for Google Sheets
-      const pdfLinkFormula = `=HYPERLINK("${publicUrl}", "Ver PDF")`;
 
       // Use email subject as title fallback when GPT-4o returns a generic/unhelpful title
       const genericTitles = [
@@ -148,8 +153,8 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
               .replace(/^(INVITACION-|INVITACIÓN-)/i, '')
               .trim();
 
-      // Upsert to Google Sheets
-      const sheetData: Record<string, unknown> = {
+      // Upsert to Supabase licitaciones table
+      const licitacionData: Record<string, unknown> = {
         processedAt: new Date().toISOString(),
         emailDate: email.date,
         subject: email.subject,
@@ -160,7 +165,7 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
         category: extracted.category,
         priority: extracted.priority,
         pdfFilename: pdf.filename,
-        pdfLink: pdfLinkFormula,
+        pdfUrl: publicUrl,
         siteVisitDate: extracted.siteVisitDate,
         siteVisitTime: extracted.siteVisitTime,
         visitLocation: extracted.visitLocation,
@@ -178,11 +183,11 @@ export async function processNewEmails(startTime: number, maxEmails: number = MA
         decisionStatus: 'researching',
       };
 
-      const result = await sheets.upsertLicitacion(sheetData);
-      console.log(`[fetch] Written to Sheets row: ${result.rowNumber}`);
+      const result = await licitacionesService.saveLicitacion(orgId, licitacionData);
+      console.log(`[fetch] Saved to Supabase: ${result.id}`);
 
       // Mark as processed in Supabase
-      await markEmailAsProcessed({
+      await markEmailAsProcessed(orgId, {
         email_id: messageId,
         subject: email.subject,
         location: extracted.location,

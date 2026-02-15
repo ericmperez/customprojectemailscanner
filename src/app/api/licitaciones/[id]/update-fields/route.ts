@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getOrgDbId, getUserName } from '@/lib/auth';
 import LicitacionesService from '@/lib/services/licitaciones.service';
+import { logActivity } from '@/lib/services/supabase.service';
 
 const licitacionesService = new LicitacionesService();
 
@@ -21,10 +23,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const numId = parseInt(id, 10);
-  if (isNaN(numId) || numId < 1) {
+  if (!id || id.length < 1) {
     return NextResponse.json(
-      { success: false, error: 'ID must be a positive integer' },
+      { success: false, error: 'Invalid ID' },
       { status: 400 }
     );
   }
@@ -61,10 +62,19 @@ export async function PATCH(
       );
     }
 
-    const { updated: licitacion, oldValues } = await licitacionesService.updateFields(numId, fields);
+    const orgId = await getOrgDbId();
+    const { updated: licitacion, oldValues } = await licitacionesService.updateFields(orgId, id, fields);
+
+    const userName = await getUserName();
+    logActivity(orgId, 'edit_field', id, licitacion?.title ?? null, userName, {
+      fields: Object.keys(fields),
+      oldValues,
+      newValues: fields,
+    });
+
     return NextResponse.json({ success: true, data: licitacion, oldValues });
   } catch (error) {
-    console.error(`Error updating fields for licitación ${id}:`, error);
+    console.error(`Error updating fields for licitacion ${id}:`, error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

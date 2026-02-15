@@ -118,7 +118,7 @@ Respond ONLY with valid JSON matching the field names above. No markdown, no exp
  * Build the system prompt, injecting env-var tips, user custom instructions,
  * and correction examples (semantic retrieval if embedding provided, else recent).
  */
-async function getSystemPrompt(documentEmbedding?: number[]): Promise<string> {
+async function getSystemPrompt(documentEmbedding?: number[], orgId?: string): Promise<string> {
   let prompt = SYSTEM_PROMPT;
 
   // Env var tips (backwards-compatible)
@@ -129,7 +129,7 @@ async function getSystemPrompt(documentEmbedding?: number[]): Promise<string> {
 
   // Fetch user-defined AI settings from Supabase
   try {
-    const { instructions, examples } = await getAISettings();
+    const { instructions, examples } = await getAISettings(orgId || '');
 
     if (instructions.trim()) {
       prompt += '\n\n**Additional instructions from the user:**\n' + instructions.trim();
@@ -139,7 +139,7 @@ async function getSystemPrompt(documentEmbedding?: number[]): Promise<string> {
     let correctionLines: string[] = [];
     if (documentEmbedding) {
       try {
-        const relevant = await findRelevantCorrections(documentEmbedding, 5, 0.5);
+        const relevant = await findRelevantCorrections(orgId || '', documentEmbedding, 5, 0.5);
         if (relevant.length > 0) {
           correctionLines = relevant.map(
             (ex) => `- "${ex.field}": "${ex.original}" → should be "${ex.corrected}" (similarity: ${ex.similarity.toFixed(2)})`
@@ -203,7 +203,8 @@ async function extractPdfText(pdfBase64: string): Promise<string | null> {
 export async function extractLicitacionData(
   pdfBase64: string,
   filename: string,
-  emailId?: string
+  emailId?: string,
+  orgId?: string
 ): Promise<ExtractedLicitacionData> {
   const startTime = Date.now();
 
@@ -254,7 +255,7 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
   }
 
   // Step 4: Call GPT-4o with semantically-enhanced prompt
-  const systemPrompt = await getSystemPrompt(documentEmbedding);
+  const systemPrompt = await getSystemPrompt(documentEmbedding, orgId);
   const response = await withRetry(
     () =>
       getOpenAI().chat.completions.create(
@@ -328,12 +329,12 @@ Read BOTH the visual PDF and the extracted text above thoroughly. Cross-referenc
   }
 
   // Step 6: Calculate confidence
-  const fieldSettings = await getConfidenceSettings();
+  const fieldSettings = await getConfidenceSettings(orgId || '');
   data.confidence = calculateConfidence(data, !!pdfText, fieldSettings);
 
   // Step 7: Log extraction (fire-and-forget)
   const processingTime = Date.now() - startTime;
-  logExtraction({
+  logExtraction(orgId || '', {
     email_id: emailId || 'unknown',
     pdf_filename: filename,
     confidence_score: data.confidence,

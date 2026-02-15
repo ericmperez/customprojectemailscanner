@@ -23,7 +23,7 @@ describe('PATCH /api/licitaciones/[id]/update-fields', () => {
 
   it('updates interested field', async () => {
     const mockLicitacion = { id: 5, interested: true };
-    mockUpdateFields.mockResolvedValue(mockLicitacion);
+    mockUpdateFields.mockResolvedValue({ updated: mockLicitacion, oldValues: { interested: 'false' } });
 
     const request = createMockNextRequest(
       'http://localhost:3000/api/licitaciones/5/update-fields',
@@ -41,7 +41,7 @@ describe('PATCH /api/licitaciones/[id]/update-fields', () => {
 
   it('updates decisionStatus field', async () => {
     const mockLicitacion = { id: 5, decisionStatus: 'bid-submitted' };
-    mockUpdateFields.mockResolvedValue(mockLicitacion);
+    mockUpdateFields.mockResolvedValue({ updated: mockLicitacion, oldValues: { decisionStatus: '' } });
 
     const request = createMockNextRequest(
       'http://localhost:3000/api/licitaciones/5/update-fields',

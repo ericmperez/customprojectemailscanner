@@ -31,7 +31,7 @@ describe('LicitacionesService', () => {
   let service: LicitacionesService;
 
   const makeLicitacion = (overrides: Partial<Licitacion> = {}): Licitacion => ({
-    id: 2,
+    id: '2',
     rowNumber: 2,
     processedAt: '2025-01-15T10:00:00Z',
     emailDate: '2025-01-14',

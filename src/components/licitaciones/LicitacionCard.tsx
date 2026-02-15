@@ -9,13 +9,13 @@ interface LicitacionCardProps {
   lic: Licitacion;
   isFavorite: boolean;
   isSelected: boolean;
-  onToggleFavorite: (id: number) => void;
-  onToggleSelection: (rowNumber: number) => void;
-  onOpenDetail: (id: number) => void;
-  onApprove: (id: number) => void;
-  onReject: (id: number) => void;
-  onResetPending: (id: number) => void;
-  onToggleInterested: (id: number, interested: boolean) => void;
+  onToggleFavorite: (id: string) => void;
+  onToggleSelection: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onResetPending: (id: string) => void;
+  onToggleInterested: (id: string, interested: boolean) => void;
 }
 
 function computeUrgency(lic: Licitacion) {
@@ -140,7 +140,7 @@ export function LicitacionCard({
         >
           <Checkbox
             checked={isSelected}
-            onCheckedChange={() => onToggleSelection(lic.rowNumber)}
+            onCheckedChange={() => onToggleSelection(lic.id)}
             aria-label="Seleccionar licitación"
             className="size-5"
           />
@@ -184,7 +184,7 @@ export function LicitacionCard({
         {/* Quick actions - 44px touch targets */}
         <div className="flex items-center shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={() => onToggleFavorite(lic.rowNumber)}
+            onClick={() => onToggleFavorite(lic.id)}
             className="w-11 h-11 flex items-center justify-center text-lg hover:scale-110 transition-transform"
             title="Favorito"
             aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}

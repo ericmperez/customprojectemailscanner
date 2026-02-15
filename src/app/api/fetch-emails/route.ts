@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { getOrgDbId, getUserName } from '@/lib/auth';
 import { processNewEmails } from '@/lib/services/email-processor';
-import { saveLastFetchTimestamp } from '@/lib/services/supabase.service';
+import { saveLastFetchTimestamp, logActivity } from '@/lib/services/supabase.service';
 
 export const maxDuration = 60;
 
@@ -9,22 +9,17 @@ export async function POST() {
   const startTime = Date.now();
 
   try {
-    const user = await currentUser();
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const orgId = await getOrgDbId();
+    const userName = await getUserName();
 
-    const userName =
-      [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-      user.emailAddresses[0]?.emailAddress ||
-      'Usuario';
+    const stats = await processNewEmails(orgId, startTime, 0);
 
-    const stats = await processNewEmails(startTime, 0);
+    await saveLastFetchTimestamp(orgId, userName);
 
-    await saveLastFetchTimestamp(userName);
+    logActivity(orgId, 'fetch_emails', null, null, userName, {
+      emailsFound: stats.emailsFound,
+      processed: stats.processed,
+    });
 
     return NextResponse.json({
       success: true,

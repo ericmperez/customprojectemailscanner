@@ -15,7 +15,7 @@ describe('useLicitaciones', () => {
   });
 
   it('loadLicitaciones fetches with query params and updates licitaciones', async () => {
-    const items = [buildLicitacion({ id: 1 }), buildLicitacion({ id: 2 })];
+    const items = [buildLicitacion({ id: '1' }), buildLicitacion({ id: '2' })];
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       json: () => Promise.resolve({ success: true, data: items }),
     } as Response);
@@ -37,8 +37,8 @@ describe('useLicitaciones', () => {
 
   it('loadLicitaciones applies sorting when sortBy is provided', async () => {
     const items = [
-      buildLicitacion({ id: 1, emailDate: '2025-01-01' }),
-      buildLicitacion({ id: 2, emailDate: '2025-06-01' }),
+      buildLicitacion({ id: '1', emailDate: '2025-01-01' }),
+      buildLicitacion({ id: '2', emailDate: '2025-06-01' }),
     ];
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       json: () => Promise.resolve({ success: true, data: items }),
@@ -83,7 +83,7 @@ describe('useLicitaciones', () => {
 
   it('searchFilter returns all items for empty search', () => {
     const { result } = renderHook(() => useLicitaciones());
-    const items = [buildLicitacion({ id: 1 }), buildLicitacion({ id: 2 })];
+    const items = [buildLicitacion({ id: '1' }), buildLicitacion({ id: '2' })];
     const filtered = result.current.searchFilter(items, '');
     expect(filtered).toHaveLength(2);
   });
@@ -91,8 +91,8 @@ describe('useLicitaciones', () => {
   it('searchFilter filters by search term across title field', () => {
     const { result } = renderHook(() => useLicitaciones());
     const items = [
-      buildLicitacion({ id: 1, title: 'Mantenimiento de A/C' }),
-      buildLicitacion({ id: 2, title: 'Construccion de puente' }),
+      buildLicitacion({ id: '1', title: 'Mantenimiento de A/C' }),
+      buildLicitacion({ id: '2', title: 'Construccion de puente' }),
     ];
     const filtered = result.current.searchFilter(items, 'puente');
     expect(filtered).toHaveLength(1);
@@ -157,8 +157,8 @@ describe('useLicitaciones', () => {
   it('searchFilter filters across multiple fields (location, category, description)', () => {
     const { result } = renderHook(() => useLicitaciones());
     const items = [
-      buildLicitacion({ id: 1, location: 'Bayamon', category: 'Construccion', description: 'Regular description' }),
-      buildLicitacion({ id: 2, location: 'San Juan', category: 'Electricidad', description: 'Special plumbing work' }),
+      buildLicitacion({ id: '1', location: 'Bayamon', category: 'Construccion', description: 'Regular description' }),
+      buildLicitacion({ id: '2', location: 'San Juan', category: 'Electricidad', description: 'Special plumbing work' }),
     ];
 
     // Search by location

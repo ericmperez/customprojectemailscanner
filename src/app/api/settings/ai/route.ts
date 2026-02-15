@@ -7,6 +7,7 @@ import {
   deleteCorrectionExample,
   clearCorrectionExamples,
 } from '@/lib/services/supabase.service';
+import { getOrgDbId } from '@/lib/auth';
 import type { CorrectionExample } from '@/lib/types';
 
 const MAX_INSTRUCTIONS_LENGTH = 2000;
@@ -14,12 +15,13 @@ const MAX_EXAMPLES = 20;
 
 export async function GET() {
   try {
-    const settings = await getAISettings();
+    const orgId = await getOrgDbId();
+    const settings = await getAISettings(orgId);
 
     // Also fetch from correction_examples table (new source of truth)
     let vectorExamples: { id: string; field: string; original: string; corrected: string; context: string | null; saved_at: string }[] = [];
     try {
-      vectorExamples = await getAllCorrectionExamples();
+      vectorExamples = await getAllCorrectionExamples(orgId);
     } catch {
       // Fall back to app_settings examples only
     }
@@ -42,6 +44,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
+    const orgId = await getOrgDbId();
     const body = await request.json();
 
     if (typeof body.instructions === 'string') {
@@ -51,7 +54,7 @@ export async function PUT(request: Request) {
           { status: 400 }
         );
       }
-      await saveAIInstructions(body.instructions);
+      await saveAIInstructions(orgId, body.instructions);
     }
 
     if (Array.isArray(body.examples)) {
@@ -70,24 +73,24 @@ export async function PUT(request: Request) {
           );
         }
       }
-      await saveAIExamples(body.examples);
+      await saveAIExamples(orgId, body.examples);
     }
 
     // Clear all correction examples (both tables)
     if (body.clearExamples === true) {
-      await clearCorrectionExamples();
-      await saveAIExamples([]);
+      await clearCorrectionExamples(orgId);
+      await saveAIExamples(orgId, []);
     }
 
     // Delete a single vector correction example by UUID
     if (typeof body.deleteExampleId === 'string') {
-      await deleteCorrectionExample(body.deleteExampleId);
+      await deleteCorrectionExample(orgId, body.deleteExampleId);
     }
 
-    const updated = await getAISettings();
+    const updated = await getAISettings(orgId);
     let vectorExamples: { id: string; field: string; original: string; corrected: string; context: string | null; saved_at: string }[] = [];
     try {
-      vectorExamples = await getAllCorrectionExamples();
+      vectorExamples = await getAllCorrectionExamples(orgId);
     } catch {
       // ignore
     }

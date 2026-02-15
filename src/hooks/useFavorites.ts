@@ -17,14 +17,13 @@ export function useFavorites() {
     }
   }, []);
 
-  const toggleFavorite = useCallback((id: number | string) => {
+  const toggleFavorite = useCallback((id: string) => {
     setFavorites((prev) => {
       const next = new Set(prev);
-      const idStr = String(id);
-      if (next.has(idStr)) {
-        next.delete(idStr);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        next.add(idStr);
+        next.add(id);
       }
       localStorage.setItem('licitacion_favorites', JSON.stringify([...next]));
       return next;
@@ -32,7 +31,7 @@ export function useFavorites() {
   }, []);
 
   const isFavorite = useCallback(
-    (id: number | string) => favorites.has(String(id)),
+    (id: string) => favorites.has(id),
     [favorites]
   );
 

@@ -756,7 +756,7 @@ describe('computeWorthItScore', () => {
 
 describe('sortLicitaciones', () => {
   const lic1 = buildLicitacion({
-    id: 1,
+    id: '1',
     subject: 'Alpha',
     siteVisitDate: '2025-03-10',
     biddingCloseDate: '2025-04-01',
@@ -766,7 +766,7 @@ describe('sortLicitaciones', () => {
     visitLocation: 'Some Location',
   });
   const lic2 = buildLicitacion({
-    id: 2,
+    id: '2',
     subject: 'Beta',
     siteVisitDate: '2025-03-05',
     biddingCloseDate: '2025-03-20',
@@ -776,7 +776,7 @@ describe('sortLicitaciones', () => {
     visitLocation: '',
   });
   const lic3 = buildLicitacion({
-    id: 3,
+    id: '3',
     subject: 'Gamma',
     siteVisitDate: 'No disponible',
     biddingCloseDate: '2025-03-15',
@@ -788,30 +788,30 @@ describe('sortLicitaciones', () => {
 
   it('sorts by visit-date-asc with missing dates last', () => {
     const result = sortLicitaciones([lic3, lic1, lic2], 'visit-date-asc');
-    expect(result[0].id).toBe(2); // 2025-03-05
-    expect(result[1].id).toBe(1); // 2025-03-10
-    expect(result[2].id).toBe(3); // No disponible -> last
+    expect(result[0].id).toBe('2'); // 2025-03-05
+    expect(result[1].id).toBe('1'); // 2025-03-10
+    expect(result[2].id).toBe('3'); // No disponible -> last
   });
 
   it('sorts by close-date-asc', () => {
     const result = sortLicitaciones([lic1, lic3, lic2], 'close-date-asc');
-    expect(result[0].id).toBe(3); // 2025-03-15
-    expect(result[1].id).toBe(2); // 2025-03-20
-    expect(result[2].id).toBe(1); // 2025-04-01
+    expect(result[0].id).toBe('3'); // 2025-03-15
+    expect(result[1].id).toBe('2'); // 2025-03-20
+    expect(result[2].id).toBe('1'); // 2025-04-01
   });
 
   it('sorts by email-date-desc', () => {
     const result = sortLicitaciones([lic1, lic2, lic3], 'email-date-desc');
-    expect(result[0].id).toBe(2); // 2025-03-05
-    expect(result[1].id).toBe(1); // 2025-03-01
-    expect(result[2].id).toBe(3); // 2025-02-28
+    expect(result[0].id).toBe('2'); // 2025-03-05
+    expect(result[1].id).toBe('1'); // 2025-03-01
+    expect(result[2].id).toBe('3'); // 2025-02-28
   });
 
   it('sorts by email-date-asc', () => {
     const result = sortLicitaciones([lic2, lic1, lic3], 'email-date-asc');
-    expect(result[0].id).toBe(3); // 2025-02-28
-    expect(result[1].id).toBe(1); // 2025-03-01
-    expect(result[2].id).toBe(2); // 2025-03-05
+    expect(result[0].id).toBe('3'); // 2025-02-28
+    expect(result[1].id).toBe('1'); // 2025-03-01
+    expect(result[2].id).toBe('2'); // 2025-03-05
   });
 
   it('sorts by title-asc using locale "es"', () => {
@@ -835,9 +835,9 @@ describe('sortLicitaciones', () => {
     // lic1: High(3) + ~10 days(1) + value(2) + location(2) = 8
     // lic3: Medium(2) + ~14 days(1) + value(2) + no loc(0) = 5
     // lic2: Low(1) + ~4 days(2) + no value(0) + no loc(0) = 3
-    expect(result[0].id).toBe(1);
-    expect(result[1].id).toBe(3);
-    expect(result[2].id).toBe(2);
+    expect(result[0].id).toBe('1');
+    expect(result[1].id).toBe('3');
+    expect(result[2].id).toBe('2');
     vi.useRealTimers();
   });
 
@@ -851,8 +851,8 @@ describe('sortLicitaciones', () => {
   it('does not mutate the original array', () => {
     const input = [lic2, lic1];
     const result = sortLicitaciones(input, 'visit-date-asc');
-    expect(input[0].id).toBe(2); // original unchanged
-    expect(result[0].id).toBe(2); // lic2 has earlier visit date
+    expect(input[0].id).toBe('2'); // original unchanged
+    expect(result[0].id).toBe('2'); // lic2 has earlier visit date
   });
 
   it('handles empty array', () => {
@@ -860,19 +860,19 @@ describe('sortLicitaciones', () => {
   });
 
   it('handles missing emailDate for email-date-desc', () => {
-    const noDate = buildLicitacion({ id: 99, emailDate: '' });
-    const withDate = buildLicitacion({ id: 100, emailDate: '2025-03-01' });
+    const noDate = buildLicitacion({ id: '99', emailDate: '' });
+    const withDate = buildLicitacion({ id: '100', emailDate: '2025-03-01' });
     const result = sortLicitaciones([noDate, withDate], 'email-date-desc');
-    expect(result[0].id).toBe(100); // has date
-    expect(result[1].id).toBe(99); // no date -> epoch -> last for desc
+    expect(result[0].id).toBe('100'); // has date
+    expect(result[1].id).toBe('99'); // no date -> epoch -> last for desc
   });
 
   it('handles missing subject for title-asc', () => {
-    const noSubject = buildLicitacion({ id: 88, subject: '' });
-    const withSubject = buildLicitacion({ id: 89, subject: 'Zeta' });
+    const noSubject = buildLicitacion({ id: '88', subject: '' });
+    const withSubject = buildLicitacion({ id: '89', subject: 'Zeta' });
     const result = sortLicitaciones([withSubject, noSubject], 'title-asc');
-    expect(result[0].id).toBe(88); // empty string sorts first
-    expect(result[1].id).toBe(89);
+    expect(result[0].id).toBe('88'); // empty string sorts first
+    expect(result[1].id).toBe('89');
   });
 });
 
@@ -924,7 +924,7 @@ describe('arrayToCSV', () => {
   });
 
   it('handles multiple rows', () => {
-    const lics = [buildLicitacion({ id: 1 }), buildLicitacion({ id: 2 })];
+    const lics = [buildLicitacion({ id: '1' }), buildLicitacion({ id: '2' })];
     const csv = arrayToCSV(lics);
     const lines = csv.split('\n');
     expect(lines.length).toBe(3); // header + 2 rows
@@ -1135,8 +1135,8 @@ describe('exportToICalendar', () => {
 
   it('skips entries with "No disponible" siteVisitDate', async () => {
     const mocks = setupDOMMocks();
-    const good = buildLicitacion({ id: 1, siteVisitDate: '2025-03-15', title: 'Good' });
-    const bad = buildLicitacion({ id: 2, siteVisitDate: 'No disponible', title: 'Bad' });
+    const good = buildLicitacion({ id: '1', siteVisitDate: '2025-03-15', title: 'Good' });
+    const bad = buildLicitacion({ id: '2', siteVisitDate: 'No disponible', title: 'Bad' });
     exportToICalendar([good, bad]);
 
     const text = await readBlobAsText(mocks.getCapturedBlob()!);

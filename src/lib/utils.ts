@@ -258,6 +258,42 @@ export function sortLicitaciones(licitaciones: Licitacion[], sortBy: string): Li
     case 'score-desc':
       return sorted.sort((a, b) => computeWorthItScore(b) - computeWorthItScore(a));
 
+    case 'score-asc':
+      return sorted.sort((a, b) => computeWorthItScore(a) - computeWorthItScore(b));
+
+    case 'close-date-desc':
+      return sorted.sort((a, b) => {
+        const dateA = a.biddingCloseDate && a.biddingCloseDate !== 'No disponible' ? new Date(a.biddingCloseDate) : new Date(0);
+        const dateB = b.biddingCloseDate && b.biddingCloseDate !== 'No disponible' ? new Date(b.biddingCloseDate) : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+    case 'type-asc':
+      return sorted.sort((a, b) => {
+        const typeA = (String(a.visitLocation || '').trim() && String(a.visitLocation || '').trim().toLowerCase() !== 'no disponible') ? 0 : 1;
+        const typeB = (String(b.visitLocation || '').trim() && String(b.visitLocation || '').trim().toLowerCase() !== 'no disponible') ? 0 : 1;
+        return typeA - typeB;
+      });
+
+    case 'type-desc':
+      return sorted.sort((a, b) => {
+        const typeA = (String(a.visitLocation || '').trim() && String(a.visitLocation || '').trim().toLowerCase() !== 'no disponible') ? 0 : 1;
+        const typeB = (String(b.visitLocation || '').trim() && String(b.visitLocation || '').trim().toLowerCase() !== 'no disponible') ? 0 : 1;
+        return typeB - typeA;
+      });
+
+    case 'category-asc':
+      return sorted.sort((a, b) => (a.category || '').localeCompare(b.category || '', 'es'));
+
+    case 'category-desc':
+      return sorted.sort((a, b) => (b.category || '').localeCompare(a.category || '', 'es'));
+
+    case 'contact-asc':
+      return sorted.sort((a, b) => (a.contactName || '').localeCompare(b.contactName || '', 'es'));
+
+    case 'contact-desc':
+      return sorted.sort((a, b) => (b.contactName || '').localeCompare(a.contactName || '', 'es'));
+
     default:
       return sorted;
   }
@@ -373,7 +409,7 @@ export function exportToICalendar(licitaciones: Licitacion[]): void {
 
       const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
 
-      const uid = `lic-${lic.rowNumber}-${Date.now()}@licitaciones-dashboard`;
+      const uid = `lic-${lic.id}-${Date.now()}@licitaciones-dashboard`;
       const summary = escapeICalText(`Visita: ${lic.title || lic.subject || 'Sin título'}`);
       const location = escapeICalText(lic.visitLocation || '');
       const description = escapeICalText(

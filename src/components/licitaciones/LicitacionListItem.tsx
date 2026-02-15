@@ -7,10 +7,10 @@ interface LicitacionListItemProps {
   lic: Licitacion;
   isFavorite: boolean;
   isSelected: boolean;
-  onToggleFavorite: (id: number) => void;
-  onToggleSelection: (rowNumber: number) => void;
-  onOpenDetail: (id: number) => void;
-  onToggleInterested: (id: number, interested: boolean) => void;
+  onToggleFavorite: (id: string) => void;
+  onToggleSelection: (id: string) => void;
+  onOpenDetail: (id: string) => void;
+  onToggleInterested: (id: string, interested: boolean) => void;
 }
 
 export function LicitacionListItem({
@@ -43,13 +43,13 @@ export function LicitacionListItem({
       <input
         type="checkbox"
         checked={isSelected}
-        onChange={() => onToggleSelection(lic.rowNumber)}
+        onChange={() => onToggleSelection(lic.id)}
         onClick={(e) => e.stopPropagation()}
         aria-label="Seleccionar licitación"
       />
       <button
         className="text-base hover:scale-110 transition-transform shrink-0"
-        onClick={(e) => { e.stopPropagation(); onToggleFavorite(lic.rowNumber); }}
+        onClick={(e) => { e.stopPropagation(); onToggleFavorite(lic.id); }}
         aria-label={isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
       >
         {isFavorite ? '⭐' : '☆'}

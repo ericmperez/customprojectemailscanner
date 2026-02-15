@@ -66,7 +66,7 @@ describe('LicitacionCard', () => {
   it('calls onToggleFavorite when star clicked', () => {
     render(<LicitacionCard {...defaultProps} />);
     fireEvent.click(screen.getByLabelText('Agregar a favoritos'));
-    expect(defaultProps.onToggleFavorite).toHaveBeenCalledWith(defaultProps.lic.rowNumber);
+    expect(defaultProps.onToggleFavorite).toHaveBeenCalledWith(defaultProps.lic.id);
   });
 
   it('renders filled star when isFavorite is true', () => {

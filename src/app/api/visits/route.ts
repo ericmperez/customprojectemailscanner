@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import LicitacionesService from '@/lib/services/licitaciones.service';
+import { getOrgDbId } from '@/lib/auth';
 import type { Filters } from '@/lib/types';
 
 const licitacionesService = new LicitacionesService();
 
 export async function GET(request: NextRequest) {
   try {
+    const orgId = await getOrgDbId();
     const { searchParams } = request.nextUrl;
 
     const visitLocationParam = searchParams.getAll('visitLocation');
@@ -27,7 +29,7 @@ export async function GET(request: NextRequest) {
     if (!filters.visitLocation?.length) delete filters.visitLocation;
     if (!filters.town?.length) delete filters.town;
 
-    const visits = await licitacionesService.getSiteVisitEvents(filters);
+    const visits = await licitacionesService.getSiteVisitEvents(orgId, filters);
     return NextResponse.json({ success: true, data: visits });
   } catch (error) {
     console.error('Error fetching site visit events:', error);

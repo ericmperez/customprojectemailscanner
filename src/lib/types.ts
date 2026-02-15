@@ -1,6 +1,6 @@
 export interface Licitacion {
-  id: number;
-  rowNumber: number;
+  id: string;
+  rowNumber?: number;  // Legacy field for backwards compat, not used in Supabase
   processedAt: string;
   emailDate: string;
   subject: string;
@@ -41,8 +41,8 @@ export interface Stats {
 }
 
 export interface Visit {
-  id: number;
-  rowNumber: number;
+  id: string;
+  rowNumber?: number;
   subject: string;
   title?: string;
   location: string;

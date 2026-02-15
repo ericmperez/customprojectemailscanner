@@ -31,7 +31,7 @@ type EditableField = (typeof EDITABLE_FIELDS)[number];
 
 interface DetailModalProps {
   open: boolean;
-  licitacionId: number | null;
+  licitacionId: string | null;
   licitacion?: Licitacion | null;
   onClose: () => void;
   onRefresh: () => void;
@@ -48,7 +48,7 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
   const [editValue, setEditValue] = useState('');
   const [savingField, setSavingField] = useState(false);
 
-  const fetchDetail = useCallback(async (id: number) => {
+  const fetchDetail = useCallback(async (id: string) => {
     setLoading(true);
     try {
       const response = await fetch(`/api/licitaciones/${id}`);

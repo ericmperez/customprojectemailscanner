@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { CONFIDENCE_FIELDS } from '@/lib/types';
 import type { ConfidenceFieldSettings, ConfidenceFieldName } from '@/lib/types';
 import { getConfidenceSettings, saveConfidenceSettings } from '@/lib/services/supabase.service';
+import { getOrgDbId } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const settings = await getConfidenceSettings();
+    const orgId = await getOrgDbId();
+    const settings = await getConfidenceSettings(orgId);
     return NextResponse.json({ success: true, data: settings });
   } catch (error) {
     console.error('Error fetching confidence settings:', error);
@@ -18,6 +20,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
+    const orgId = await getOrgDbId();
     const body = (await request.json()) as ConfidenceFieldSettings;
 
     // Validate: every field must appear exactly once across all 3 lists
@@ -56,7 +59,7 @@ export async function PUT(request: Request) {
       ignored: body.ignored as ConfidenceFieldName[],
     };
 
-    await saveConfidenceSettings(settings);
+    await saveConfidenceSettings(orgId, settings);
     return NextResponse.json({ success: true, data: settings });
   } catch (error) {
     console.error('Error saving confidence settings:', error);

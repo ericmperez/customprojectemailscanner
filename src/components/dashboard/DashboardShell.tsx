@@ -4,7 +4,8 @@ import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 
-import { UserButton } from '@clerk/nextjs';
+import Link from 'next/link';
+import { UserButton, OrganizationSwitcher } from '@clerk/nextjs';
 import { StatsBar } from './StatsBar';
 import { FilterBar } from './FilterBar';
 import { LicitacionCard } from '@/components/licitaciones/LicitacionCard';
@@ -18,6 +19,8 @@ import { ConfidenceSettingsDialog } from '@/components/modals/ConfidenceSettings
 import { WhatsNewDialog } from '@/components/modals/WhatsNewDialog';
 import { Loader2 } from 'lucide-react';
 
+import { ActivitySidebar } from './ActivitySidebar';
+import { useActivityLog } from '@/hooks/useActivityLog';
 import { useLicitaciones } from '@/hooks/useLicitaciones';
 import { useStats } from '@/hooks/useStats';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -34,10 +37,14 @@ export function DashboardShell() {
   const { theme, setTheme } = useTheme();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Activity log
+  const { entries: activityEntries, loading: activityLoading, hasMore: activityHasMore, loadMore: activityLoadMore, refresh: activityRefresh, logClientAction } = useActivityLog();
+  const [activityOpen, setActivityOpen] = useState(false);
+
   // Hooks
   const { licitaciones, loading, loadLicitaciones, searchFilter } = useLicitaciones();
   const { stats, lastFetch, loadStats } = useStats();
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite: rawToggleFavorite } = useFavorites();
   const { viewMode, setViewMode } = useViewMode();
   const { selectedCards, toggleSelection, selectAll, clearSelection, isSelected, selectedCount } =
     useBulkSelection();
@@ -46,12 +53,23 @@ export function DashboardShell() {
   const { presets: savedPresets, savePreset, deletePreset, renamePreset, maxReached: maxPresetsReached } =
     useSavedFilters();
 
+  // Wrapped toggleFavorite with activity logging
+  const toggleFavorite = useCallback(
+    (id: string) => {
+      const wasFav = isFavorite(id);
+      rawToggleFavorite(id);
+      const lic = licitaciones.find((l) => l.id === id);
+      logClientAction(wasFav ? 'unfavorite' : 'favorite', id, lic?.title ?? null);
+    },
+    [isFavorite, rawToggleFavorite, licitaciones, logClientAction]
+  );
+
   // Modal state
   const [isCalendarView, setIsCalendarView] = useState(false);
   const [approvalModal, setApprovalModal] = useState<{
     open: boolean;
     action: 'approve' | 'reject' | null;
-    id: number | null;
+    id: string | null;
   }>({ open: false, action: null, id: null });
   const [detailModal, setDetailModal] = useState<{ open: boolean; lic: Licitacion | null }>({
     open: false,
@@ -63,7 +81,7 @@ export function DashboardShell() {
     loading: boolean;
     confirmOpen: boolean;
   }>({ type: null, loading: false, confirmOpen: false });
-  const [resetConfirm, setResetConfirm] = useState<{ open: boolean; id: number | null; loading: boolean }>({
+  const [resetConfirm, setResetConfirm] = useState<{ open: boolean; id: string | null; loading: boolean }>({
     open: false,
     id: null,
     loading: false,
@@ -77,7 +95,7 @@ export function DashboardShell() {
   const displayedLicitaciones = useMemo(() => {
     let items = searchFilter(licitaciones, filters.search);
     if (showFavoritesOnly) {
-      items = items.filter((lic) => isFavorite(lic.id || lic.rowNumber));
+      items = items.filter((lic) => isFavorite(lic.id));
     }
     return items;
   }, [licitaciones, filters.search, showFavoritesOnly, searchFilter, isFavorite]);
@@ -111,16 +129,16 @@ export function DashboardShell() {
   );
 
   // Approval actions
-  const handleApprove = useCallback((id: number) => {
+  const handleApprove = useCallback((id: string) => {
     setApprovalModal({ open: true, action: 'approve', id });
   }, []);
 
-  const handleReject = useCallback((id: number) => {
+  const handleReject = useCallback((id: string) => {
     setApprovalModal({ open: true, action: 'reject', id });
   }, []);
 
   const handleToggleInterested = useCallback(
-    async (id: number, interested: boolean) => {
+    async (id: string, interested: boolean) => {
       try {
         const response = await fetch(`/api/licitaciones/${id}/update-fields`, {
           method: 'PATCH',
@@ -130,6 +148,8 @@ export function DashboardShell() {
         const result = await response.json();
         if (result.success) {
           toast.success(interested ? 'Marcada como interesada' : 'Interés removido');
+          const lic = licitaciones.find((l) => l.id === id);
+          logClientAction(interested ? 'interested' : 'uninterested', id, lic?.title ?? null);
           refresh();
         } else {
           toast.error('Error al cambiar interés', {
@@ -142,11 +162,11 @@ export function DashboardShell() {
         });
       }
     },
-    [refresh]
+    [refresh, licitaciones, logClientAction]
   );
 
   const handleResetPending = useCallback(
-    (id: number) => {
+    (id: string) => {
       setResetConfirm({ open: true, id, loading: false });
     },
     []
@@ -229,8 +249,8 @@ export function DashboardShell() {
     const noteText = action === 'approve' ? '[Aprobado en lote]' : '[Rechazado en lote]';
 
     const results = await Promise.allSettled(
-      Array.from(selectedCards).map((rowNumber) =>
-        fetch(`/api/licitaciones/${rowNumber}/${action}`, {
+      Array.from(selectedCards).map((id) =>
+        fetch(`/api/licitaciones/${id}/${action}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ notes: noteText }),
@@ -313,7 +333,7 @@ export function DashboardShell() {
 
   // Open detail modal with full object from already-fetched list
   const openDetail = useCallback(
-    (id: number) => {
+    (id: string) => {
       const found = displayedLicitaciones.find((l) => l.id === id) ?? null;
       setDetailModal({ open: true, lic: found });
     },
@@ -373,6 +393,14 @@ export function DashboardShell() {
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-2xl font-bold">📋 Licitaciones</h1>
                 <button
+                  onClick={() => { setActivityOpen(true); activityRefresh(); }}
+                  className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted inline-flex items-center gap-1"
+                  title="Historial de actividad"
+                >
+                  🕐
+                  <span className="hidden sm:inline">Actividad</span>
+                </button>
+                <button
                   onClick={handleManualFetch}
                   disabled={fetchingEmails}
                   className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted disabled:opacity-50 inline-flex items-center gap-1.5"
@@ -395,7 +423,11 @@ export function DashboardShell() {
                 </p>
               )}
             </div>
-            <div className="sm:hidden">
+            <div className="sm:hidden flex items-center gap-2">
+              <OrganizationSwitcher afterSelectOrganizationUrl="/" hidePersonal />
+              <Link href="/settings" className="rounded-md border p-1.5 hover:bg-muted" title="Configuracion">
+                ⚙️
+              </Link>
               <UserButton afterSignOutUrl="/sign-in" />
             </div>
           </div>
@@ -405,7 +437,11 @@ export function DashboardShell() {
               activeStatus={filters.status}
               onStatusClick={(status) => updateFilter('status', status)}
             />
-            <div className="hidden sm:block">
+            <div className="hidden sm:flex items-center gap-2">
+              <OrganizationSwitcher afterSelectOrganizationUrl="/" hidePersonal />
+              <Link href="/settings" className="rounded-md border p-1.5 hover:bg-muted" title="Configuracion">
+                ⚙️
+              </Link>
               <UserButton afterSignOutUrl="/sign-in" />
             </div>
           </div>
@@ -533,8 +569,8 @@ export function DashboardShell() {
                   <LicitacionCard
                     key={lic.id}
                     lic={lic}
-                    isFavorite={isFavorite(lic.rowNumber)}
-                    isSelected={isSelected(lic.rowNumber)}
+                    isFavorite={isFavorite(lic.id)}
+                    isSelected={isSelected(lic.id)}
                     onToggleFavorite={toggleFavorite}
                     onToggleSelection={toggleSelection}
                     onOpenDetail={openDetail}
@@ -554,8 +590,8 @@ export function DashboardShell() {
                   <LicitacionListItem
                     key={lic.id}
                     lic={lic}
-                    isFavorite={isFavorite(lic.rowNumber)}
-                    isSelected={isSelected(lic.rowNumber)}
+                    isFavorite={isFavorite(lic.id)}
+                    isSelected={isSelected(lic.id)}
                     onToggleFavorite={toggleFavorite}
                     onToggleSelection={toggleSelection}
                     onOpenDetail={openDetail}
@@ -581,6 +617,8 @@ export function DashboardShell() {
                     onApprove={handleApprove}
                     onReject={handleReject}
                     onToggleInterested={handleToggleInterested}
+                    currentSort={filters.sort}
+                    onSort={(sort) => updateFilter('sort', sort)}
                   />
                 </div>
                 {/* Fallback to list on mobile */}
@@ -589,8 +627,8 @@ export function DashboardShell() {
                     <LicitacionListItem
                       key={lic.id}
                       lic={lic}
-                      isFavorite={isFavorite(lic.rowNumber)}
-                      isSelected={isSelected(lic.rowNumber)}
+                      isFavorite={isFavorite(lic.id)}
+                      isSelected={isSelected(lic.id)}
                       onToggleFavorite={toggleFavorite}
                       onToggleSelection={toggleSelection}
                       onOpenDetail={openDetail}
@@ -653,6 +691,15 @@ export function DashboardShell() {
       <WhatsNewDialog
         open={novedadesOpen}
         onOpenChange={handleNovedadesOpenChange}
+      />
+
+      <ActivitySidebar
+        open={activityOpen}
+        onOpenChange={setActivityOpen}
+        entries={activityEntries}
+        loading={activityLoading}
+        hasMore={activityHasMore}
+        onLoadMore={activityLoadMore}
       />
     </div>
   );

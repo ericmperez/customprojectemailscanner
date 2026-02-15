@@ -1,14 +1,18 @@
 import { google, gmail_v1 } from 'googleapis';
 import { withRetry } from '@/lib/utils/retry';
+import { encrypt, decrypt } from '@/lib/utils/encryption';
+import {
+  getOrgGmailCredentials,
+  saveOrgGmailCredentials,
+} from '@/lib/services/supabase.service';
 
-const config = {
-  gmail: {
-    clientId: process.env.GMAIL_CLIENT_ID,
-    clientSecret: process.env.GMAIL_CLIENT_SECRET,
-    redirectUri: process.env.GMAIL_REDIRECT_URI,
-    refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-  },
-};
+export interface GmailCredentials {
+  clientId: string;
+  clientSecret: string;
+  accessToken: string;
+  refreshToken: string;
+  tokenExpiry?: Date;
+}
 
 export interface EmailAttachment {
   filename: string;
@@ -28,19 +32,71 @@ export interface EmailDetails {
 class GmailService {
   private oauth2Client;
   private gmail;
+  private orgId: string | null;
 
-  constructor() {
-    this.oauth2Client = new google.auth.OAuth2(
-      config.gmail.clientId,
-      config.gmail.clientSecret,
-      config.gmail.redirectUri
-    );
+  /**
+   * Create a GmailService with explicit credentials.
+   * If no credentials provided, falls back to env vars (legacy single-tenant mode).
+   */
+  constructor(credentials?: GmailCredentials, orgId?: string) {
+    const clientId = credentials?.clientId || process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GMAIL_CLIENT_ID;
+    const clientSecret = credentials?.clientSecret || process.env.GOOGLE_OAUTH_CLIENT_SECRET || process.env.GMAIL_CLIENT_SECRET;
+    const redirectUri = process.env.GMAIL_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/settings/gmail/callback`;
 
-    this.oauth2Client.setCredentials({
-      refresh_token: config.gmail.refreshToken,
-    });
+    this.oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+
+    if (credentials) {
+      this.oauth2Client.setCredentials({
+        access_token: credentials.accessToken,
+        refresh_token: credentials.refreshToken,
+        expiry_date: credentials.tokenExpiry?.getTime(),
+      });
+    } else {
+      // Legacy: use env var refresh token
+      this.oauth2Client.setCredentials({
+        refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+      });
+    }
+
+    // Listen for token refresh events to persist new tokens
+    this.orgId = orgId || null;
+    if (orgId) {
+      this.oauth2Client.on('tokens', (tokens) => {
+        this.handleTokenRefresh(orgId, tokens).catch((err) =>
+          console.error('[gmail] Failed to persist refreshed token:', err)
+        );
+      });
+    }
 
     this.gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+  }
+
+  /**
+   * Persist refreshed tokens back to DB.
+   */
+  private async handleTokenRefresh(
+    orgId: string,
+    tokens: { access_token?: string | null; refresh_token?: string | null; expiry_date?: number | null }
+  ): Promise<void> {
+    if (!tokens.access_token) return;
+
+    const creds = await getOrgGmailCredentials(orgId);
+    if (!creds) return;
+
+    const accessTokenEnc = encrypt(tokens.access_token);
+    const refreshTokenEnc = tokens.refresh_token
+      ? encrypt(tokens.refresh_token)
+      : creds.refresh_token_enc || '';
+    const tokenExpiry = tokens.expiry_date ? new Date(tokens.expiry_date) : new Date();
+
+    await saveOrgGmailCredentials(
+      orgId,
+      creds.email_address || '',
+      accessTokenEnc,
+      refreshTokenEnc,
+      tokenExpiry,
+      creds.scopes || []
+    );
   }
 
   /**
@@ -196,6 +252,42 @@ class GmailService {
         removeLabelIds: ['UNREAD'],
       },
     });
+  }
+
+  /**
+   * Get the OAuth2 client (for generating auth URLs, etc.)
+   */
+  getOAuth2Client() {
+    return this.oauth2Client;
+  }
+}
+
+/**
+ * Factory: create a GmailService for a specific organization using stored credentials.
+ */
+export async function createGmailServiceForOrg(orgId: string): Promise<GmailService | null> {
+  const creds = await getOrgGmailCredentials(orgId);
+  if (!creds || !creds.access_token_enc || !creds.refresh_token_enc) {
+    return null;
+  }
+
+  try {
+    const accessToken = decrypt(creds.access_token_enc);
+    const refreshToken = decrypt(creds.refresh_token_enc);
+
+    return new GmailService(
+      {
+        clientId: process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GMAIL_CLIENT_ID || '',
+        clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || process.env.GMAIL_CLIENT_SECRET || '',
+        accessToken,
+        refreshToken,
+        tokenExpiry: creds.token_expiry ? new Date(creds.token_expiry) : undefined,
+      },
+      orgId
+    );
+  } catch (err) {
+    console.error(`[gmail] Failed to create service for org ${orgId}:`, err);
+    return null;
   }
 }
 

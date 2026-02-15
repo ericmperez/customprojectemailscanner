@@ -5,16 +5,35 @@ import type { Licitacion } from '@/lib/types';
 
 interface LicitacionTableProps {
   licitaciones: Licitacion[];
-  isFavorite: (id: number) => boolean;
-  isSelected: (rowNumber: number) => boolean;
-  onToggleFavorite: (id: number) => void;
-  onToggleSelection: (rowNumber: number) => void;
-  onSelectAll: (rowNumbers: number[]) => void;
-  onOpenDetail: (id: number) => void;
-  onApprove: (id: number) => void;
-  onReject: (id: number) => void;
-  onToggleInterested: (id: number, interested: boolean) => void;
+  isFavorite: (id: string) => boolean;
+  isSelected: (id: string) => boolean;
+  onToggleFavorite: (id: string) => void;
+  onToggleSelection: (id: string) => void;
+  onSelectAll: (ids: string[]) => void;
+  onOpenDetail: (id: string) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onToggleInterested: (id: string, interested: boolean) => void;
+  currentSort?: string;
+  onSort?: (sort: string) => void;
 }
+
+type SortableColumn = {
+  label: string;
+  ascKey: string;
+  descKey: string;
+  defaultDir: 'asc' | 'desc';
+};
+
+const SORTABLE_COLUMNS: Record<string, SortableColumn> = {
+  title: { label: 'Titulo', ascKey: 'title-asc', descKey: 'title-desc', defaultDir: 'asc' },
+  type: { label: 'Tipo', ascKey: 'type-asc', descKey: 'type-desc', defaultDir: 'asc' },
+  score: { label: 'Punt.', ascKey: 'score-asc', descKey: 'score-desc', defaultDir: 'desc' },
+  category: { label: 'Categoria', ascKey: 'category-asc', descKey: 'category-desc', defaultDir: 'asc' },
+  emailDate: { label: 'Fecha', ascKey: 'email-date-asc', descKey: 'email-date-desc', defaultDir: 'desc' },
+  closeDate: { label: 'Plazo', ascKey: 'close-date-asc', descKey: 'close-date-desc', defaultDir: 'asc' },
+  contact: { label: 'Contacto', ascKey: 'contact-asc', descKey: 'contact-desc', defaultDir: 'asc' },
+};
 
 export function LicitacionTable({
   licitaciones,
@@ -27,8 +46,54 @@ export function LicitacionTable({
   onApprove,
   onReject,
   onToggleInterested,
+  currentSort,
+  onSort,
 }: LicitacionTableProps) {
-  const allSelected = licitaciones.length > 0 && licitaciones.every((l) => isSelected(l.rowNumber));
+  const allSelected = licitaciones.length > 0 && licitaciones.every((l) => isSelected(l.id));
+
+  const handleColumnSort = (colKey: string) => {
+    if (!onSort) return;
+    const col = SORTABLE_COLUMNS[colKey];
+    if (!col) return;
+    // If already sorting by this column, toggle direction; otherwise use default
+    if (currentSort === col.ascKey) {
+      onSort(col.descKey);
+    } else if (currentSort === col.descKey) {
+      onSort(col.ascKey);
+    } else {
+      onSort(col.defaultDir === 'asc' ? col.ascKey : col.descKey);
+    }
+  };
+
+  const getSortIndicator = (colKey: string) => {
+    const col = SORTABLE_COLUMNS[colKey];
+    if (!col || !currentSort) return null;
+    if (currentSort === col.ascKey) return ' ▲';
+    if (currentSort === col.descKey) return ' ▼';
+    return null;
+  };
+
+  const renderSortableHeader = (colKey: string, extraClass = '') => {
+    const col = SORTABLE_COLUMNS[colKey];
+    if (!col) return null;
+    const isActive = currentSort === col.ascKey || currentSort === col.descKey;
+    return (
+      <th
+        className={cn(
+          'p-2 text-left select-none',
+          onSort && 'cursor-pointer hover:bg-muted/80',
+          isActive && 'text-foreground',
+          extraClass
+        )}
+        onClick={() => handleColumnSort(colKey)}
+      >
+        {col.label}
+        {getSortIndicator(colKey) && (
+          <span className="text-xs ml-0.5">{getSortIndicator(colKey)}</span>
+        )}
+      </th>
+    );
+  };
 
   return (
     <div className="overflow-auto rounded-md border">
@@ -43,7 +108,7 @@ export function LicitacionTable({
                   if (allSelected) {
                     onSelectAll([]);
                   } else {
-                    onSelectAll(licitaciones.map((l) => l.rowNumber));
+                    onSelectAll(licitaciones.map((l) => l.id));
                   }
                 }}
                 aria-label="Seleccionar todas"
@@ -51,13 +116,13 @@ export function LicitacionTable({
             </th>
             <th className="p-2 text-left w-8"></th>
             <th className="p-2 text-left w-8"></th>
-            <th className="p-2 text-left">Titulo</th>
-            <th className="p-2 text-left">Tipo</th>
-            <th className="p-2 text-left">Punt.</th>
-            <th className="p-2 text-left">Categoria</th>
-            <th className="p-2 text-left">Fecha</th>
-            <th className="p-2 text-left">Plazo</th>
-            <th className="p-2 text-left">Contacto</th>
+            {renderSortableHeader('title')}
+            {renderSortableHeader('type')}
+            {renderSortableHeader('score')}
+            {renderSortableHeader('category')}
+            {renderSortableHeader('emailDate')}
+            {renderSortableHeader('closeDate')}
+            {renderSortableHeader('contact')}
             <th className="p-2 text-left w-20">Acciones</th>
           </tr>
         </thead>
@@ -96,18 +161,18 @@ export function LicitacionTable({
                 <td className="p-2" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
-                    checked={isSelected(lic.rowNumber)}
-                    onChange={() => onToggleSelection(lic.rowNumber)}
+                    checked={isSelected(lic.id)}
+                    onChange={() => onToggleSelection(lic.id)}
                     aria-label="Seleccionar licitación"
                   />
                 </td>
                 <td className="p-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     className="hover:scale-110 transition-transform"
-                    onClick={() => onToggleFavorite(lic.rowNumber)}
-                    aria-label={isFavorite(lic.rowNumber) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                    onClick={() => onToggleFavorite(lic.id)}
+                    aria-label={isFavorite(lic.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                   >
-                    {isFavorite(lic.rowNumber) ? '⭐' : '☆'}
+                    {isFavorite(lic.id) ? '⭐' : '☆'}
                   </button>
                 </td>
                 <td className="p-2" onClick={(e) => e.stopPropagation()}>
@@ -162,7 +227,7 @@ export function LicitacionTable({
                   <div className="flex gap-1">
                     <button
                       className="hover:bg-emerald-100 dark:hover:bg-emerald-900 rounded p-1"
-                      onClick={() => onApprove(lic.rowNumber)}
+                      onClick={() => onApprove(lic.id)}
                       title="Aprobar"
                       aria-label="Aprobar licitación"
                     >
@@ -170,7 +235,7 @@ export function LicitacionTable({
                     </button>
                     <button
                       className="hover:bg-red-100 dark:hover:bg-red-900 rounded p-1"
-                      onClick={() => onReject(lic.rowNumber)}
+                      onClick={() => onReject(lic.id)}
                       title="Rechazar"
                       aria-label="Rechazar licitación"
                     >

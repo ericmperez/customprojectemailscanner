@@ -16,6 +16,31 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.12.0',
+    date: '2026-02-15',
+    headline: 'Ordenar por columnas, historial de actividad y multi-tenant',
+    features: [
+      {
+        type: 'feature',
+        title: 'Ordenar por columnas en tabla',
+        description:
+          'Haz clic en cualquier encabezado de columna (Titulo, Tipo, Punt., Categoria, Fecha, Plazo, Contacto) para ordenar. Clic de nuevo para invertir el orden.',
+      },
+      {
+        type: 'feature',
+        title: 'Historial de actividad',
+        description:
+          'Nuevo panel lateral que muestra el historial de acciones realizadas: aprobaciones, rechazos, favoritos e intereses.',
+      },
+      {
+        type: 'improvement',
+        title: 'Soporte multi-tenant',
+        description:
+          'La plataforma ahora soporta multiples organizaciones con datos aislados por orgId.',
+      },
+    ],
+  },
+  {
     version: '1.11.0',
     date: '2026-02-13',
     headline: 'Deteccion de emergencias',

@@ -1,73 +1,65 @@
-import SheetsService from './sheets.service';
-import type { Licitacion, Filters, Stats, FilterOptions } from '@/lib/types';
+import { SupabaseLicitacionesService } from './supabase-licitaciones.service';
+import type { Licitacion, Filters, Stats, FilterOptions, Visit } from '@/lib/types';
+
+const service = new SupabaseLicitacionesService();
 
 class LicitacionesService {
-  private sheetsService: SheetsService;
-
-  constructor() {
-    this.sheetsService = new SheetsService();
-  }
-
-  async ensureTableExists(): Promise<void> {
-    await this.sheetsService.ensureInitialized();
-  }
-
-  async saveLicitacion(data: Record<string, unknown>): Promise<unknown> {
-    const result = await this.sheetsService.upsertLicitacion(data);
-    console.log(`Saved licitación to Google Sheets: ${data.emailId}`);
+  async saveLicitacion(orgId: string, data: Record<string, unknown>): Promise<{ id: string }> {
+    const result = await service.upsertLicitacion(orgId, data);
+    console.log(`Saved licitación to Supabase: ${data.emailId}`);
     return result;
   }
 
-  async getAllLicitaciones(filters: Filters = {}): Promise<Licitacion[]> {
-    return this.sheetsService.getLicitaciones(filters);
+  async getAllLicitaciones(orgId: string, filters: Filters = {}): Promise<Licitacion[]> {
+    return service.getLicitaciones(orgId, filters);
   }
 
-  async autoRejectExpired(): Promise<number> {
-    return this.sheetsService.autoRejectExpired();
+  async autoRejectExpired(orgId: string): Promise<number> {
+    return service.autoRejectExpired(orgId);
   }
 
-  async getLicitacionById(id: number | string): Promise<Licitacion | null> {
-    return this.sheetsService.getLicitacionByRow(Number(id));
+  async getLicitacionById(orgId: string, id: string): Promise<Licitacion | null> {
+    return service.getLicitacionById(orgId, id);
   }
 
-  async updateApprovalStatus(id: number | string, status: string, notes = ''): Promise<Licitacion | null> {
-    const updated = await this.sheetsService.updateApprovalStatus(Number(id), status, notes);
+  async updateApprovalStatus(orgId: string, id: string, status: string, notes = ''): Promise<Licitacion | null> {
+    const updated = await service.updateApprovalStatus(orgId, id, status, notes);
     console.log(`Updated approval status for licitación ${id}: ${status}`);
     return updated;
   }
 
-  async updateFields(id: number | string, fields: Record<string, unknown>): Promise<{ updated: Licitacion | null; oldValues: Record<string, string> }> {
-    const result = await this.sheetsService.updateFields(Number(id), fields);
+  async updateFields(orgId: string, id: string, fields: Record<string, unknown>): Promise<{ updated: Licitacion | null; oldValues: Record<string, string> }> {
+    const result = await service.updateFields(orgId, id, fields);
     console.log(`Updated fields for licitación ${id}:`, fields);
     return result;
   }
 
-  async deleteLicitacion(id: number | string): Promise<{ success: boolean; deletedRow: number; subject: string }> {
-    const result = await this.sheetsService.deleteLicitacion(Number(id));
+  async deleteLicitacion(orgId: string, id: string): Promise<{ success: boolean; id: string; subject: string }> {
+    const result = await service.deleteLicitacion(orgId, id);
     console.log(`Deleted licitación ${id}`);
     return result;
   }
 
-  async getStats(): Promise<Stats> {
+  async getStats(orgId: string): Promise<Stats> {
     try {
-      return await this.sheetsService.getStats();
+      return await service.getStats(orgId);
     } catch (error) {
       console.error('Error getting dashboard stats:', error);
       return { total: 0, pending: 0, approved: 0, rejected: 0, interested: 0 };
     }
   }
 
-  async getDistinctFilterValues(): Promise<FilterOptions> {
+  async getDistinctFilterValues(orgId: string): Promise<FilterOptions> {
     try {
-      return await this.sheetsService.getDistinctFilterValues();
+      return await service.getDistinctFilterValues(orgId);
     } catch (error) {
       console.error('Error getting distinct filter values:', error);
       return { towns: [], categories: [] };
     }
   }
 
-  async getSiteVisitEvents(filters: Filters = {}): Promise<unknown[]> {
-    return this.sheetsService.getSiteVisitEvents(filters);
+  async getSiteVisitEvents(orgId: string, filters: Filters = {}): Promise<Visit[]> {
+    return service.getSiteVisitEvents(orgId, filters);
   }
 }
 

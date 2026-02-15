@@ -3,10 +3,9 @@ import type { Licitacion, Stats } from '@/lib/types';
 let _id = 100;
 
 export function buildLicitacion(overrides: Partial<Licitacion> = {}): Licitacion {
-  const id = overrides.id ?? ++_id;
+  const id = overrides.id ?? `lic-${++_id}`;
   return {
     id,
-    rowNumber: overrides.rowNumber ?? id,
     processedAt: '2025-03-01T10:00:00Z',
     emailDate: '2025-03-01',
     subject: 'Licitación de prueba',

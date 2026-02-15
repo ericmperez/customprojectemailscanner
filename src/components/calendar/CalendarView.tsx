@@ -12,7 +12,7 @@ const MONTH_NAMES = [
 
 interface CalendarViewProps {
   filters: Record<string, string | string[]>;
-  onOpenDetail: (id: number) => void;
+  onOpenDetail: (id: string) => void;
 }
 
 export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {

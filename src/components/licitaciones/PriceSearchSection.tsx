@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { QuoteItem, PriceResult } from '@/lib/types';
 
 interface PriceSearchSectionProps {
-  licitacionId: number;
+  licitacionId: string;
   variant: 'card' | 'modal';
 }
 
