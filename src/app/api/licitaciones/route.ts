@@ -39,9 +39,11 @@ export async function GET(request: NextRequest) {
     const licitaciones = await licitacionesService.getAllLicitaciones(orgId, filters);
     return NextResponse.json({ success: true, data: licitaciones });
   } catch (error) {
-    console.error('Error fetching licitaciones:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : '';
+    console.error('Error fetching licitaciones:', errMsg, errStack);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: errMsg },
       { status: 500 }
     );
   }
