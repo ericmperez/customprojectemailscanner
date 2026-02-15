@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.13.0',
+    date: '2026-02-15',
+    headline: 'Una organizacion por usuario',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Una organizacion por usuario',
+        description:
+          'Cada usuario ahora solo puede pertenecer a una organizacion. Se removio el selector de organizaciones y se agregaron protecciones para evitar la creacion de organizaciones adicionales.',
+      },
+    ],
+  },
+  {
     version: '1.12.0',
     date: '2026-02-15',
     headline: 'Ordenar por columnas, historial de actividad y multi-tenant',

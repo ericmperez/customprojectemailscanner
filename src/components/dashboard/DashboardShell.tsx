@@ -5,7 +5,7 @@ import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 
 import Link from 'next/link';
-import { UserButton, OrganizationSwitcher } from '@clerk/nextjs';
+import { UserButton, useOrganization } from '@clerk/nextjs';
 import { StatsBar } from './StatsBar';
 import { FilterBar } from './FilterBar';
 import { LicitacionCard } from '@/components/licitaciones/LicitacionCard';
@@ -34,6 +34,7 @@ import { arrayToCSV, downloadCSV, exportToICalendar } from '@/lib/utils';
 import type { Licitacion } from '@/lib/types';
 
 export function DashboardShell() {
+  const { organization } = useOrganization();
   const { theme, setTheme } = useTheme();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -424,7 +425,7 @@ export function DashboardShell() {
               )}
             </div>
             <div className="sm:hidden flex items-center gap-2">
-              <OrganizationSwitcher afterSelectOrganizationUrl="/" hidePersonal />
+              <span className="text-sm font-medium truncate max-w-[150px]">{organization?.name}</span>
               <Link href="/settings" className="rounded-md border p-1.5 hover:bg-muted" title="Configuracion">
                 ⚙️
               </Link>
@@ -438,7 +439,7 @@ export function DashboardShell() {
               onStatusClick={(status) => updateFilter('status', status)}
             />
             <div className="hidden sm:flex items-center gap-2">
-              <OrganizationSwitcher afterSelectOrganizationUrl="/" hidePersonal />
+              <span className="text-sm font-medium truncate max-w-[150px]">{organization?.name}</span>
               <Link href="/settings" className="rounded-md border p-1.5 hover:bg-muted" title="Configuracion">
                 ⚙️
               </Link>
