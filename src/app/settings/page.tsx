@@ -1,32 +1,15 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { useOrganization } from '@clerk/nextjs';
 import { OrganizationProfile } from '@clerk/nextjs';
-import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GmailConnectionCard } from '@/components/settings/GmailConnectionCard';
+import { GmailCallbackHandler } from '@/components/settings/GmailCallbackHandler';
 import { AISettingsPanel } from '@/components/settings/AISettingsPanel';
-
-function GmailCallbackHandler() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (searchParams.get('gmail_connected') === 'true') {
-      toast.success('Gmail conectado exitosamente');
-      router.replace('/settings', { scroll: false });
-    } else if (searchParams.get('gmail_error')) {
-      toast.error('Error al conectar Gmail: ' + searchParams.get('gmail_error'));
-      router.replace('/settings', { scroll: false });
-    }
-  }, [searchParams, router]);
-
-  return null;
-}
 
 export default function SettingsPage() {
   const router = useRouter();
