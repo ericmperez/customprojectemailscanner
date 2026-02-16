@@ -807,6 +807,8 @@ export function DashboardShell() {
         licitacion={detailModal.lic}
         onClose={() => setDetailModal({ open: false, lic: null })}
         onRefresh={refresh}
+        onApprove={handleApprove}
+        onReject={handleReject}
       />
 
       <ConfirmationDialog

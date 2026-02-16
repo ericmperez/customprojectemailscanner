@@ -32,6 +32,12 @@ export const CHANGELOG: ChangelogRelease[] = [
         description:
           'El encabezado del modal ahora muestra la fecha de cierre con indicador de urgencia y un checklist visual de campos completados (PDF, descripcion, contacto, visita, fecha cierre, decision).',
       },
+      {
+        type: 'feature',
+        title: 'Aprobar o rechazar desde el modal',
+        description:
+          'El encabezado del modal muestra botones de Aprobar y Rechazar cuando la licitacion esta pendiente. Una vez decidida, muestra el estado actual.',
+      },
     ],
   },
   {

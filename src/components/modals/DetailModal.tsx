@@ -66,9 +66,11 @@ interface DetailModalProps {
   licitacion?: Licitacion | null;
   onClose: () => void;
   onRefresh: () => void;
+  onApprove?: (id: string) => void;
+  onReject?: (id: string) => void;
 }
 
-export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh }: DetailModalProps) {
+export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh, onApprove, onReject }: DetailModalProps) {
   const [lic, setLic] = useState<Licitacion | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; loading: boolean }>({
@@ -202,17 +204,35 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
             const doneCount = checklist.filter((c) => c.done).length;
             return (
               <>
-                {/* Row 1: Status badge + Close date */}
+                {/* Row 1: Approve/Reject + Close date */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div
-                    className={cn(
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit',
-                      lic.approvalStatus === 'approved' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-                      lic.approvalStatus === 'rejected' && 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
-                      (!lic.approvalStatus || lic.approvalStatus === 'pending') && 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                  <div className="flex items-center gap-2">
+                    {lic.approvalStatus === 'pending' ? (
+                      <>
+                        <button
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:hover:bg-emerald-900 transition-colors"
+                          onClick={() => onApprove?.(lic.id)}
+                        >
+                          ✅ Aprobar
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-950 dark:text-red-300 dark:hover:bg-red-900 transition-colors"
+                          onClick={() => onReject?.(lic.id)}
+                        >
+                          ❌ Rechazar
+                        </button>
+                      </>
+                    ) : (
+                      <div
+                        className={cn(
+                          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                          lic.approvalStatus === 'approved' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+                          lic.approvalStatus === 'rejected' && 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+                        )}
+                      >
+                        {badgeText(lic.approvalStatus)}
+                      </div>
                     )}
-                  >
-                    {badgeText(lic.approvalStatus)}
                   </div>
                   <div className={cn(
                     'text-sm font-medium',
