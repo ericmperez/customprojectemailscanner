@@ -121,7 +121,7 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
           <div className="grid grid-cols-7 gap-px bg-border rounded-md overflow-hidden">
             {days.map((day, i) => {
               if (day === null) {
-                return <div key={`empty-${i}`} className="bg-card min-h-[48px] sm:min-h-[80px] p-0.5 sm:p-1" />;
+                return <div key={`empty-${i}`} className="bg-card min-h-[56px] sm:min-h-[96px] p-0.5 sm:p-1" />;
               }
 
               const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -132,7 +132,7 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
                 <div
                   key={dateKey}
                   className={cn(
-                    'bg-card min-h-[48px] sm:min-h-[80px] p-0.5 sm:p-1 relative',
+                    'bg-card min-h-[56px] sm:min-h-[96px] p-0.5 sm:p-1 relative',
                     isToday && 'ring-2 ring-primary ring-inset',
                     dayEvents.length > 0 && 'bg-primary/5'
                   )}
@@ -144,12 +144,14 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
                   {dayEvents.slice(0, 2).map((event) => (
                     <div
                       key={event.id}
-                      className="text-[10px] sm:text-[11px] leading-tight bg-primary/10 text-primary rounded px-1 py-0.5 sm:py-0.5 mb-0.5 cursor-pointer hover:bg-primary/20 transition-colors truncate"
+                      className="text-[10px] sm:text-[11px] leading-tight bg-primary/10 text-primary rounded px-1 py-0.5 sm:py-0.5 mb-0.5 cursor-pointer hover:bg-primary/20 transition-colors"
                       onClick={() => onOpenDetail(event.id)}
-                      title={event.title || event.subject}
+                      title={`${event.title || event.subject} — ${event.location || ''} ${formatTimeLabel(event.visitTime) || ''}`}
                     >
-                      <span className="hidden sm:inline">{formatTimeLabel(event.visitTime) || ''} </span>
-                      {truncate(event.title || event.subject, 12)}
+                      <div className="truncate font-medium">{truncate(event.title || event.subject, 12)}</div>
+                      <div className="truncate text-[9px] sm:text-[10px] text-primary/70">
+                        {formatTimeLabel(event.visitTime) || 'Sin hora'} · {event.location || '—'}
+                      </div>
                     </div>
                   ))}
                   {/* Show third event only on desktop */}
@@ -158,11 +160,14 @@ export function CalendarView({ filters, onOpenDetail }: CalendarViewProps) {
                       {dayEvents.slice(2, 3).map((event) => (
                         <div
                           key={event.id}
-                          className="text-[11px] leading-tight bg-primary/10 text-primary rounded px-1 py-0.5 mb-0.5 cursor-pointer hover:bg-primary/20 transition-colors truncate"
+                          className="text-[11px] leading-tight bg-primary/10 text-primary rounded px-1 py-0.5 mb-0.5 cursor-pointer hover:bg-primary/20 transition-colors"
                           onClick={() => onOpenDetail(event.id)}
-                          title={event.title || event.subject}
+                          title={`${event.title || event.subject} — ${event.location || ''} ${formatTimeLabel(event.visitTime) || ''}`}
                         >
-                          {formatTimeLabel(event.visitTime) || ''} {truncate(event.title || event.subject, 20)}
+                          <div className="truncate font-medium">{formatTimeLabel(event.visitTime) || ''} {truncate(event.title || event.subject, 18)}</div>
+                          <div className="truncate text-[10px] text-primary/70">
+                            📍 {event.location || '—'}
+                          </div>
                         </div>
                       ))}
                     </div>

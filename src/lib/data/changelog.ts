@@ -16,6 +16,25 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.15.0',
+    date: '2026-02-12',
+    headline: 'Detalles de visita en el calendario',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Hora y ubicacion en cada dia del calendario',
+        description:
+          'Cada celda del calendario ahora muestra la hora y el pueblo de cada visita, no solo el titulo.',
+      },
+      {
+        type: 'feature',
+        title: 'Version checker',
+        description:
+          'La aplicacion detecta automaticamente nuevas versiones desplegadas y sugiere refrescar la pagina.',
+      },
+    ],
+  },
+  {
     version: '1.14.0',
     date: '2026-02-15',
     headline: 'Tab de Visitas y mejoras de equipo',
