@@ -118,9 +118,11 @@ export function DashboardShell() {
   // Load data on filter change
   const refresh = useCallback(() => {
     const query = buildQueryFilters();
-    // Force visits filter when on visitas tab
+    // Scope by tab: visitas tab shows only visits, licitaciones tab excludes visits
     if (activeTab === 'visitas') {
       query.type = 'visits';
+    } else if (!query.type) {
+      query.type = 'purchases';
     }
     const sort = activeTab === 'visitas' && !filters.sort ? 'visit-date-asc' : filters.sort;
     loadLicitaciones(query, sort);
