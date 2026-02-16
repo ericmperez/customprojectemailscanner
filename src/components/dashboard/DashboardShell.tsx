@@ -466,13 +466,15 @@ export function DashboardShell() {
                   {onlineUsers.slice(0, 3).map((u) => (
                     <div
                       key={u.userId}
-                      className="relative w-5 h-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[9px] font-medium overflow-hidden"
+                      className="relative w-5 h-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[9px] font-medium"
                     >
-                      {u.imageUrl ? (
-                        <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
-                      ) : (
-                        u.name.charAt(0).toUpperCase()
-                      )}
+                      <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                        {u.imageUrl ? (
+                          <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
+                        ) : (
+                          u.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
                       <span className="absolute -bottom-px -right-px w-1.5 h-1.5 rounded-full bg-emerald-500 border border-background" />
                     </div>
                   ))}
@@ -498,14 +500,16 @@ export function DashboardShell() {
                     {onlineUsers.slice(0, 4).map((u) => (
                       <div
                         key={u.userId}
-                        className="relative w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-medium overflow-hidden"
+                        className="relative w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-medium"
                         title={u.name}
                       >
-                        {u.imageUrl ? (
-                          <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
-                        ) : (
-                          u.name.charAt(0).toUpperCase()
-                        )}
+                        <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                          {u.imageUrl ? (
+                            <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
+                          ) : (
+                            u.name.charAt(0).toUpperCase()
+                          )}
+                        </div>
                         <span className="absolute -bottom-px -right-px w-2 h-2 rounded-full bg-emerald-500 border border-background" />
                       </div>
                     ))}
