@@ -1,44 +1,47 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 
-const POLL_INTERVAL_MS = 60_000; // check every 60 seconds
+const POLL_INTERVAL_MS = 15_000; // check every 15 seconds
 
 export function VersionChecker() {
   const currentBuildId = useRef<string | null>(null);
+  const reloading = useRef(false);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval>;
-
     async function checkVersion() {
+      if (reloading.current) return;
       try {
         const res = await fetch('/api/version', { cache: 'no-store' });
         if (!res.ok) return;
         const { buildId } = await res.json();
 
         if (currentBuildId.current === null) {
-          // First check - store the current version
           currentBuildId.current = buildId;
           return;
         }
 
         if (buildId !== currentBuildId.current) {
-          toast.info('Nueva version disponible. Recargando...', { duration: 2000 });
-          setTimeout(() => window.location.reload(), 2000);
+          reloading.current = true;
+          window.location.reload();
         }
       } catch {
         // Silently ignore network errors
       }
     }
 
-    // Initial check after a short delay
-    const initial = setTimeout(checkVersion, 5000);
-    timer = setInterval(checkVersion, POLL_INTERVAL_MS);
+    // Initial check
+    const initial = setTimeout(checkVersion, 3000);
+    // Poll every 15s
+    const timer = setInterval(checkVersion, POLL_INTERVAL_MS);
+    // Check immediately when user tabs back
+    const onFocus = () => checkVersion();
+    window.addEventListener('focus', onFocus);
 
     return () => {
       clearTimeout(initial);
       clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
     };
   }, []);
 
