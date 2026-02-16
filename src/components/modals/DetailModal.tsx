@@ -163,8 +163,8 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DialogContent className="sm:max-w-[80vw] max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto h-[100dvh] sm:h-auto rounded-none sm:rounded-lg p-4 sm:p-6">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[80vw] max-h-[100dvh] sm:max-h-[90vh] h-[100dvh] sm:h-auto rounded-none sm:rounded-lg p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="sticky top-0 z-10 bg-background border-b px-4 sm:px-6 pt-4 sm:pt-6 pb-3">
           {lic && (
             <div
               className={cn(
@@ -185,6 +185,7 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
           )}
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
         {loading && (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -423,8 +424,9 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
             </Section>
           </div>
         )}
+        </div>
 
-        <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between mt-2">
+        <DialogFooter className="sticky bottom-0 z-10 bg-background border-t px-4 sm:px-6 py-3 flex flex-col gap-2 sm:flex-row sm:justify-between">
           <div className="flex gap-2">
             {lic?.quoteUrl && (
               <Button asChild variant="default" className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700">

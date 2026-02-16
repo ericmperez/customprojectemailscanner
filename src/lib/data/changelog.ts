@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.18.0',
+    date: '2026-02-15',
+    headline: 'Modal de detalle mejorado',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Encabezado fijo y fondo difuminado',
+        description:
+          'El modal de detalle ahora tiene el encabezado y pie fijos mientras el contenido se desplaza. El fondo se difumina para mejor enfoque.',
+      },
+    ],
+  },
+  {
     version: '1.17.0',
     date: '2026-02-15',
     headline: 'Barra de herramientas simplificada',
