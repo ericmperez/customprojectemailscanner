@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import type { FilterOptions } from '@/lib/types';
@@ -66,7 +65,9 @@ export function FilterBar({
   const [townDropdownOpen, setTownDropdownOpen] = useState(false);
   const [townSearch, setTownSearch] = useState('');
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
 
   const filteredTowns = filterOptions.towns.filter((t) =>
     t.toLowerCase().includes(townSearch.toLowerCase())
@@ -89,8 +90,9 @@ export function FilterBar({
 
   return (
     <div className="space-y-2">
-      {/* Blue toolbar: Search + Sort + View + Refresh + Theme */}
-      <div className="flex gap-2 flex-wrap items-center rounded-lg border-l-4 border-l-blue-500 bg-card p-2 sm:p-3">
+      {/* Single toolbar */}
+      <div className="flex gap-2 flex-wrap items-center rounded-lg border bg-card p-2 sm:p-3">
+        {/* Search */}
         <div className="flex-1 min-w-0">
           <label className="sr-only" htmlFor="search-licitaciones">Buscar licitaciones</label>
           <Input
@@ -103,6 +105,7 @@ export function FilterBar({
           />
         </div>
 
+        {/* Sort */}
         <select
           className="rounded-md border bg-background px-2 py-2 text-sm min-w-0 max-w-[140px] sm:max-w-none sm:px-3"
           value={filters.sort}
@@ -119,7 +122,7 @@ export function FilterBar({
           <option value="score-desc">Puntuacion</option>
         </select>
 
-        {/* Status filter - always visible */}
+        {/* Status */}
         <select
           className="rounded-md border bg-background px-2 py-2 text-sm min-w-0 sm:px-3"
           value={filters.status}
@@ -146,55 +149,109 @@ export function FilterBar({
           <span className="text-xs">{moreFiltersOpen ? '▲' : '▼'}</span>
         </button>
 
-        <div className="hidden sm:flex items-center gap-1">
-          {/* View mode toggle */}
-          <div className="flex rounded-md border">
-            {(['cards', 'list', 'table'] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                className={`px-2.5 py-1.5 text-sm ${viewMode === mode ? 'bg-blue-500 text-white' : 'hover:bg-muted'}`}
-                onClick={() => onSetViewMode(mode)}
-                title={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
-                aria-label={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
-              >
-                {mode === 'cards' ? '⊞' : mode === 'list' ? '☰' : '⊟'}
-              </button>
-            ))}
-          </div>
-
-          <Button variant="default" size="sm" onClick={onRefresh} className="bg-blue-600 hover:bg-blue-700">
-            Refrescar
-          </Button>
-
-          <button
-            className="text-lg px-1 hover:opacity-70 transition-opacity"
-            onClick={onToggleTheme}
-            title="Cambiar tema"
-            aria-label="Cambiar tema claro/oscuro"
-          >
-            🌓
-          </button>
+        {/* View mode toggle */}
+        <div className="flex rounded-md border">
+          {(['cards', 'list', 'table'] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              className={`px-2 py-1.5 text-sm ${viewMode === mode ? 'bg-blue-500 text-white' : 'hover:bg-muted'}`}
+              onClick={() => onSetViewMode(mode)}
+              title={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
+              aria-label={`Vista de ${mode === 'cards' ? 'tarjetas' : mode === 'list' ? 'lista' : 'tabla'}`}
+            >
+              {mode === 'cards' ? '⊞' : mode === 'list' ? '☰' : '⊟'}
+            </button>
+          ))}
         </div>
 
-        {/* Mobile: compact actions */}
-        <div className="flex sm:hidden items-center gap-1">
-          <div className="flex rounded-md border">
-            {(['cards', 'list', 'table'] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                className={`px-2 py-1.5 text-sm ${viewMode === mode ? 'bg-blue-500 text-white' : 'hover:bg-muted'}`}
-                onClick={() => onSetViewMode(mode)}
-              >
-                {mode === 'cards' ? '⊞' : mode === 'list' ? '☰' : '⊟'}
-              </button>
-            ))}
-          </div>
+        {/* Calendar toggle (visitas only) */}
+        {activeTab === 'visitas' && (
           <button
-            className="text-lg px-1 hover:opacity-70"
-            onClick={onToggleTheme}
+            className={`rounded-md border px-2 py-1.5 text-sm font-medium ${isCalendarView ? 'bg-blue-500 text-white' : 'bg-background hover:bg-muted'}`}
+            onClick={onToggleCalendar}
           >
-            🌓
+            📅
           </button>
+        )}
+
+        {/* Refresh */}
+        <Button variant="default" size="sm" onClick={onRefresh} className="bg-blue-600 hover:bg-blue-700">
+          <span className="hidden sm:inline">Refrescar</span>
+          <span className="sm:hidden">↻</span>
+        </Button>
+
+        {/* Actions overflow menu */}
+        <div className="relative" ref={actionsRef}>
+          <button
+            className="relative rounded-md border bg-background px-2 py-2 text-sm hover:bg-muted"
+            onClick={() => setActionsOpen(!actionsOpen)}
+            aria-label="Mas opciones"
+          >
+            ⋯
+            {hasNewVersion && (
+              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+            )}
+          </button>
+          {actionsOpen && (
+            <div className="absolute right-0 z-50 mt-1 w-48 rounded-md border bg-card shadow-lg py-1 text-sm">
+              {/* Quick filters */}
+              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">Accesos rapidos</div>
+              <button
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { onQuickFilter({ status: 'pending', dateRange: 'next-week', sort: 'close-date-asc' }); setActionsOpen(false); }}
+              >
+                Cierre pronto
+              </button>
+              <button
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { onQuickFilter({ interested: 'true', status: '' }); setActionsOpen(false); }}
+              >
+                Interesadas
+              </button>
+
+              <div className="my-1 border-t" />
+
+              {/* Exports */}
+              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">Exportar</div>
+              <button
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { onExportCSV(); setActionsOpen(false); }}
+              >
+                Exportar CSV
+              </button>
+              {activeTab === 'visitas' && (
+                <button
+                  className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                  onClick={() => { onExportICS(); setActionsOpen(false); }}
+                >
+                  Exportar .ics
+                </button>
+              )}
+
+              <div className="my-1 border-t" />
+
+              {/* Settings & theme */}
+              <button
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { onOpenSettings(); setActionsOpen(false); }}
+              >
+                Configuracion
+              </button>
+              <button
+                className="w-full text-left px-3 py-1.5 hover:bg-muted flex items-center justify-between"
+                onClick={() => { onOpenNovedades(); setActionsOpen(false); }}
+              >
+                Novedades
+                {hasNewVersion && <span className="h-2 w-2 rounded-full bg-red-500" />}
+              </button>
+              <button
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { onToggleTheme(); setActionsOpen(false); }}
+              >
+                Cambiar tema
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -205,7 +262,7 @@ export function FilterBar({
             className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
             value={filters.category}
             onChange={(e) => onFilterChange('category', e.target.value)}
-            aria-label="Filtrar por categoría"
+            aria-label="Filtrar por categoria"
           >
             <option value="">Categorias</option>
             {filterOptions.categories.map((cat) => (
@@ -310,106 +367,20 @@ export function FilterBar({
             <option value="past">Pasadas</option>
           </select>
 
+          <SavedFiltersSection
+            presets={savedPresets}
+            maxReached={maxPresetsReached}
+            onRecallPreset={onRecallPreset}
+            onSavePreset={onSavePreset}
+            onDeletePreset={onDeletePreset}
+            onRenamePreset={onRenamePreset}
+          />
+
           <Button variant="outline" size="sm" onClick={onClearFilters}>
             Limpiar
           </Button>
         </div>
       )}
-
-      {/* Red toolbar: Quick filters + Actions */}
-      <div className="flex gap-2 overflow-x-auto items-center rounded-lg border-l-4 border-l-red-500 bg-card p-2 sm:p-3">
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={() =>
-            onQuickFilter({ type: 'visits', dateRange: 'visits-this-week', status: 'pending', sort: 'visit-date-asc' })
-          }
-        >
-          Visitas esta semana
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={() => onQuickFilter({ status: 'pending', dateRange: 'next-week', sort: 'close-date-asc' })}
-        >
-          Cierre pronto
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={() => onQuickFilter({ type: 'visits', status: 'pending', sort: 'visit-date-asc' })}
-        >
-          Visitas pendientes
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={() => onQuickFilter({ interested: 'true', status: '' })}
-        >
-          Interesadas
-        </Button>
-
-        <SavedFiltersSection
-          presets={savedPresets}
-          maxReached={maxPresetsReached}
-          onRecallPreset={onRecallPreset}
-          onSavePreset={onSavePreset}
-          onDeletePreset={onDeletePreset}
-          onRenamePreset={onRenamePreset}
-        />
-
-        {/* Separator */}
-        <div className="hidden sm:block h-6 w-px bg-border shrink-0" />
-
-        <Button variant="outline" size="sm" className="shrink-0" onClick={onExportCSV}>
-          CSV
-        </Button>
-        {activeTab === 'visitas' && (
-          <>
-            <Button variant="outline" size="sm" className="shrink-0" onClick={onExportICS}>
-              .ics
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              onClick={onToggleCalendar}
-            >
-              {isCalendarView ? 'Lista' : 'Calendario'}
-            </Button>
-          </>
-        )}
-
-        <button
-          className="shrink-0 rounded-md border bg-background p-2 hover:bg-muted transition-colors"
-          onClick={onOpenSettings}
-          title="Configuracion de confianza"
-          aria-label="Configuracion de confianza"
-        >
-          <Settings className="h-4 w-4" />
-        </button>
-
-        <button
-          className="shrink-0 relative text-lg px-1 hover:opacity-70 transition-opacity"
-          onClick={onOpenNovedades}
-          title="Novedades"
-          aria-label="Ver novedades"
-        >
-          🆕
-          {hasNewVersion && (
-            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500" />
-          )}
-        </button>
-
-        {/* Mobile-only: Refresh */}
-        <Button variant="default" size="sm" onClick={onRefresh} className="sm:hidden shrink-0 bg-red-600 hover:bg-red-700">
-          Refrescar
-        </Button>
-      </div>
     </div>
   );
 }

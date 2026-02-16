@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.17.0',
+    date: '2026-02-15',
+    headline: 'Barra de herramientas simplificada',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Interfaz mas limpia',
+        description:
+          'Se consolidaron las dos barras de herramientas en una sola. Accesos rapidos, exportar, configuracion y tema estan ahora en un menu compacto (...).',
+      },
+    ],
+  },
+  {
     version: '1.16.0',
     date: '2026-02-15',
     headline: 'Busqueda de precios en ingles',
