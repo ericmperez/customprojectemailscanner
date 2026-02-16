@@ -153,3 +153,7 @@ npm run test -- --run src/lib/services/__tests__/  # Run specific directory
 - Test files co-located in `__tests__/` directories
 - Test factories in `src/__tests__/factories.ts`
 - Mock setup in `src/__tests__/setup.ts`
+
+### Pre-Commit Rule
+
+**IMPORTANT**: Before every commit, you MUST run `npx vitest run` and verify that all new and modified test files pass. Do not commit code that introduces test failures. If pre-existing tests fail (tests you did not modify), that is acceptable, but any test file you created or changed must pass.
