@@ -491,7 +491,7 @@ export function DashboardShell() {
                 ? 'bg-blue-500 text-white shadow-sm'
                 : 'hover:bg-muted text-muted-foreground'
             )}
-            onClick={() => setActiveTab('licitaciones')}
+            onClick={() => { setActiveTab('licitaciones'); setIsCalendarView(false); }}
           >
             📋 Licitaciones
           </button>
@@ -571,36 +571,38 @@ export function DashboardShell() {
         )}
 
         {/* Main content */}
-        {isCalendarView ? (
-          <CalendarView
-            filters={buildQueryFilters()}
-            onOpenDetail={openDetail}
-          />
-        ) : activeTab === 'visitas' ? (
-          <>
-            {loading && (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="rounded-md border bg-card px-3 py-3 animate-pulse">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-10 bg-muted rounded" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="h-4 bg-muted rounded w-3/4" />
-                        <div className="h-3 bg-muted rounded w-1/2" />
+        {activeTab === 'visitas' ? (
+          isCalendarView ? (
+            <CalendarView
+              filters={buildQueryFilters()}
+              onOpenDetail={openDetail}
+            />
+          ) : (
+            <>
+              {loading && (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-md border bg-card px-3 py-3 animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-10 bg-muted rounded" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                          <div className="h-3 bg-muted rounded w-1/2" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {!loading && (
-              <VisitListView
-                licitaciones={displayedLicitaciones}
-                onOpenDetail={openDetail}
-                onToggleAttendance={handleToggleAttendance}
-              />
-            )}
-          </>
+                  ))}
+                </div>
+              )}
+              {!loading && (
+                <VisitListView
+                  licitaciones={displayedLicitaciones}
+                  onOpenDetail={openDetail}
+                  onToggleAttendance={handleToggleAttendance}
+                />
+              )}
+            </>
+          )
         ) : (
           <>
             {/* Loading skeleton */}

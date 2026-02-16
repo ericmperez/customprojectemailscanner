@@ -368,17 +368,21 @@ export function FilterBar({
         <Button variant="outline" size="sm" className="shrink-0" onClick={onExportCSV}>
           CSV
         </Button>
-        <Button variant="outline" size="sm" className="shrink-0" onClick={onExportICS}>
-          .ics
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={onToggleCalendar}
-        >
-          {isCalendarView ? 'Tarjetas' : 'Calendario'}
-        </Button>
+        {activeTab === 'visitas' && (
+          <>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={onExportICS}>
+              .ics
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={onToggleCalendar}
+            >
+              {isCalendarView ? 'Lista' : 'Calendario'}
+            </Button>
+          </>
+        )}
 
         <button
           className="shrink-0 rounded-md border bg-background p-2 hover:bg-muted transition-colors"

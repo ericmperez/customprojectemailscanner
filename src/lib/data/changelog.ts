@@ -27,6 +27,12 @@ export const CHANGELOG: ChangelogRelease[] = [
           'Nuevo tab "Visitas" que muestra solo licitaciones con visitas de sitio, agrupadas por fecha (Hoy, Manana, Esta semana, etc.). Marca cada visita como Asistir o Saltar.',
       },
       {
+        type: 'improvement',
+        title: 'Calendario solo en Visitas',
+        description:
+          'El boton de calendario y exportar .ics ahora solo aparecen dentro del tab de Visitas.',
+      },
+      {
         type: 'fix',
         title: 'Usuarios invitados ven los datos correctos',
         description:
