@@ -26,6 +26,12 @@ export const CHANGELOG: ChangelogRelease[] = [
         description:
           'El modal de detalle ahora tiene el encabezado y pie fijos mientras el contenido se desplaza. El fondo se difumina para mejor enfoque.',
       },
+      {
+        type: 'feature',
+        title: 'Fecha de cierre y checklist en encabezado',
+        description:
+          'El encabezado del modal ahora muestra la fecha de cierre con indicador de urgencia y un checklist visual de campos completados (PDF, descripcion, contacto, visita, fecha cierre, decision).',
+      },
     ],
   },
   {

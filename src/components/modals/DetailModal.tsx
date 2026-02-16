@@ -9,12 +9,43 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore } from '@/lib/utils';
+import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore, parseSheetDateValue } from '@/lib/utils';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
 import type { Licitacion } from '@/lib/types';
 import { hasVisitInfo, buildWhatsAppVisitCardUrl } from '@/lib/utils/whatsapp';
 import { toast } from 'sonner';
+
+function hasValue(v: string | null | undefined): boolean {
+  return !!v && v !== 'No disponible' && v !== 'No clasificado';
+}
+
+function getChecklist(lic: Licitacion) {
+  return [
+    { label: 'PDF', done: !!lic.pdfUrl || !!lic.pdfLink },
+    { label: 'Descripcion', done: hasValue(lic.description) },
+    { label: 'Contacto', done: hasValue(lic.contactName) || hasValue(lic.contactPhone) },
+    { label: 'Visita', done: hasValue(lic.visitLocation) },
+    { label: 'Fecha cierre', done: hasValue(lic.biddingCloseDate) },
+    { label: 'Decision', done: lic.approvalStatus !== 'pending' },
+  ];
+}
+
+function formatCloseDate(lic: Licitacion): { text: string; urgency: 'expired' | 'urgent' | 'soon' | 'normal' | 'none' } {
+  const date = parseSheetDateValue(lic.biddingCloseDate);
+  if (!date) return { text: 'Sin fecha', urgency: 'none' };
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(date);
+  target.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const formatted = date.toLocaleDateString('es-PR', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (diffDays < 0) return { text: `${formatted} (vencida)`, urgency: 'expired' };
+  if (diffDays === 0) return { text: `${formatted} (hoy)`, urgency: 'urgent' };
+  if (diffDays === 1) return { text: `${formatted} (manana)`, urgency: 'urgent' };
+  if (diffDays <= 7) return { text: `${formatted} (${diffDays} dias)`, urgency: 'soon' };
+  return { text: `${formatted} (${diffDays} dias)`, urgency: 'normal' };
+}
 
 const EDITABLE_FIELDS = [
   'title',
@@ -165,23 +196,59 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <DialogContent className="sm:max-w-[80vw] max-h-[100dvh] sm:max-h-[90vh] h-[100dvh] sm:h-auto rounded-none sm:rounded-lg p-0 flex flex-col overflow-hidden">
         <DialogHeader className="sticky top-0 z-10 bg-background border-b px-4 sm:px-6 pt-4 sm:pt-6 pb-3">
-          {lic && (
-            <div
-              className={cn(
-                'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-1 w-fit',
-                lic.approvalStatus === 'approved' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-                lic.approvalStatus === 'rejected' && 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
-                (!lic.approvalStatus || lic.approvalStatus === 'pending') && 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-              )}
-            >
-              {badgeText(lic.approvalStatus)}
-            </div>
-          )}
-          <DialogTitle>{lic?.title || lic?.subject || 'Detalle de Licitacion'}</DialogTitle>
-          {lic && (
-            <p className="text-sm text-muted-foreground">
-              {[lic.location, lic.category].filter(Boolean).join(' · ')}
-            </p>
+          {lic && (() => {
+            const closeInfo = formatCloseDate(lic);
+            const checklist = getChecklist(lic);
+            const doneCount = checklist.filter((c) => c.done).length;
+            return (
+              <>
+                {/* Row 1: Status badge + Close date */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div
+                    className={cn(
+                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium w-fit',
+                      lic.approvalStatus === 'approved' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+                      lic.approvalStatus === 'rejected' && 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+                      (!lic.approvalStatus || lic.approvalStatus === 'pending') && 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                    )}
+                  >
+                    {badgeText(lic.approvalStatus)}
+                  </div>
+                  <div className={cn(
+                    'text-sm font-medium',
+                    closeInfo.urgency === 'expired' && 'text-red-600 dark:text-red-400',
+                    closeInfo.urgency === 'urgent' && 'text-red-600 dark:text-red-400',
+                    closeInfo.urgency === 'soon' && 'text-amber-600 dark:text-amber-400',
+                    closeInfo.urgency === 'normal' && 'text-muted-foreground',
+                    closeInfo.urgency === 'none' && 'text-muted-foreground',
+                  )}>
+                    🗓️ Cierre: {closeInfo.text}
+                  </div>
+                </div>
+
+                {/* Row 2: Title */}
+                <DialogTitle className="pr-8">{lic.title || lic.subject || 'Detalle de Licitacion'}</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  {[lic.location, lic.category].filter(Boolean).join(' · ')}
+                </p>
+
+                {/* Row 3: Checklist */}
+                <div className="flex gap-x-3 gap-y-1 flex-wrap text-xs mt-1">
+                  {checklist.map((item) => (
+                    <span key={item.label} className={cn(
+                      'inline-flex items-center gap-1',
+                      item.done ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
+                    )}>
+                      {item.done ? '✅' : '⬜'} {item.label}
+                    </span>
+                  ))}
+                  <span className="text-muted-foreground ml-auto">{doneCount}/{checklist.length}</span>
+                </div>
+              </>
+            );
+          })()}
+          {!lic && (
+            <DialogTitle>Detalle de Licitacion</DialogTitle>
           )}
         </DialogHeader>
 
