@@ -220,10 +220,39 @@ export function LicitacionCard({
           ) : closeDateDisplay ? (
             <span>📅 Cierre: {closeDateDisplay}</span>
           ) : null}
+          {isVisit && lic.location && (
+            <span className="text-blue-600 dark:text-blue-400 font-medium">📍 {lic.location}</span>
+          )}
           {estimatedValue && (
             <span className="text-emerald-600 dark:text-emerald-400 font-medium">
               💰 {estimatedValue}
             </span>
+          )}
+        </div>
+
+        {/* Quick links: PDF & Quote */}
+        <div className="flex items-center gap-2 mt-1.5" onClick={(e) => e.stopPropagation()}>
+          {(lic.pdfUrl || lic.pdfLink) && (
+            <a
+              href={lic.pdfUrl || lic.pdfLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+              title="Abrir PDF"
+            >
+              📄 PDF
+            </a>
+          )}
+          {lic.quoteUrl && (
+            <a
+              href={lic.quoteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+              title="Entrar cotizacion"
+            >
+              🔗 Cotizacion
+            </a>
           )}
         </div>
       </div>

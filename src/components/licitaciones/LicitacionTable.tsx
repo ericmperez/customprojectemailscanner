@@ -123,6 +123,7 @@ export function LicitacionTable({
             {renderSortableHeader('emailDate')}
             {renderSortableHeader('closeDate')}
             {renderSortableHeader('contact')}
+            <th className="p-2 text-left w-16">Links</th>
             <th className="p-2 text-left w-20">Acciones</th>
           </tr>
         </thead>
@@ -194,6 +195,11 @@ export function LicitacionTable({
                       {lic.summary}
                     </div>
                   )}
+                  {isVisit && lic.location && (
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-0.5">
+                      📍 {lic.location}
+                    </div>
+                  )}
                 </td>
                 <td className="p-2 whitespace-nowrap">
                   {isVisit ? '🏗️ Visita' : '🛒 Compra'}
@@ -209,6 +215,11 @@ export function LicitacionTable({
                 <td className="p-2">{lic.category || '-'}</td>
                 <td className="p-2 whitespace-nowrap">
                   {emailDate}
+                  {isVisit && siteVisitDateDisplay !== 'No disponible' && (
+                    <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                      🗓️ {siteVisitDateDisplay}
+                    </div>
+                  )}
                 </td>
                 <td className="p-2 whitespace-nowrap">
                   {windowDays !== null ? (
@@ -223,6 +234,32 @@ export function LicitacionTable({
                   ) : '-'}
                 </td>
                 <td className="p-2">{lic.contactName || '-'}</td>
+                <td className="p-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex gap-1.5">
+                    {(lic.pdfUrl || lic.pdfLink) && (
+                      <a
+                        href={lic.pdfUrl || lic.pdfLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-xs"
+                        title="Abrir PDF"
+                      >
+                        📄
+                      </a>
+                    )}
+                    {lic.quoteUrl && (
+                      <a
+                        href={lic.quoteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-xs"
+                        title="Entrar cotizacion"
+                      >
+                        🔗
+                      </a>
+                    )}
+                  </div>
+                </td>
                 <td className="p-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-1">
                     <button

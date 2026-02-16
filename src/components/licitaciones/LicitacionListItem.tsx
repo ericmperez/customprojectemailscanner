@@ -84,6 +84,9 @@ export function LicitacionListItem({
           <span>
             📅 {isVisit && siteVisitDateDisplay !== 'No disponible' ? siteVisitDateDisplay : emailDate}
           </span>
+          {isVisit && lic.location && (
+            <span className="text-blue-600 dark:text-blue-400 font-medium">📍 {lic.location}</span>
+          )}
           {lic.category && <span>📂 {lic.category}</span>}
           {priorityLabel && (
             <span className={cn(
@@ -104,6 +107,30 @@ export function LicitacionListItem({
           {lic.contactName && <span>👤 {lic.contactName}</span>}
           {lic.estimatedValue && lic.estimatedValue !== 'No disponible' && (
             <span className="text-emerald-600 dark:text-emerald-400 font-medium">💰 {lic.estimatedValue}</span>
+          )}
+          {(lic.pdfUrl || lic.pdfLink) && (
+            <a
+              href={lic.pdfUrl || lic.pdfLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+              title="Abrir PDF"
+            >
+              📄 PDF
+            </a>
+          )}
+          {lic.quoteUrl && (
+            <a
+              href={lic.quoteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+              title="Entrar cotizacion"
+            >
+              🔗 Cotizacion
+            </a>
           )}
         </div>
       </div>
