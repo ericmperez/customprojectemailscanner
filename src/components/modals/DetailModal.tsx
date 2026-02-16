@@ -163,7 +163,7 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[100dvh] sm:max-h-[85vh] overflow-y-auto h-[100dvh] sm:h-auto rounded-none sm:rounded-lg p-4 sm:p-6">
+      <DialogContent className="sm:max-w-[80vw] max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto h-[100dvh] sm:h-auto rounded-none sm:rounded-lg p-4 sm:p-6">
         <DialogHeader>
           {lic && (
             <div
