@@ -234,16 +234,6 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
                       </div>
                     )}
                   </div>
-                  <div className={cn(
-                    'text-sm font-medium',
-                    closeInfo.urgency === 'expired' && 'text-red-600 dark:text-red-400',
-                    closeInfo.urgency === 'urgent' && 'text-red-600 dark:text-red-400',
-                    closeInfo.urgency === 'soon' && 'text-amber-600 dark:text-amber-400',
-                    closeInfo.urgency === 'normal' && 'text-muted-foreground',
-                    closeInfo.urgency === 'none' && 'text-muted-foreground',
-                  )}>
-                    🗓️ Cierre: {closeInfo.text}
-                  </div>
                 </div>
 
                 {/* Row 2: Title */}
@@ -251,6 +241,27 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
                 <p className="text-sm text-muted-foreground">
                   {[lic.location, lic.category].filter(Boolean).join(' · ')}
                 </p>
+
+                {/* Row 3: Dates */}
+                <div className="flex gap-x-4 gap-y-1 flex-wrap text-xs mt-1">
+                  <span className={cn(
+                    'font-medium',
+                    closeInfo.urgency === 'expired' && 'text-red-600 dark:text-red-400',
+                    closeInfo.urgency === 'urgent' && 'text-red-600 dark:text-red-400',
+                    closeInfo.urgency === 'soon' && 'text-amber-600 dark:text-amber-400',
+                    (closeInfo.urgency === 'normal' || closeInfo.urgency === 'none') && 'text-muted-foreground',
+                  )}>
+                    Fecha de Cierre: {closeInfo.text}
+                  </span>
+                  {hasValue(lic.siteVisitDate) && (
+                    <span className="text-muted-foreground">
+                      Fecha de Visita: {formatSiteVisitDate(lic.siteVisitDate)}
+                    </span>
+                  )}
+                  <span className="text-muted-foreground">
+                    Fecha de Email: {lic.emailDate ? new Date(lic.emailDate).toLocaleDateString('es-PR', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                  </span>
+                </div>
 
                 {/* Row 3: Checklist */}
                 <div className="flex gap-x-3 gap-y-1 flex-wrap text-xs mt-1">
