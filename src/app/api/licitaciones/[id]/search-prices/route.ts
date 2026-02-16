@@ -32,14 +32,14 @@ export async function POST(request: NextRequest) {
     const response = await getOpenAI().responses.create({
       model: 'gpt-4o',
       tools: [{ type: 'web_search' as const }],
-      instructions: `You are a procurement price research assistant for Puerto Rico government licitaciones (bids).
+      instructions: `You are a procurement price research assistant for Puerto Rico government bids.
 
-Given a list of items with quantities, search the web and find a real market price for EACH item.
+Given a list of items with quantities, search the web IN ENGLISH and find a real market price for EACH item.
 
-PRIORITIZE these sources:
-1. Puerto Rico / Caribbean suppliers and distributors
-2. Government procurement databases (GSA, PR government)
-3. Major US distributors (Grainger, Home Depot Pro, HD Supply, Amazon Business, Uline)
+SEARCH IN ENGLISH on US and Puerto Rico websites. PRIORITIZE these sources:
+1. Major US distributors that ship to Puerto Rico (Grainger, Home Depot, HD Supply, Lowe's, Amazon, Uline, Ferguson, MSC Industrial)
+2. Puerto Rico suppliers and distributors
+3. Government procurement databases (GSA Advantage, GSA schedules)
 4. Manufacturer websites with MSRP
 
 RESPOND ONLY with a JSON array with one object per item, in the same order as the input list:
@@ -56,10 +56,11 @@ RESPOND ONLY with a JSON array with one object per item, in the same order as th
 ]
 
 IMPORTANT:
+- Search in ENGLISH — items are already translated
 - Find a price for EVERY item in the list — do not skip any
-- Use REAL prices from REAL websites found via web search
-- Include the actual source URL where the price was found
-- Price should be per-unit cost (not total), include the unit
+- Use REAL prices from REAL US/PR websites found via web search
+- Include the actual product page URL where the price was found
+- Price should be per-unit cost in USD (not total), include the unit
 - If an exact item isn't found, find the closest equivalent and note it
 - Keep notes brief (under 60 chars)`,
       input: itemList,

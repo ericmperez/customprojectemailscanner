@@ -48,22 +48,22 @@ export async function POST(
       instructions: `You are a procurement document parser. Extract ALL items/materials/services from the licitación description with their quantities.
 
 RESPOND ONLY with a JSON array. Each object must have:
-- "item": the item/material/service name (be specific, include specs if mentioned)
+- "item": the item/material/service name IN ENGLISH (translate from Spanish, be specific, include specs if mentioned)
 - "qty": numeric quantity (use 1 if not specified)
-- "unit": unit of measure (e.g. "units", "sqft", "gallons", "lbs", "rolls", "boxes", "ea", "lot")
+- "unit": unit of measure in English (e.g. "units", "sqft", "gallons", "lbs", "rolls", "boxes", "ea", "lot")
 
 Example:
 [
-  { "item": "Pintura latex blanca 5 gal", "qty": 10, "unit": "cubetas" },
-  { "item": "Brocha 4 pulgadas", "qty": 24, "unit": "units" },
-  { "item": "Lija #120", "qty": 50, "unit": "pliegos" }
+  { "item": "White latex paint 5 gal", "qty": 10, "unit": "buckets" },
+  { "item": "4-inch paint brush", "qty": 24, "unit": "units" },
+  { "item": "Sandpaper #120 grit", "qty": 50, "unit": "sheets" }
 ]
 
 IMPORTANT:
 - Extract EVERY item mentioned, do not skip any
+- TRANSLATE all item names and units to English for US supplier searchability
 - If a range is given (e.g. "10-15"), use the higher number
 - Group identical items, sum their quantities
-- Use Spanish unit names when the original text is in Spanish
 - If the description is vague (e.g. "servicio de limpieza"), still list it as 1 lot`,
       input: description,
     });

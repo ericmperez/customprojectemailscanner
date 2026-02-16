@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.16.0',
+    date: '2026-02-15',
+    headline: 'Busqueda de precios en ingles',
+    features: [
+      {
+        type: 'improvement',
+        title: 'Busqueda de precios en ingles',
+        description:
+          'Los items se extraen traducidos al ingles y los precios se buscan en sitios de USA y Puerto Rico (Grainger, Home Depot, Amazon, etc.) para mejores resultados.',
+      },
+    ],
+  },
+  {
     version: '1.15.0',
     date: '2026-02-12',
     headline: 'Detalles de visita en el calendario',
