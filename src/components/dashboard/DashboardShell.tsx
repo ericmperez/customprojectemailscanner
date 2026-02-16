@@ -23,6 +23,7 @@ import { Loader2 } from 'lucide-react';
 import { ActivitySidebar } from './ActivitySidebar';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { useLicitaciones } from '@/hooks/useLicitaciones';
+import { CHANGELOG } from '@/lib/data/changelog';
 import { useStats } from '@/hooks/useStats';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useViewMode } from '@/hooks/useViewMode';
@@ -34,6 +35,13 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useWhatsNew } from '@/hooks/useWhatsNew';
 import { cn, arrayToCSV, downloadCSV, exportToICalendar } from '@/lib/utils';
 import type { Licitacion } from '@/lib/types';
+
+function formatOnlineTime(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours > 0) return `${hours}h${minutes}m`;
+  return `${minutes}m`;
+}
 
 export function DashboardShell() {
   const { organization } = useOrganization();
@@ -429,6 +437,7 @@ export function DashboardShell() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-2xl font-bold">📋 Licitaciones</h1>
+                <span className="text-[10px] text-muted-foreground font-normal">v{CHANGELOG[0]?.version}</span>
                 <button
                   onClick={() => { setActivityOpen(true); activityRefresh(); }}
                   className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted inline-flex items-center gap-1"
@@ -461,21 +470,23 @@ export function DashboardShell() {
               )}
             </div>
             <div className="sm:hidden flex items-center gap-2">
-              {onlineUsers.length > 1 && (
-                <div className="flex -space-x-1.5" title={onlineUsers.map((u) => u.name).join(', ')}>
+              {onlineUsers.length > 0 && (
+                <div className="flex items-end gap-1.5">
                   {onlineUsers.slice(0, 3).map((u) => (
-                    <div
-                      key={u.userId}
-                      className="relative w-5 h-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[9px] font-medium"
-                    >
-                      <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
-                        {u.imageUrl ? (
-                          <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
-                        ) : (
-                          u.name.charAt(0).toUpperCase()
-                        )}
+                    <div key={u.userId} className="flex flex-col items-center">
+                      <div className="relative w-6 h-6 rounded-full border-2 border-emerald-400 bg-muted flex items-center justify-center text-[9px] font-medium">
+                        <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+                          {u.imageUrl ? (
+                            <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
+                          ) : (
+                            u.name.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <span className="absolute -bottom-px -right-px w-1.5 h-1.5 rounded-full bg-emerald-500 border border-background" />
                       </div>
-                      <span className="absolute -bottom-px -right-px w-1.5 h-1.5 rounded-full bg-emerald-500 border border-background" />
+                      <span className="text-[9px] text-muted-foreground leading-tight mt-0.5">
+                        {formatOnlineTime(u.secondsToday)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -495,14 +506,10 @@ export function DashboardShell() {
             />
             <div className="hidden sm:flex items-center gap-2">
               {onlineUsers.length > 0 && (
-                <div className="flex items-center gap-1" title={onlineUsers.map((u) => u.name).join(', ')}>
-                  <div className="flex -space-x-1.5">
-                    {onlineUsers.slice(0, 4).map((u) => (
-                      <div
-                        key={u.userId}
-                        className="relative w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-medium"
-                        title={u.name}
-                      >
+                <div className="flex items-end gap-2">
+                  {onlineUsers.slice(0, 4).map((u) => (
+                    <div key={u.userId} className="flex flex-col items-center" title={u.name}>
+                      <div className="relative w-7 h-7 rounded-full border-2 border-emerald-400 bg-muted flex items-center justify-center text-[10px] font-medium">
                         <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
                           {u.imageUrl ? (
                             <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
@@ -512,13 +519,18 @@ export function DashboardShell() {
                         </div>
                         <span className="absolute -bottom-px -right-px w-2 h-2 rounded-full bg-emerald-500 border border-background" />
                       </div>
-                    ))}
-                    {onlineUsers.length > 4 && (
-                      <div className="w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-medium">
+                      <span className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                        {formatOnlineTime(u.secondsToday)}
+                      </span>
+                    </div>
+                  ))}
+                  {onlineUsers.length > 4 && (
+                    <div className="flex flex-col items-center">
+                      <div className="w-7 h-7 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-medium">
                         +{onlineUsers.length - 4}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
               <span className="text-sm font-medium truncate max-w-[150px]">{organization?.name}</span>
