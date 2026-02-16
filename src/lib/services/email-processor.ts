@@ -10,7 +10,7 @@ import {
 import { isBiddingOpen, isMinutaOrAsistencia } from '@/lib/services/cron.utils';
 
 const MAX_EMAILS_PER_RUN = 7;
-const TIME_BUDGET_MS = 3_600_000; // temporarily raised for bulk import (was 45_000)
+const TIME_BUDGET_MS = 45_000;
 const LOOKBACK_DAYS = 90;
 
 export interface ProcessingStats {

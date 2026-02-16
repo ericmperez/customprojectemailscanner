@@ -31,6 +31,7 @@ export interface Licitacion {
   isEmergency: boolean;
   decisionStatus: string;
   quoteUrl: string;
+  visitAttendance: 'attending' | 'skipped' | null;
 }
 
 export interface Stats {
@@ -60,6 +61,8 @@ export interface Visit {
   pdfUrl: string;
   pdfFilename: string;
   emailDate: string;
+  visitAttendance: 'attending' | 'skipped' | null;
+  interested: boolean;
 }
 
 export interface FilterOptions {

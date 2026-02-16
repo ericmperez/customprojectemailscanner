@@ -20,7 +20,9 @@ function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { organization } = useOrganization();
-  const { isLoaded } = useOrganizationList();
+  const { isLoaded, userMemberships, setActive } = useOrganizationList({
+    userMemberships: { infinite: true },
+  });
 
   // Determine initial step: query param or org existence
   const queryStep = searchParams.get('step') as Step | null;
@@ -29,6 +31,21 @@ function OnboardingContent() {
     : organization ? 'gmail' : 'org';
   const [step, setStep] = useState<Step>(initialStep);
   const [gmailStatus, setGmailStatus] = useState<'idle' | 'connecting' | 'connected' | 'skipped'>('idle');
+
+  // Auto-activate org for invited users: if user has memberships but no
+  // active org, set the first membership as active and redirect to dashboard.
+  useEffect(() => {
+    if (!isLoaded || !setActive) return;
+    if (organization) return; // already has an active org
+
+    const memberships = userMemberships?.data;
+    if (memberships && memberships.length > 0) {
+      const firstOrg = memberships[0].organization;
+      setActive({ organization: firstOrg.id }).then(() => {
+        router.replace('/');
+      });
+    }
+  }, [isLoaded, organization, userMemberships?.data, setActive, router]);
 
   // Single-org enforcement: if user already has an org and lands on
   // the org-creation step, redirect to dashboard.

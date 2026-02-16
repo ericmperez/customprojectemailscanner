@@ -16,6 +16,25 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.14.0',
+    date: '2026-02-15',
+    headline: 'Tab de Visitas y mejoras de equipo',
+    features: [
+      {
+        type: 'feature',
+        title: 'Tab dedicado de Visitas',
+        description:
+          'Nuevo tab "Visitas" que muestra solo licitaciones con visitas de sitio, agrupadas por fecha (Hoy, Manana, Esta semana, etc.). Marca cada visita como Asistir o Saltar.',
+      },
+      {
+        type: 'fix',
+        title: 'Usuarios invitados ven los datos correctos',
+        description:
+          'Los miembros invitados a una organizacion ahora se activan automaticamente en la org correcta al iniciar sesion, evitando la creacion de organizaciones duplicadas.',
+      },
+    ],
+  },
+  {
     version: '1.13.0',
     date: '2026-02-15',
     headline: 'Una organizacion por usuario',

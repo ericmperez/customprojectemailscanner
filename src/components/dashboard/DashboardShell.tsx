@@ -12,6 +12,7 @@ import { LicitacionCard } from '@/components/licitaciones/LicitacionCard';
 import { LicitacionListItem } from '@/components/licitaciones/LicitacionListItem';
 import { LicitacionTable } from '@/components/licitaciones/LicitacionTable';
 import { CalendarView } from '@/components/calendar/CalendarView';
+import { VisitListView } from '@/components/visits/VisitListView';
 import { ApprovalModal } from '@/components/modals/ApprovalModal';
 import { DetailModal } from '@/components/modals/DetailModal';
 import { ConfirmationDialog } from '@/components/modals/ConfirmationDialog';
@@ -30,7 +31,7 @@ import { useFilters, DEFAULT_FILTERS } from '@/hooks/useFilters';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useWhatsNew } from '@/hooks/useWhatsNew';
-import { arrayToCSV, downloadCSV, exportToICalendar } from '@/lib/utils';
+import { cn, arrayToCSV, downloadCSV, exportToICalendar } from '@/lib/utils';
 import type { Licitacion } from '@/lib/types';
 
 export function DashboardShell() {
@@ -64,6 +65,9 @@ export function DashboardShell() {
     },
     [isFavorite, rawToggleFavorite, licitaciones, logClientAction]
   );
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'licitaciones' | 'visitas'>('licitaciones');
 
   // Modal state
   const [isCalendarView, setIsCalendarView] = useState(false);
@@ -104,11 +108,16 @@ export function DashboardShell() {
   // Load data on filter change
   const refresh = useCallback(() => {
     const query = buildQueryFilters();
-    loadLicitaciones(query, filters.sort);
+    // Force visits filter when on visitas tab
+    if (activeTab === 'visitas') {
+      query.type = 'visits';
+    }
+    const sort = activeTab === 'visitas' && !filters.sort ? 'visit-date-asc' : filters.sort;
+    loadLicitaciones(query, sort);
     loadStats();
     clearSelection();
     setShowFavoritesOnly(false);
-  }, [buildQueryFilters, filters.sort, loadLicitaciones, loadStats, clearSelection]);
+  }, [buildQueryFilters, filters.sort, activeTab, loadLicitaciones, loadStats, clearSelection]);
 
   useEffect(() => {
     refresh();
@@ -161,6 +170,31 @@ export function DashboardShell() {
         toast.error('Error al cambiar interés', {
           action: { label: 'Reintentar', onClick: () => handleToggleInterested(id, interested) },
         });
+      }
+    },
+    [refresh, licitaciones, logClientAction]
+  );
+
+  const handleToggleAttendance = useCallback(
+    async (id: string, attendance: 'attending' | 'skipped' | null) => {
+      try {
+        const response = await fetch(`/api/licitaciones/${id}/update-fields`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visitAttendance: attendance }),
+        });
+        const result = await response.json();
+        if (result.success) {
+          const msg = attendance === 'attending' ? 'Asistiras a la visita' : attendance === 'skipped' ? 'Visita omitida' : 'Asistencia sin decidir';
+          toast.success(msg);
+          const lic = licitaciones.find((l) => l.id === id);
+          logClientAction(attendance === 'attending' ? 'visit_attend' : attendance === 'skipped' ? 'visit_skip' : 'visit_undecide', id, lic?.title ?? null);
+          refresh();
+        } else {
+          toast.error('Error al cambiar asistencia');
+        }
+      } catch {
+        toast.error('Error al cambiar asistencia');
       }
     },
     [refresh, licitaciones, logClientAction]
@@ -448,10 +482,37 @@ export function DashboardShell() {
           </div>
         </div>
 
+        {/* Tab toggle */}
+        <div className="flex rounded-lg border bg-card p-1 w-fit">
+          <button
+            className={cn(
+              'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              activeTab === 'licitaciones'
+                ? 'bg-blue-500 text-white shadow-sm'
+                : 'hover:bg-muted text-muted-foreground'
+            )}
+            onClick={() => setActiveTab('licitaciones')}
+          >
+            📋 Licitaciones
+          </button>
+          <button
+            className={cn(
+              'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+              activeTab === 'visitas'
+                ? 'bg-blue-500 text-white shadow-sm'
+                : 'hover:bg-muted text-muted-foreground'
+            )}
+            onClick={() => setActiveTab('visitas')}
+          >
+            🏗️ Visitas
+          </button>
+        </div>
+
         {/* Filters */}
         <FilterBar
           filters={filters}
           filterOptions={filterOptions}
+          activeTab={activeTab}
           viewMode={viewMode}
           isCalendarView={isCalendarView}
           onFilterChange={updateFilter}
@@ -515,6 +576,31 @@ export function DashboardShell() {
             filters={buildQueryFilters()}
             onOpenDetail={openDetail}
           />
+        ) : activeTab === 'visitas' ? (
+          <>
+            {loading && (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="rounded-md border bg-card px-3 py-3 animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-10 bg-muted rounded" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-4 bg-muted rounded w-3/4" />
+                        <div className="h-3 bg-muted rounded w-1/2" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!loading && (
+              <VisitListView
+                licitaciones={displayedLicitaciones}
+                onOpenDetail={openDetail}
+                onToggleAttendance={handleToggleAttendance}
+              />
+            )}
+          </>
         ) : (
           <>
             {/* Loading skeleton */}

@@ -42,6 +42,7 @@ function rowToLicitacion(row: Record<string, unknown>): Licitacion {
     isEmergency: (row.is_emergency as boolean) || false,
     decisionStatus: (row.decision_status as string) || 'researching',
     quoteUrl: (row.quote_url as string) || '',
+    visitAttendance: (row.visit_attendance as 'attending' | 'skipped' | null) ?? null,
   };
 }
 
@@ -79,6 +80,7 @@ function dataToRow(data: Record<string, unknown>): Record<string, unknown> {
     isEmergency: 'is_emergency',
     decisionStatus: 'decision_status',
     quoteUrl: 'quote_url',
+    visitAttendance: 'visit_attendance',
   };
 
   for (const [key, value] of Object.entries(data)) {
@@ -345,6 +347,8 @@ export class SupabaseLicitacionesService {
         pdfUrl: lic.pdfUrl,
         pdfFilename: lic.pdfFilename,
         emailDate: lic.emailDate,
+        visitAttendance: lic.visitAttendance,
+        interested: lic.interested,
       }))
       .sort((a, b) => {
         const aDate = new Date(`${a.visitDate}T${a.visitTime || '00:00'}:00`);

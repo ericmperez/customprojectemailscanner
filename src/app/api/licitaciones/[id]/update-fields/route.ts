@@ -38,6 +38,16 @@ export async function PATCH(
       fields.interested = body.interested;
     }
 
+    if (body.visitAttendance !== undefined) {
+      if (body.visitAttendance !== null && body.visitAttendance !== 'attending' && body.visitAttendance !== 'skipped') {
+        return NextResponse.json(
+          { success: false, error: 'Invalid visitAttendance. Must be "attending", "skipped", or null' },
+          { status: 400 }
+        );
+      }
+      fields.visitAttendance = body.visitAttendance;
+    }
+
     if (typeof body.decisionStatus === 'string') {
       if (!VALID_DECISION_STATUSES.includes(body.decisionStatus)) {
         return NextResponse.json(

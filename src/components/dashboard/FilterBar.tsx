@@ -34,6 +34,7 @@ interface FilterBarProps {
   onOpenSettings: () => void;
   onOpenNovedades: () => void;
   hasNewVersion?: boolean;
+  activeTab?: 'licitaciones' | 'visitas';
 }
 
 export function FilterBar({
@@ -60,6 +61,7 @@ export function FilterBar({
   onOpenSettings,
   onOpenNovedades,
   hasNewVersion,
+  activeTab,
 }: FilterBarProps) {
   const [townDropdownOpen, setTownDropdownOpen] = useState(false);
   const [townSearch, setTownSearch] = useState('');
@@ -80,7 +82,7 @@ export function FilterBar({
   // Count active advanced filters (excluding status, search, sort)
   const advancedFilterCount = [
     filters.category,
-    filters.type,
+    activeTab !== 'visitas' ? filters.type : '',
     filters.priority,
     filters.dateRange,
   ].filter(Boolean).length + (filters.town.length > 0 ? 1 : 0);
@@ -268,16 +270,18 @@ export function FilterBar({
             )}
           </div>
 
-          <select
-            className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
-            value={filters.type}
-            onChange={(e) => onFilterChange('type', e.target.value)}
-            aria-label="Filtrar por tipo"
-          >
-            <option value="">Tipo</option>
-            <option value="visits">Visitas</option>
-            <option value="purchases">Compras</option>
-          </select>
+          {activeTab !== 'visitas' && (
+            <select
+              className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
+              value={filters.type}
+              onChange={(e) => onFilterChange('type', e.target.value)}
+              aria-label="Filtrar por tipo"
+            >
+              <option value="">Tipo</option>
+              <option value="visits">Visitas</option>
+              <option value="purchases">Compras</option>
+            </select>
+          )}
 
           <select
             className="rounded-md border bg-background px-2 py-2 text-sm flex-1 min-w-[120px] sm:flex-none sm:px-3"
