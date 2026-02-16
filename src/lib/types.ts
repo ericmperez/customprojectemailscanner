@@ -135,6 +135,15 @@ export interface ConfidenceFieldSettings {
   ignored: ConfidenceFieldName[];
 }
 
+export interface ChecklistItem {
+  id: string;
+  label: string;
+  completed: boolean;
+  completed_by: string | null;
+  completed_at: string | null;
+  sort_order: number;
+}
+
 export interface CorrectionExample {
   field: string;
   original: string;

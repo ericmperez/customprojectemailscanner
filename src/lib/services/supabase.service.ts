@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { ConfidenceFieldSettings, CorrectionExample } from '@/lib/types';
+import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample } from '@/lib/types';
 
 function getClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
@@ -645,4 +645,147 @@ export async function getOrgsWithActiveGmail(): Promise<{ org_id: string; email_
   }
 
   return (data ?? []) as { org_id: string; email_address: string; access_token_enc: string; refresh_token_enc: string; token_expiry: string }[];
+}
+
+// ── Licitacion Checklist ─────────────────────────────────────────────
+
+const DEFAULT_CHECKLIST_LABELS = [
+  'Revisar documentos',
+  'Cotizar materiales',
+  'Visita de sitio',
+  'Preparar propuesta',
+  'Someter cotización',
+];
+
+/**
+ * Get checklist items for a licitacion, ordered by sort_order.
+ */
+export async function getChecklist(orgId: string, licitacionId: string): Promise<ChecklistItem[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('licitacion_checklist')
+    .select('id, label, completed, completed_by, completed_at, sort_order')
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId)
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching checklist:', error);
+    return [];
+  }
+
+  return (data ?? []) as ChecklistItem[];
+}
+
+/**
+ * Initialize a checklist with default items (lazy initialization).
+ * Returns the created items.
+ */
+export async function initializeChecklist(orgId: string, licitacionId: string): Promise<ChecklistItem[]> {
+  const supabase = getClient();
+  const rows = DEFAULT_CHECKLIST_LABELS.map((label, i) => ({
+    org_id: orgId,
+    licitacion_id: licitacionId,
+    label,
+    sort_order: i,
+  }));
+
+  const { data, error } = await supabase
+    .from('licitacion_checklist')
+    .insert(rows)
+    .select('id, label, completed, completed_by, completed_at, sort_order');
+
+  if (error) {
+    console.error('Error initializing checklist:', error);
+    return [];
+  }
+
+  return (data ?? []) as ChecklistItem[];
+}
+
+/**
+ * Toggle a checklist item's completed status.
+ */
+export async function toggleChecklistItem(
+  orgId: string,
+  itemId: string,
+  completed: boolean,
+  userName: string
+): Promise<ChecklistItem | null> {
+  const supabase = getClient();
+  const update = completed
+    ? { completed: true, completed_by: userName, completed_at: new Date().toISOString() }
+    : { completed: false, completed_by: null, completed_at: null };
+
+  const { data, error } = await supabase
+    .from('licitacion_checklist')
+    .update(update)
+    .eq('org_id', orgId)
+    .eq('id', itemId)
+    .select('id, label, completed, completed_by, completed_at, sort_order')
+    .single();
+
+  if (error) {
+    console.error('Error toggling checklist item:', error);
+    throw error;
+  }
+
+  return data as ChecklistItem;
+}
+
+/**
+ * Add a new checklist item to a licitacion.
+ */
+export async function addChecklistItem(
+  orgId: string,
+  licitacionId: string,
+  label: string
+): Promise<ChecklistItem> {
+  const supabase = getClient();
+
+  // Get max sort_order
+  const { data: existing } = await supabase
+    .from('licitacion_checklist')
+    .select('sort_order')
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+
+  const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
+
+  const { data, error } = await supabase
+    .from('licitacion_checklist')
+    .insert({
+      org_id: orgId,
+      licitacion_id: licitacionId,
+      label,
+      sort_order: nextOrder,
+    })
+    .select('id, label, completed, completed_by, completed_at, sort_order')
+    .single();
+
+  if (error) {
+    console.error('Error adding checklist item:', error);
+    throw error;
+  }
+
+  return data as ChecklistItem;
+}
+
+/**
+ * Delete a checklist item (scoped to org).
+ */
+export async function deleteChecklistItem(orgId: string, itemId: string): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('licitacion_checklist')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('id', itemId);
+
+  if (error) {
+    console.error('Error deleting checklist item:', error);
+    throw error;
+  }
 }

@@ -12,23 +12,13 @@ import { Button } from '@/components/ui/button';
 import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, parseConfidence, computeWorthItScore, parseSheetDateValue } from '@/lib/utils';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
+import { LicitacionChecklist } from '@/components/licitaciones/LicitacionChecklist';
 import type { Licitacion } from '@/lib/types';
 import { hasVisitInfo, buildWhatsAppVisitCardUrl } from '@/lib/utils/whatsapp';
 import { toast } from 'sonner';
 
 function hasValue(v: string | null | undefined): boolean {
   return !!v && v !== 'No disponible' && v !== 'No clasificado';
-}
-
-function getChecklist(lic: Licitacion) {
-  return [
-    { label: 'PDF', done: !!lic.pdfUrl || !!lic.pdfLink },
-    { label: 'Descripcion', done: hasValue(lic.description) },
-    { label: 'Contacto', done: hasValue(lic.contactName) || hasValue(lic.contactPhone) },
-    { label: 'Visita', done: hasValue(lic.visitLocation) },
-    { label: 'Fecha cierre', done: hasValue(lic.biddingCloseDate) },
-    { label: 'Decision', done: lic.approvalStatus !== 'pending' },
-  ];
 }
 
 function formatCloseDate(lic: Licitacion): { text: string; urgency: 'expired' | 'urgent' | 'soon' | 'normal' | 'none' } {
@@ -200,8 +190,6 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
         <DialogHeader className="sticky top-0 z-10 bg-background border-b px-4 sm:px-6 pt-4 sm:pt-6 pb-3">
           {lic && (() => {
             const closeInfo = formatCloseDate(lic);
-            const checklist = getChecklist(lic);
-            const doneCount = checklist.filter((c) => c.done).length;
             return (
               <>
                 {/* Row 1: Approve/Reject + Close date */}
@@ -262,19 +250,6 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
                     Fecha de Email: {lic.emailDate ? new Date(lic.emailDate).toLocaleDateString('es-PR', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
                   </span>
                 </div>
-
-                {/* Row 3: Checklist */}
-                <div className="flex gap-x-3 gap-y-1 flex-wrap text-xs mt-1">
-                  {checklist.map((item) => (
-                    <span key={item.label} className={cn(
-                      'inline-flex items-center gap-1',
-                      item.done ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
-                    )}>
-                      {item.done ? '✅' : '⬜'} {item.label}
-                    </span>
-                  ))}
-                  <span className="text-muted-foreground ml-auto">{doneCount}/{checklist.length}</span>
-                </div>
               </>
             );
           })()}
@@ -292,6 +267,14 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
 
         {lic && !loading && (
           <div className="space-y-4">
+            {/* Checklist */}
+            <Section title="Checklist">
+              <LicitacionChecklist
+                licitacionId={lic.id}
+                licitacionTitle={lic.title || lic.subject || ''}
+              />
+            </Section>
+
             {/* General Info */}
             <Section title="Informacion General">
               <EditableDetailItem
