@@ -30,6 +30,7 @@ export interface Licitacion {
   interested: boolean;
   isEmergency: boolean;
   decisionStatus: string;
+  quoteUrl: string;
 }
 
 export interface Stats {

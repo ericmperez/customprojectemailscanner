@@ -26,6 +26,7 @@ export interface EmailDetails {
   subject: string;
   from: string;
   date: string;
+  bodyText: string;
   attachments: EmailAttachment[];
 }
 
@@ -164,14 +165,55 @@ class GmailService {
     };
 
     const attachments = await this.extractAttachments(message);
+    const bodyText = this.extractBodyText(message);
 
     return {
       id: messageId,
       subject: getHeader('Subject'),
       from: getHeader('From'),
       date: getHeader('Date'),
+      bodyText,
       attachments,
     };
+  }
+
+  /**
+   * Extract the plain-text or HTML body from a message's MIME parts.
+   * Prefers text/plain; falls back to text/html with tags stripped.
+   */
+  private extractBodyText(message: gmail_v1.Schema$Message): string {
+    let plainText = '';
+    let htmlText = '';
+
+    const walkParts = (parts: unknown[]) => {
+      for (const part of parts) {
+        const p = part as {
+          mimeType?: string;
+          body?: { data?: string };
+          parts?: unknown[];
+        };
+        if (p.parts) walkParts(p.parts);
+        if (p.body?.data) {
+          const decoded = Buffer.from(p.body.data, 'base64').toString('utf-8');
+          if (p.mimeType === 'text/plain' && !plainText) plainText = decoded;
+          if (p.mimeType === 'text/html' && !htmlText) htmlText = decoded;
+        }
+      }
+    };
+
+    // Check top-level body first (simple messages without parts)
+    const payload = message.payload;
+    if (payload?.body?.data) {
+      const decoded = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+      if (payload.mimeType === 'text/plain') plainText = decoded;
+      if (payload.mimeType === 'text/html') htmlText = decoded;
+    }
+    if (payload?.parts) walkParts(payload.parts);
+
+    if (plainText) return plainText;
+    // Strip HTML tags as fallback
+    if (htmlText) return htmlText.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return '';
   }
 
   /**

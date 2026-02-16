@@ -41,6 +41,7 @@ function rowToLicitacion(row: Record<string, unknown>): Licitacion {
     interested: (row.interested as boolean) || false,
     isEmergency: (row.is_emergency as boolean) || false,
     decisionStatus: (row.decision_status as string) || 'researching',
+    quoteUrl: (row.quote_url as string) || '',
   };
 }
 
@@ -77,6 +78,7 @@ function dataToRow(data: Record<string, unknown>): Record<string, unknown> {
     interested: 'interested',
     isEmergency: 'is_emergency',
     decisionStatus: 'decision_status',
+    quoteUrl: 'quote_url',
   };
 
   for (const [key, value] of Object.entries(data)) {

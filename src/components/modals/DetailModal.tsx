@@ -426,8 +426,15 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
 
         <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between mt-2">
           <div className="flex gap-2">
+            {lic?.quoteUrl && (
+              <Button asChild variant="default" className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700">
+                <a href={lic.quoteUrl} target="_blank" rel="noopener noreferrer">
+                  🔗 Entrar Cotizacion
+                </a>
+              </Button>
+            )}
             {hasPdf && (
-              <Button asChild className="flex-1 sm:flex-none">
+              <Button asChild variant="outline" className="flex-1 sm:flex-none">
                 <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
                   📄 Abrir PDF
                 </a>

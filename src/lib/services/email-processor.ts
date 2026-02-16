@@ -10,7 +10,7 @@ import {
 import { isBiddingOpen, isMinutaOrAsistencia } from '@/lib/services/cron.utils';
 
 const MAX_EMAILS_PER_RUN = 7;
-const TIME_BUDGET_MS = 45_000;
+const TIME_BUDGET_MS = 3_600_000; // temporarily raised for bulk import (was 45_000)
 const LOOKBACK_DAYS = 90;
 
 export interface ProcessingStats {
@@ -153,6 +153,12 @@ export async function processNewEmails(
               .replace(/^(INVITACION-|INVITACIÓN-)/i, '')
               .trim();
 
+      // Extract bidding/quote URL from email body
+      const quoteUrl = extractQuoteUrl(email.bodyText);
+      if (quoteUrl) {
+        console.log(`[fetch] Found quote URL: ${quoteUrl}`);
+      }
+
       // Upsert to Supabase licitaciones table
       const licitacionData: Record<string, unknown> = {
         processedAt: new Date().toISOString(),
@@ -181,6 +187,7 @@ export async function processNewEmails(
         interested: false,
         isEmergency: /emergencia/i.test(email.subject),
         decisionStatus: 'researching',
+        quoteUrl: quoteUrl || '',
       };
 
       const result = await licitacionesService.saveLicitacion(orgId, licitacionData);
@@ -211,4 +218,61 @@ export async function processNewEmails(
   }
 
   return stats;
+}
+
+/**
+ * Extract the most relevant quote/bidding URL from the email body.
+ * Looks for links to bidding portals, government sites, and general URLs.
+ */
+function extractQuoteUrl(bodyText: string): string {
+  if (!bodyText) return '';
+
+  // Extract all URLs from the text
+  const urlRegex = /https?:\/\/[^\s<>"')\]]+/gi;
+  const urls = bodyText.match(urlRegex) || [];
+
+  if (urls.length === 0) return '';
+
+  // Prioritize bidding/government portal URLs
+  const priorityPatterns = [
+    /subasta/i,
+    /licitaci[oó]n/i,
+    /cotizaci[oó]n/i,
+    /bid/i,
+    /procurement/i,
+    /gobierno\.pr/i,
+    /juntadesubastas/i,
+    /acueductos/i,
+    /aeepr/i,
+    /prits/i,
+    /portal/i,
+  ];
+
+  for (const pattern of priorityPatterns) {
+    const match = urls.find((url) => pattern.test(url));
+    if (match) return cleanUrl(match);
+  }
+
+  // Filter out common non-relevant URLs (tracking pixels, unsubscribe, social media)
+  const excluded = [
+    /google\.com\/maps/i,
+    /googleapis\.com/i,
+    /facebook\.com/i,
+    /twitter\.com/i,
+    /instagram\.com/i,
+    /unsubscribe/i,
+    /tracking/i,
+    /\.png$/i,
+    /\.jpg$/i,
+    /\.gif$/i,
+  ];
+
+  const filtered = urls.filter((url) => !excluded.some((ex) => ex.test(url)));
+  const best = filtered[0] || urls[0];
+  return best ? cleanUrl(best) : '';
+}
+
+function cleanUrl(url: string): string {
+  // Remove trailing punctuation that might have been captured
+  return url.replace(/[.,;:!?)}\]]+$/, '');
 }
