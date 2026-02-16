@@ -50,13 +50,13 @@ export async function POST(
 RESPOND ONLY with a JSON array. Each object must have:
 - "item": the item/material/service name IN ENGLISH (translate from Spanish, be specific, include specs if mentioned)
 - "qty": numeric quantity (use 1 if not specified)
-- "unit": unit of measure in English (e.g. "units", "sqft", "gallons", "lbs", "rolls", "boxes", "ea", "lot")
+- "unit": unit of measure in English (e.g. "units", "sqft", "gallons", "lbs", "rolls", "boxes", "cases", "ea", "lot")
 
 Example:
 [
   { "item": "White latex paint 5 gal", "qty": 10, "unit": "buckets" },
   { "item": "4-inch paint brush", "qty": 24, "unit": "units" },
-  { "item": "Sandpaper #120 grit", "qty": 50, "unit": "sheets" }
+  { "item": "DPD HACH 1 Powder Pillows Free Chlorine Reagent 10mL", "qty": 100, "unit": "cases" }
 ]
 
 IMPORTANT:
@@ -64,7 +64,9 @@ IMPORTANT:
 - TRANSLATE all item names and units to English for US supplier searchability
 - If a range is given (e.g. "10-15"), use the higher number
 - Group identical items, sum their quantities
-- If the description is vague (e.g. "servicio de limpieza"), still list it as 1 lot`,
+- If the description is vague (e.g. "servicio de limpieza"), still list it as 1 lot
+- QUANTITY AND UNIT are often on the FAR RIGHT side of the text (e.g. "100 CS" at the end of a line means 100 cases). Common unit codes: CS=cases, EA=each, BX=boxes, GL=gallons, PK=packs, BG=bags, DR=drums, RL=rolls, LB=pounds, CF=cubic feet
+- The number before the unit code is the quantity, NOT part of the item name`,
       input: description,
     });
 
