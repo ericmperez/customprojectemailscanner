@@ -29,6 +29,7 @@ import { useViewMode } from '@/hooks/useViewMode';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { useFilters, DEFAULT_FILTERS } from '@/hooks/useFilters';
 import { useSavedFilters } from '@/hooks/useSavedFilters';
+import { usePresence } from '@/hooks/usePresence';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useWhatsNew } from '@/hooks/useWhatsNew';
 import { cn, arrayToCSV, downloadCSV, exportToICalendar } from '@/lib/utils';
@@ -54,6 +55,7 @@ export function DashboardShell() {
     useFilters();
   const { presets: savedPresets, savePreset, deletePreset, renamePreset, maxReached: maxPresetsReached } =
     useSavedFilters();
+  const { onlineUsers } = usePresence();
 
   // Wrapped toggleFavorite with activity logging
   const toggleFavorite = useCallback(
@@ -459,6 +461,23 @@ export function DashboardShell() {
               )}
             </div>
             <div className="sm:hidden flex items-center gap-2">
+              {onlineUsers.length > 1 && (
+                <div className="flex -space-x-1.5" title={onlineUsers.map((u) => u.name).join(', ')}>
+                  {onlineUsers.slice(0, 3).map((u) => (
+                    <div
+                      key={u.userId}
+                      className="relative w-5 h-5 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[9px] font-medium overflow-hidden"
+                    >
+                      {u.imageUrl ? (
+                        <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
+                      ) : (
+                        u.name.charAt(0).toUpperCase()
+                      )}
+                      <span className="absolute -bottom-px -right-px w-1.5 h-1.5 rounded-full bg-emerald-500 border border-background" />
+                    </div>
+                  ))}
+                </div>
+              )}
               <span className="text-sm font-medium truncate max-w-[150px]">{organization?.name}</span>
               <Link href="/settings" className="rounded-md border p-1.5 hover:bg-muted" title="Configuracion">
                 ⚙️
@@ -473,6 +492,31 @@ export function DashboardShell() {
               onStatusClick={(status) => updateFilter('status', status)}
             />
             <div className="hidden sm:flex items-center gap-2">
+              {onlineUsers.length > 0 && (
+                <div className="flex items-center gap-1" title={onlineUsers.map((u) => u.name).join(', ')}>
+                  <div className="flex -space-x-1.5">
+                    {onlineUsers.slice(0, 4).map((u) => (
+                      <div
+                        key={u.userId}
+                        className="relative w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-medium overflow-hidden"
+                        title={u.name}
+                      >
+                        {u.imageUrl ? (
+                          <img src={u.imageUrl} alt={u.name} className="w-full h-full object-cover" />
+                        ) : (
+                          u.name.charAt(0).toUpperCase()
+                        )}
+                        <span className="absolute -bottom-px -right-px w-2 h-2 rounded-full bg-emerald-500 border border-background" />
+                      </div>
+                    ))}
+                    {onlineUsers.length > 4 && (
+                      <div className="w-6 h-6 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-medium">
+                        +{onlineUsers.length - 4}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <span className="text-sm font-medium truncate max-w-[150px]">{organization?.name}</span>
               <Link href="/settings" className="rounded-md border p-1.5 hover:bg-muted" title="Configuracion">
                 ⚙️

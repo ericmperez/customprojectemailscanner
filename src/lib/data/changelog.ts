@@ -27,6 +27,12 @@ export const CHANGELOG: ChangelogRelease[] = [
           'Nuevo tab "Visitas" que muestra solo licitaciones con visitas de sitio, agrupadas por fecha (Hoy, Manana, Esta semana, etc.). Marca cada visita como Asistir o Saltar.',
       },
       {
+        type: 'feature',
+        title: 'Usuarios conectados en tiempo real',
+        description:
+          'Avatares con indicador verde en el header muestran que miembros del equipo estan conectados en este momento.',
+      },
+      {
         type: 'improvement',
         title: 'Calendario solo en Visitas',
         description:
