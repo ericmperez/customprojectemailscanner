@@ -155,6 +155,25 @@ import type { Licitacion } from './types';
  * Extract confidence percentage from extractionMethod field.
  * Expects format like "GPT-4o (85%)" → 85
  */
+/**
+ * Parse estimated value string into a number.
+ * Strips "$", commas, whitespace → returns number | null
+ */
+export function parseEstimatedValue(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const cleaned = String(value).replace(/[$,\s]/g, '').trim();
+  if (!cleaned) return null;
+  const num = Number(cleaned);
+  return Number.isNaN(num) ? null : num;
+}
+
+/**
+ * Format number as currency string: $45,000
+ */
+export function formatCurrency(value: number): string {
+  return '$' + value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
 export function parseConfidence(extractionMethod: string | null | undefined): number | null {
   if (!extractionMethod) return null;
   const match = String(extractionMethod).match(/(\d+)\s*%/);
@@ -293,6 +312,26 @@ export function sortLicitaciones(licitaciones: Licitacion[], sortBy: string): Li
 
     case 'contact-desc':
       return sorted.sort((a, b) => (b.contactName || '').localeCompare(a.contactName || '', 'es'));
+
+    case 'value-desc':
+      return sorted.sort((a, b) => {
+        const valA = parseEstimatedValue(a.estimatedValue);
+        const valB = parseEstimatedValue(b.estimatedValue);
+        if (valA === null && valB === null) return 0;
+        if (valA === null) return 1;
+        if (valB === null) return -1;
+        return valB - valA;
+      });
+
+    case 'value-asc':
+      return sorted.sort((a, b) => {
+        const valA = parseEstimatedValue(a.estimatedValue);
+        const valB = parseEstimatedValue(b.estimatedValue);
+        if (valA === null && valB === null) return 0;
+        if (valA === null) return 1;
+        if (valB === null) return -1;
+        return valA - valB;
+      });
 
     default:
       return sorted;

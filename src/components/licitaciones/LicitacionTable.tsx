@@ -33,6 +33,7 @@ const SORTABLE_COLUMNS: Record<string, SortableColumn> = {
   emailDate: { label: 'Fecha', ascKey: 'email-date-asc', descKey: 'email-date-desc', defaultDir: 'desc' },
   closeDate: { label: 'Plazo', ascKey: 'close-date-asc', descKey: 'close-date-desc', defaultDir: 'asc' },
   contact: { label: 'Contacto', ascKey: 'contact-asc', descKey: 'contact-desc', defaultDir: 'asc' },
+  value: { label: 'Valor', ascKey: 'value-asc', descKey: 'value-desc', defaultDir: 'desc' },
 };
 
 export function LicitacionTable({
@@ -123,6 +124,7 @@ export function LicitacionTable({
             {renderSortableHeader('emailDate')}
             {renderSortableHeader('closeDate')}
             {renderSortableHeader('contact')}
+            {renderSortableHeader('value')}
             <th className="p-2 text-left w-16">Links</th>
             <th className="p-2 text-left w-20">Acciones</th>
           </tr>
@@ -234,6 +236,13 @@ export function LicitacionTable({
                   ) : '-'}
                 </td>
                 <td className="p-2">{lic.contactName || '-'}</td>
+                <td className="p-2 whitespace-nowrap">
+                  {lic.estimatedValue && lic.estimatedValue !== 'No disponible' ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      💰 {lic.estimatedValue}
+                    </span>
+                  ) : '—'}
+                </td>
                 <td className="p-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-1.5">
                     {(lic.pdfUrl || lic.pdfLink) && (

@@ -36,11 +36,15 @@ export async function POST(request: NextRequest) {
 
 Given a list of items with quantities, search the web IN ENGLISH and find a real market price for EACH item.
 
-SEARCH IN ENGLISH on US and Puerto Rico websites. PRIORITIZE these sources:
-1. Major US distributors that ship to Puerto Rico (Grainger, Home Depot, HD Supply, Lowe's, Amazon, Uline, Ferguson, MSC Industrial)
-2. Puerto Rico suppliers and distributors
+SEARCH ONLY on US and Puerto Rico websites. All prices must be in USD and available for purchase/shipping to Puerto Rico.
+
+PRIORITIZE these sources in order:
+1. Puerto Rico suppliers and distributors (e.g. PR-based Home Depot, Walmart PR, local hardware)
+2. Major US distributors that ship to Puerto Rico: Grainger, Home Depot, HD Supply, Lowe's, Amazon, Uline, Ferguson, MSC Industrial, Fastenal
 3. Government procurement databases (GSA Advantage, GSA schedules)
-4. Manufacturer websites with MSRP
+4. US manufacturer websites with MSRP
+
+DO NOT use prices from websites outside the United States or Puerto Rico (no alibaba, no aliexpress, no international sites).
 
 RESPOND ONLY with a JSON array with one object per item, in the same order as the input list:
 [
@@ -62,7 +66,8 @@ IMPORTANT:
 - Include the actual product page URL where the price was found
 - Price should be per-unit cost in USD (not total), include the unit
 - If an exact item isn't found, find the closest equivalent and note it
-- Keep notes brief (under 60 chars)`,
+- Keep notes brief (under 60 chars)
+- Prefer prices that include shipping to Puerto Rico when available`,
       input: itemList,
     });
 

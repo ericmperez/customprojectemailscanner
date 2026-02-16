@@ -120,6 +120,7 @@ export function FilterBar({
           <option value="title-asc">A-Z</option>
           <option value="title-desc">Z-A</option>
           <option value="score-desc">Puntuacion</option>
+          <option value="value-desc">Valor estimado</option>
         </select>
 
         {/* Status */}

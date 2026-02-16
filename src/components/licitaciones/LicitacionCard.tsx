@@ -179,6 +179,12 @@ export function LicitacionCard({
               {urgency.level === 'critical' ? '🔥' : '⚠️'} {urgency.text}
             </Badge>
           )}
+
+          {estimatedValue && (
+            <Badge variant="outline" className="text-xs font-bold border-emerald-500 text-emerald-700 dark:text-emerald-300">
+              💰 {estimatedValue}
+            </Badge>
+          )}
         </div>
 
         {/* Quick actions - 44px touch targets */}
@@ -222,11 +228,6 @@ export function LicitacionCard({
           ) : null}
           {isVisit && lic.location && (
             <span className="text-blue-600 dark:text-blue-400 font-medium">📍 {lic.location}</span>
-          )}
-          {estimatedValue && (
-            <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-              💰 {estimatedValue}
-            </span>
           )}
         </div>
 

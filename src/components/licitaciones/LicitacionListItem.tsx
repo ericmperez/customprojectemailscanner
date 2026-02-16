@@ -104,10 +104,12 @@ export function LicitacionListItem({
           )} title={`Puntuacion: ${score}/10`}>
             {score}/10
           </span>
-          {lic.contactName && <span>👤 {lic.contactName}</span>}
           {lic.estimatedValue && lic.estimatedValue !== 'No disponible' && (
-            <span className="text-emerald-600 dark:text-emerald-400 font-medium">💰 {lic.estimatedValue}</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+              💰 {lic.estimatedValue}
+            </span>
           )}
+          {lic.contactName && <span>👤 {lic.contactName}</span>}
           {(lic.pdfUrl || lic.pdfLink) && (
             <a
               href={lic.pdfUrl || lic.pdfLink}

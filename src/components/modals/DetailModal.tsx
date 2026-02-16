@@ -487,7 +487,14 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
 
             {/* Price Search */}
             {lic.description && lic.description !== 'No disponible' && (
-              <PriceSearchSection licitacionId={lic.id} variant="modal" />
+              <PriceSearchSection
+                licitacionId={lic.id}
+                variant="modal"
+                onEstimatedValueSaved={(value) => {
+                  setLic((prev) => prev ? { ...prev, estimatedValue: value } : prev);
+                  onRefresh();
+                }}
+              />
             )}
 
             {/* Summary */}
