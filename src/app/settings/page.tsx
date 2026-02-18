@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { GmailConnectionCard } from '@/components/settings/GmailConnectionCard';
 import { GmailCallbackHandler } from '@/components/settings/GmailCallbackHandler';
 import { AISettingsPanel } from '@/components/settings/AISettingsPanel';
+import { CompanyDocumentsPanel } from '@/components/settings/CompanyDocumentsPanel';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function SettingsPage() {
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="gmail">Gmail</TabsTrigger>
             <TabsTrigger value="ai">AI</TabsTrigger>
+            <TabsTrigger value="documents">Documentos</TabsTrigger>
             <TabsTrigger value="team">Equipo</TabsTrigger>
           </TabsList>
 
@@ -107,6 +109,21 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>
                 <AISettingsPanel />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Documents tab */}
+          <TabsContent value="documents">
+            <Card>
+              <CardHeader>
+                <CardTitle>Documentos de Empresa</CardTitle>
+                <CardDescription>
+                  Certificaciones, licencias, seguros y otros documentos de tu organizacion.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CompanyDocumentsPanel />
               </CardContent>
             </Card>
           </TabsContent>

@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample } from '@/lib/types';
+import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample, OrgDocument } from '@/lib/types';
 
 function getClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
@@ -786,6 +786,126 @@ export async function deleteChecklistItem(orgId: string, itemId: string): Promis
 
   if (error) {
     console.error('Error deleting checklist item:', error);
+    throw error;
+  }
+}
+
+// ── Organization Documents ───────────────────────────────────────────
+
+/**
+ * List all company documents for an org.
+ */
+export async function getOrgDocuments(orgId: string): Promise<OrgDocument[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('org_documents')
+    .select('id, label, filename, storage_path, public_url, file_size_bytes, uploaded_by, uploaded_at')
+    .eq('org_id', orgId)
+    .order('uploaded_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching org documents:', error);
+    return [];
+  }
+
+  return (data ?? []) as OrgDocument[];
+}
+
+/**
+ * Upload a company document to Supabase Storage and insert a DB row.
+ * Path structure: {orgId}/company-docs/{filename}
+ */
+export async function uploadOrgDocument(
+  orgId: string,
+  label: string,
+  filename: string,
+  fileBuffer: Buffer,
+  contentType: string,
+  uploadedBy: string
+): Promise<OrgDocument> {
+  const supabase = getClient();
+  const storagePath = `${orgId}/company-docs/${filename}`;
+
+  // Upload to storage
+  const { error: storageError } = await supabase.storage
+    .from(PDF_BUCKET)
+    .upload(storagePath, fileBuffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (storageError) {
+    console.error('Error uploading org document:', storageError);
+    throw storageError;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from(PDF_BUCKET)
+    .getPublicUrl(storagePath);
+
+  // Insert DB row
+  const { data, error } = await supabase
+    .from('org_documents')
+    .upsert(
+      {
+        org_id: orgId,
+        label,
+        filename,
+        storage_path: storagePath,
+        public_url: urlData.publicUrl,
+        file_size_bytes: fileBuffer.length,
+        uploaded_by: uploadedBy,
+      },
+      { onConflict: 'org_id,filename' }
+    )
+    .select('id, label, filename, storage_path, public_url, file_size_bytes, uploaded_by, uploaded_at')
+    .single();
+
+  if (error || !data) {
+    console.error('Error inserting org document row:', error);
+    throw error || new Error('Failed to insert document record');
+  }
+
+  return data as OrgDocument;
+}
+
+/**
+ * Delete a company document from storage and DB.
+ */
+export async function deleteOrgDocument(orgId: string, docId: string): Promise<void> {
+  const supabase = getClient();
+
+  // Get the storage path first
+  const { data: doc, error: fetchError } = await supabase
+    .from('org_documents')
+    .select('storage_path')
+    .eq('org_id', orgId)
+    .eq('id', docId)
+    .single();
+
+  if (fetchError || !doc) {
+    throw new Error('Document not found');
+  }
+
+  // Delete from storage
+  const { error: storageError } = await supabase.storage
+    .from(PDF_BUCKET)
+    .remove([doc.storage_path]);
+
+  if (storageError) {
+    console.error('Error removing document from storage:', storageError);
+    // Continue to delete DB row even if storage fails
+  }
+
+  // Delete DB row
+  const { error } = await supabase
+    .from('org_documents')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('id', docId);
+
+  if (error) {
+    console.error('Error deleting org document:', error);
     throw error;
   }
 }

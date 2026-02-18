@@ -13,7 +13,15 @@ import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, par
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
 import { LicitacionChecklist } from '@/components/licitaciones/LicitacionChecklist';
-import type { Licitacion } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import type { Licitacion, OrgDocument } from '@/lib/types';
 import { hasVisitInfo, buildWhatsAppVisitCardUrl } from '@/lib/utils/whatsapp';
 import { toast } from 'sonner';
 
@@ -70,6 +78,8 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
   const [editingField, setEditingField] = useState<EditableField | null>(null);
   const [editValue, setEditValue] = useState('');
   const [savingField, setSavingField] = useState(false);
+  const [companyDocs, setCompanyDocs] = useState<OrgDocument[]>([]);
+  const [docsLoaded, setDocsLoaded] = useState(false);
 
   const fetchDetail = useCallback(async (id: string) => {
     setLoading(true);
@@ -90,6 +100,8 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
     if (!open) {
       setLic(null);
       setEditingField(null);
+      setDocsLoaded(false);
+      setCompanyDocs([]);
       return;
     }
     // Use provided licitacion object if available (instant), otherwise fetch
@@ -180,6 +192,19 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
       setEditValue('');
     }
   };
+
+  const fetchCompanyDocs = useCallback(async () => {
+    if (docsLoaded) return;
+    try {
+      const res = await fetch('/api/settings/documents');
+      const json = await res.json();
+      if (json.success) setCompanyDocs(json.data);
+    } catch {
+      // ignore
+    } finally {
+      setDocsLoaded(true);
+    }
+  }, [docsLoaded]);
 
   const pdfUrl = lic ? (lic.pdfUrl || resolvePdfUrl(lic.pdfLink)) : '#';
   const hasPdf = pdfUrl && pdfUrl !== '#';
@@ -530,6 +555,36 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
                 </a>
               </Button>
             )}
+            <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) fetchCompanyDocs(); }}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex-1 sm:flex-none">
+                  📁 Documentos
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64">
+                <DropdownMenuLabel>Documentos de Empresa</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {!docsLoaded ? (
+                  <DropdownMenuItem disabled>Cargando...</DropdownMenuItem>
+                ) : companyDocs.length === 0 ? (
+                  <DropdownMenuItem disabled>No hay documentos</DropdownMenuItem>
+                ) : (
+                  companyDocs.map((doc) => (
+                    <DropdownMenuItem key={doc.id} asChild>
+                      <a
+                        href={doc.public_url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-start gap-0"
+                      >
+                        <span className="truncate w-full">{doc.label}</span>
+                        <span className="text-xs text-muted-foreground truncate w-full">{doc.filename}</span>
+                      </a>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="flex gap-2">
             <Button variant="destructive" size="sm" onClick={handleDeleteClick} className="flex-1 sm:flex-none">

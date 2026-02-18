@@ -16,6 +16,25 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.19.0',
+    date: '2026-02-17',
+    headline: 'Documentos de empresa y mejoras de UI',
+    features: [
+      {
+        type: 'feature',
+        title: 'Documentos de empresa',
+        description:
+          'Nueva seccion en Configuracion para subir y gestionar documentos de la organizacion (certificaciones, licencias, seguros). Accesibles desde el modal de detalle.',
+      },
+      {
+        type: 'fix',
+        title: 'Boton de cerrar modal visible',
+        description:
+          'El boton X para cerrar el modal de detalle ahora es completamente visible sobre el encabezado fijo.',
+      },
+    ],
+  },
+  {
     version: '1.18.0',
     date: '2026-02-15',
     headline: 'Modal de detalle mejorado',
