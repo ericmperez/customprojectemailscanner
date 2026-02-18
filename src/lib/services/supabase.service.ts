@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample, LicitacionAttachment, OrgDocument } from '@/lib/types';
+import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample, CotizacionItem, LicitacionAttachment, OrgDocument } from '@/lib/types';
 
 function getClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
@@ -1032,6 +1032,186 @@ export async function deleteLicitacionAttachment(orgId: string, attachmentId: st
 
   if (error) {
     console.error('Error deleting licitacion attachment:', error);
+    throw error;
+  }
+}
+
+// ── Cotizacion Items ─────────────────────────────────────────────────
+
+const COTIZACION_SELECT = 'id, item_name, qty, unit, unit_price, shipping, markup_pct, tax_pct, sort_order, notes, created_at';
+
+/**
+ * Get all cotizacion items for a licitacion, ordered by sort_order.
+ */
+export async function getCotizacionItems(orgId: string, licitacionId: string): Promise<CotizacionItem[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('cotizacion_items')
+    .select(COTIZACION_SELECT)
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId)
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching cotizacion items:', error);
+    return [];
+  }
+
+  return (data ?? []) as CotizacionItem[];
+}
+
+/**
+ * Add a single cotizacion item. Auto-assigns sort_order.
+ */
+export async function addCotizacionItem(
+  orgId: string,
+  licitacionId: string,
+  item: { item_name: string; qty?: number; unit?: string; unit_price?: number; shipping?: number; markup_pct?: number; tax_pct?: number; notes?: string }
+): Promise<CotizacionItem> {
+  const supabase = getClient();
+
+  // Get max sort_order
+  const { data: existing } = await supabase
+    .from('cotizacion_items')
+    .select('sort_order')
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+
+  const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
+
+  const { data, error } = await supabase
+    .from('cotizacion_items')
+    .insert({
+      org_id: orgId,
+      licitacion_id: licitacionId,
+      item_name: item.item_name,
+      qty: item.qty ?? 1,
+      unit: item.unit ?? 'units',
+      unit_price: item.unit_price ?? 0,
+      shipping: item.shipping ?? 0,
+      markup_pct: item.markup_pct ?? 0,
+      tax_pct: item.tax_pct ?? 11.5,
+      notes: item.notes ?? null,
+      sort_order: nextOrder,
+    })
+    .select(COTIZACION_SELECT)
+    .single();
+
+  if (error) {
+    console.error('Error adding cotizacion item:', error);
+    throw error;
+  }
+
+  return data as CotizacionItem;
+}
+
+/**
+ * Bulk insert cotizacion items (for AI populate).
+ */
+export async function bulkInsertCotizacionItems(
+  orgId: string,
+  licitacionId: string,
+  items: { item_name: string; qty?: number; unit?: string; unit_price?: number; shipping?: number; markup_pct?: number; tax_pct?: number; notes?: string }[]
+): Promise<CotizacionItem[]> {
+  if (items.length === 0) return [];
+
+  const supabase = getClient();
+
+  // Get max sort_order
+  const { data: existing } = await supabase
+    .from('cotizacion_items')
+    .select('sort_order')
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+
+  const startOrder = (existing?.[0]?.sort_order ?? -1) + 1;
+
+  const rows = items.map((item, i) => ({
+    org_id: orgId,
+    licitacion_id: licitacionId,
+    item_name: item.item_name,
+    qty: item.qty ?? 1,
+    unit: item.unit ?? 'units',
+    unit_price: item.unit_price ?? 0,
+    shipping: item.shipping ?? 0,
+    markup_pct: item.markup_pct ?? 0,
+    tax_pct: item.tax_pct ?? 11.5,
+    notes: item.notes ?? null,
+    sort_order: startOrder + i,
+  }));
+
+  const { data, error } = await supabase
+    .from('cotizacion_items')
+    .insert(rows)
+    .select(COTIZACION_SELECT);
+
+  if (error) {
+    console.error('Error bulk inserting cotizacion items:', error);
+    throw error;
+  }
+
+  return (data ?? []) as CotizacionItem[];
+}
+
+/**
+ * Update a single cotizacion item (partial update).
+ */
+export async function updateCotizacionItem(
+  orgId: string,
+  itemId: string,
+  fields: Partial<Pick<CotizacionItem, 'item_name' | 'qty' | 'unit' | 'unit_price' | 'shipping' | 'markup_pct' | 'tax_pct' | 'notes' | 'sort_order'>>
+): Promise<CotizacionItem> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('cotizacion_items')
+    .update(fields)
+    .eq('org_id', orgId)
+    .eq('id', itemId)
+    .select(COTIZACION_SELECT)
+    .single();
+
+  if (error) {
+    console.error('Error updating cotizacion item:', error);
+    throw error;
+  }
+
+  return data as CotizacionItem;
+}
+
+/**
+ * Delete a single cotizacion item.
+ */
+export async function deleteCotizacionItem(orgId: string, itemId: string): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('cotizacion_items')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('id', itemId);
+
+  if (error) {
+    console.error('Error deleting cotizacion item:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete all cotizacion items for a licitacion (used before replace).
+ */
+export async function deleteAllCotizacionItems(orgId: string, licitacionId: string): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('cotizacion_items')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId);
+
+  if (error) {
+    console.error('Error deleting all cotizacion items:', error);
     throw error;
   }
 }

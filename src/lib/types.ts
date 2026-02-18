@@ -166,6 +166,20 @@ export interface LicitacionAttachment {
   uploaded_at: string;
 }
 
+export interface CotizacionItem {
+  id: string;
+  item_name: string;
+  qty: number;
+  unit: string;
+  unit_price: number;
+  shipping: number;
+  markup_pct: number;
+  tax_pct: number;
+  sort_order: number;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface CorrectionExample {
   field: string;
   original: string;

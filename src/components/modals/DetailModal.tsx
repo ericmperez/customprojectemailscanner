@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Licitacion, OrgDocument } from '@/lib/types';
 import { hasVisitInfo, buildWhatsAppVisitCardUrl } from '@/lib/utils/whatsapp';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 function hasValue(v: string | null | undefined): boolean {
@@ -70,6 +71,7 @@ interface DetailModalProps {
 }
 
 export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh, onApprove, onReject }: DetailModalProps) {
+  const router = useRouter();
   const [lic, setLic] = useState<Licitacion | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; loading: boolean }>({
@@ -559,6 +561,18 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
                 <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
                   📄 Abrir PDF
                 </a>
+              </Button>
+            )}
+            {lic?.approvalStatus === 'approved' && (
+              <Button
+                variant="outline"
+                className="flex-1 sm:flex-none"
+                onClick={() => {
+                  onClose();
+                  router.push(`/licitaciones/${licitacionId}/cotizacion`);
+                }}
+              >
+                📊 Cotizacion
               </Button>
             )}
             <DropdownMenu onOpenChange={(isOpen) => { if (isOpen) fetchCompanyDocs(); }}>

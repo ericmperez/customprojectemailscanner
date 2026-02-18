@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.21.0',
+    date: '2026-02-18',
+    headline: 'Hoja de cotizacion por licitacion',
+    features: [
+      {
+        type: 'feature',
+        title: 'Hoja de cotizacion',
+        description:
+          'Nueva pagina de cotizacion estilo hoja de calculo para licitaciones aprobadas. Desglosa productos con columnas de precio, envio, markup e IVU. Edicion inline, totales en tiempo real y extraccion de items con AI.',
+      },
+    ],
+  },
+  {
     version: '1.20.0',
     date: '2026-02-18',
     headline: 'Archivos adjuntos por licitacion',
