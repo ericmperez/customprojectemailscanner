@@ -155,6 +155,17 @@ export interface OrgDocument {
   uploaded_at: string;
 }
 
+export interface LicitacionAttachment {
+  id: string;
+  label: string;
+  filename: string;
+  storage_path: string;
+  public_url: string | null;
+  file_size_bytes: number | null;
+  uploaded_by: string;
+  uploaded_at: string;
+}
+
 export interface CorrectionExample {
   field: string;
   original: string;

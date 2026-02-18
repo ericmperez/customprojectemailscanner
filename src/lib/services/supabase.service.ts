@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample, OrgDocument } from '@/lib/types';
+import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample, LicitacionAttachment, OrgDocument } from '@/lib/types';
 
 function getClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
@@ -906,6 +906,132 @@ export async function deleteOrgDocument(orgId: string, docId: string): Promise<v
 
   if (error) {
     console.error('Error deleting org document:', error);
+    throw error;
+  }
+}
+
+// ── Licitacion Attachments ───────────────────────────────────────────
+
+/**
+ * List all attachments for a licitacion, newest first.
+ */
+export async function getLicitacionAttachments(
+  orgId: string,
+  licitacionId: string
+): Promise<LicitacionAttachment[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('licitacion_attachments')
+    .select('id, label, filename, storage_path, public_url, file_size_bytes, uploaded_by, uploaded_at')
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId)
+    .order('uploaded_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching licitacion attachments:', error);
+    return [];
+  }
+
+  return (data ?? []) as LicitacionAttachment[];
+}
+
+/**
+ * Upload a file attachment to a licitacion.
+ * Storage path: {orgId}/licitaciones/{licitacionId}/{filename}
+ */
+export async function uploadLicitacionAttachment(
+  orgId: string,
+  licitacionId: string,
+  label: string,
+  filename: string,
+  fileBuffer: Buffer,
+  contentType: string,
+  uploadedBy: string
+): Promise<LicitacionAttachment> {
+  const supabase = getClient();
+  const storagePath = `${orgId}/licitaciones/${licitacionId}/${filename}`;
+
+  // Upload to storage
+  const { error: storageError } = await supabase.storage
+    .from(PDF_BUCKET)
+    .upload(storagePath, fileBuffer, {
+      contentType,
+      upsert: true,
+    });
+
+  if (storageError) {
+    console.error('Error uploading licitacion attachment:', storageError);
+    throw storageError;
+  }
+
+  const { data: urlData } = supabase.storage
+    .from(PDF_BUCKET)
+    .getPublicUrl(storagePath);
+
+  // Upsert DB row
+  const { data, error } = await supabase
+    .from('licitacion_attachments')
+    .upsert(
+      {
+        org_id: orgId,
+        licitacion_id: licitacionId,
+        label,
+        filename,
+        storage_path: storagePath,
+        public_url: urlData.publicUrl,
+        file_size_bytes: fileBuffer.length,
+        uploaded_by: uploadedBy,
+      },
+      { onConflict: 'org_id,licitacion_id,filename' }
+    )
+    .select('id, label, filename, storage_path, public_url, file_size_bytes, uploaded_by, uploaded_at')
+    .single();
+
+  if (error || !data) {
+    console.error('Error inserting licitacion attachment row:', error);
+    throw error || new Error('Failed to insert attachment record');
+  }
+
+  return data as LicitacionAttachment;
+}
+
+/**
+ * Delete a licitacion attachment from storage and DB.
+ */
+export async function deleteLicitacionAttachment(orgId: string, attachmentId: string): Promise<void> {
+  const supabase = getClient();
+
+  // Get the storage path first
+  const { data: attachment, error: fetchError } = await supabase
+    .from('licitacion_attachments')
+    .select('storage_path')
+    .eq('org_id', orgId)
+    .eq('id', attachmentId)
+    .single();
+
+  if (fetchError || !attachment) {
+    throw new Error('Attachment not found');
+  }
+
+  // Delete from storage
+  const { error: storageError } = await supabase.storage
+    .from(PDF_BUCKET)
+    .remove([attachment.storage_path]);
+
+  if (storageError) {
+    console.error('Error removing attachment from storage:', storageError);
+    // Continue to delete DB row even if storage fails
+  }
+
+  // Delete DB row
+  const { error } = await supabase
+    .from('licitacion_attachments')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('id', attachmentId);
+
+  if (error) {
+    console.error('Error deleting licitacion attachment:', error);
     throw error;
   }
 }

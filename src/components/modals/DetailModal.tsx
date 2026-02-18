@@ -13,6 +13,7 @@ import { cn, formatSiteVisitDate, formatTimeLabel, resolvePdfUrl, badgeText, par
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { PriceSearchSection } from '@/components/licitaciones/PriceSearchSection';
 import { LicitacionChecklist } from '@/components/licitaciones/LicitacionChecklist';
+import { LicitacionAttachments } from '@/components/licitaciones/LicitacionAttachments';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -298,6 +299,11 @@ export function DetailModal({ open, licitacionId, licitacion, onClose, onRefresh
                 licitacionId={lic.id}
                 licitacionTitle={lic.title || lic.subject || ''}
               />
+            </Section>
+
+            {/* Attachments */}
+            <Section title="Archivos Adjuntos">
+              <LicitacionAttachments licitacionId={lic.id} />
             </Section>
 
             {/* General Info */}

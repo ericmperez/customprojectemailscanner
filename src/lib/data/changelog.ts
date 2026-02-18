@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.20.0',
+    date: '2026-02-18',
+    headline: 'Archivos adjuntos por licitacion',
+    features: [
+      {
+        type: 'feature',
+        title: 'Archivos adjuntos por licitacion',
+        description:
+          'Sube documentos (cotizaciones, planos, certificaciones) directamente a cada licitacion desde el modal de detalle. Los miembros del equipo pueden ver, descargar y eliminar archivos.',
+      },
+    ],
+  },
+  {
     version: '1.19.0',
     date: '2026-02-17',
     headline: 'Documentos de empresa y mejoras de UI',
@@ -421,4 +434,5 @@ export const CHANGELOG: ChangelogRelease[] = [
 ];
 
 export const LATEST_VERSION = CHANGELOG[0].version;
+
 
