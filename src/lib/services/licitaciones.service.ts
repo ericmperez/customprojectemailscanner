@@ -14,10 +14,6 @@ class LicitacionesService {
     return service.getLicitaciones(orgId, filters);
   }
 
-  async autoRejectExpired(orgId: string): Promise<number> {
-    return service.autoRejectExpired(orgId);
-  }
-
   async getLicitacionById(orgId: string, id: string): Promise<Licitacion | null> {
     return service.getLicitacionById(orgId, id);
   }

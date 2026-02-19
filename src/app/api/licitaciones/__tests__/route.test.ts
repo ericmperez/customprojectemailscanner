@@ -2,16 +2,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockNextRequest } from '@/__tests__/helpers';
 
-const { mockGetAll, mockAutoReject } = vi.hoisted(() => ({
+const { mockGetAll } = vi.hoisted(() => ({
   mockGetAll: vi.fn(),
-  mockAutoReject: vi.fn().mockResolvedValue(0),
 }));
 
 vi.mock('@/lib/services/licitaciones.service', () => {
   return {
     default: class MockLicitacionesService {
       getAllLicitaciones = mockGetAll;
-      autoRejectExpired = mockAutoReject;
     },
   };
 });
@@ -54,15 +52,6 @@ describe('GET /api/licitaciones', () => {
         visitLocation: ['San Juan', 'Ponce'],
       })
     );
-  });
-
-  it('fires autoRejectExpired in the background', async () => {
-    mockGetAll.mockResolvedValue([]);
-
-    const request = createMockNextRequest('http://localhost:3000/api/licitaciones');
-    await GET(request);
-
-    expect(mockAutoReject).toHaveBeenCalled();
   });
 
   it('returns 500 on error', async () => {

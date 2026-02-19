@@ -137,12 +137,6 @@ export class SupabaseLicitacionesService {
 
     let licitaciones = (data || []).map(rowToLicitacion);
 
-    // Hide auto-rejected licitaciones
-    licitaciones = licitaciones.filter((lic) => {
-      const notes = (lic.approvalNotes || '').toString();
-      return !notes.includes('[Auto-rechazado');
-    });
-
     // Apply client-side filters that are harder to do in SQL
     licitaciones = this.applyClientFilters(licitaciones, filters);
 
@@ -271,7 +265,7 @@ export class SupabaseLicitacionesService {
   async getStats(orgId: string): Promise<Stats> {
     const { data, error } = await this.supabase
       .from('licitaciones')
-      .select('approval_status, interested, approval_notes')
+      .select('approval_status, interested')
       .eq('org_id', orgId);
 
     if (error) {
@@ -279,17 +273,14 @@ export class SupabaseLicitacionesService {
       return { total: 0, pending: 0, approved: 0, rejected: 0, interested: 0 };
     }
 
-    // Filter out auto-rejected
-    const visible = (data || []).filter(
-      (row) => !(row.approval_notes || '').includes('[Auto-rechazado')
-    );
+    const rows = data || [];
 
     return {
-      total: visible.length,
-      pending: visible.filter((r) => r.approval_status === 'pending').length,
-      approved: visible.filter((r) => r.approval_status === 'approved').length,
-      rejected: visible.filter((r) => r.approval_status === 'rejected').length,
-      interested: visible.filter((r) => r.interested).length,
+      total: rows.length,
+      pending: rows.filter((r) => r.approval_status === 'pending').length,
+      approved: rows.filter((r) => r.approval_status === 'approved').length,
+      rejected: rows.filter((r) => r.approval_status === 'rejected').length,
+      interested: rows.filter((r) => r.interested).length,
     };
   }
 
@@ -355,79 +346,6 @@ export class SupabaseLicitacionesService {
         const bDate = new Date(`${b.visitDate}T${b.visitTime || '00:00'}:00`);
         return aDate.getTime() - bDate.getTime();
       });
-  }
-
-  async autoRejectExpired(orgId: string): Promise<number> {
-    const { data, error } = await this.supabase
-      .from('licitaciones')
-      .select('id, bidding_close_date, site_visit_date, approval_status, approval_notes')
-      .eq('org_id', orgId)
-      .eq('approval_status', 'pending');
-
-    if (error || !data) return 0;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const updates: Promise<void>[] = [];
-
-    for (const row of data) {
-      let shouldReject = false;
-      let rejectReason = '';
-
-      if (row.bidding_close_date && row.bidding_close_date !== 'No disponible') {
-        try {
-          const closeDate = new Date(row.bidding_close_date);
-          closeDate.setHours(23, 59, 59, 999);
-          if (closeDate < today) {
-            shouldReject = true;
-            rejectReason = '[Auto-rechazado: fecha de cierre vencida]';
-          }
-        } catch { /* ignore */ }
-      }
-
-      if (!shouldReject && row.site_visit_date && row.site_visit_date !== 'No disponible') {
-        try {
-          const visitDate = new Date(row.site_visit_date);
-          visitDate.setHours(23, 59, 59, 999);
-          if (visitDate < today) {
-            shouldReject = true;
-            rejectReason = '[Auto-rechazado: fecha de visita vencida]';
-          }
-        } catch { /* ignore */ }
-      }
-
-      if (shouldReject) {
-        const notes = row.approval_notes
-          ? `${row.approval_notes}\n${rejectReason}`
-          : rejectReason;
-
-        updates.push(
-          Promise.resolve(
-            this.supabase
-              .from('licitaciones')
-              .update({
-                approval_status: 'rejected',
-                approval_notes: notes,
-                decision_status: 'rejected',
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', row.id)
-              .eq('org_id', orgId)
-          )
-            .then(() => {})
-            .catch((err) => console.error(`Error auto-rejecting ${row.id}:`, err))
-        );
-      }
-    }
-
-    if (updates.length > 0) {
-      await Promise.all(updates).catch((err) =>
-        console.error('Some auto-reject updates failed:', err)
-      );
-    }
-
-    return updates.length;
   }
 
   // Client-side filters for things harder to express in SQL

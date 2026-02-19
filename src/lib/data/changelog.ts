@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.22.0',
+    date: '2026-02-18',
+    headline: 'Licitaciones ya no desaparecen automaticamente',
+    features: [
+      {
+        type: 'fix',
+        title: 'Eliminado auto-rechazo de licitaciones vencidas',
+        description:
+          'Las licitaciones con fecha vencida ya no se rechazan automaticamente al cargar la pagina. Todas permanecen visibles hasta que un usuario las rechace manualmente.',
+      },
+    ],
+  },
+  {
     version: '1.21.0',
     date: '2026-02-18',
     headline: 'Hoja de cotizacion por licitacion',
