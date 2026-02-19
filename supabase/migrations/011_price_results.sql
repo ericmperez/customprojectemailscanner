@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS price_results (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-  licitacion_id UUID NOT NULL REFERENCES licitaciones(id) ON DELETE CASCADE,
+  licitacion_id INTEGER NOT NULL REFERENCES licitaciones(id) ON DELETE CASCADE,
   item_name TEXT NOT NULL,
   qty NUMERIC NOT NULL DEFAULT 1,
   unit TEXT NOT NULL DEFAULT 'units',
