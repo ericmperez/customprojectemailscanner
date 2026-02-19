@@ -379,6 +379,16 @@ export class SupabaseLicitacionesService {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
       result = result.filter((lic) => {
+        // 'expired' uses biddingCloseDate, not siteVisitDate
+        if (filters.dateRange === 'expired') {
+          const closeStr = lic.biddingCloseDate;
+          if (!closeStr || closeStr === 'No disponible') return false;
+          const closeDate = new Date(closeStr);
+          if (isNaN(closeDate.getTime())) return false;
+          const closeDateNorm = new Date(closeDate.getFullYear(), closeDate.getMonth(), closeDate.getDate());
+          return closeDateNorm < today;
+        }
+
         const visitDateStr = lic.siteVisitDate;
         if (!visitDateStr || visitDateStr === 'No disponible') return false;
         const visitDate = new Date(visitDateStr);

@@ -209,6 +209,12 @@ export function FilterBar({
               >
                 Interesadas
               </button>
+              <button
+                className="w-full text-left px-3 py-1.5 hover:bg-muted"
+                onClick={() => { onQuickFilter({ dateRange: 'expired', status: '', sort: 'close-date-asc' }); setActionsOpen(false); }}
+              >
+                Vencidas
+              </button>
 
               <div className="my-1 border-t" />
 
@@ -366,6 +372,7 @@ export function FilterBar({
             <option value="this-week">Esta semana</option>
             <option value="today">Hoy</option>
             <option value="past">Pasadas</option>
+            <option value="expired">Vencidas (cierre pasado)</option>
           </select>
 
           <SavedFiltersSection

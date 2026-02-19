@@ -16,6 +16,44 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.24.0',
+    date: '2026-02-18',
+    headline: 'Filtro "Vencidas" para licitaciones con cierre pasado',
+    features: [
+      {
+        type: 'feature',
+        title: 'Filtro Vencidas',
+        description:
+          'Nuevo filtro en fechas para ver solo licitaciones cuya fecha de cierre ya paso. Tambien disponible como acceso rapido en el menu de acciones.',
+      },
+    ],
+  },
+  {
+    version: '1.23.0',
+    date: '2026-02-18',
+    headline: 'Precios guardados y directorio de suplidores PR',
+    features: [
+      {
+        type: 'feature',
+        title: 'Precios persistentes',
+        description:
+          'Los resultados de busqueda de precios ahora se guardan en la base de datos. Al reabrir una licitacion, los precios cargan automaticamente sin necesidad de re-buscar.',
+      },
+      {
+        type: 'feature',
+        title: 'Directorio de suplidores en Puerto Rico',
+        description:
+          'Despues de buscar precios, se muestra una seccion con suplidores locales de PR relevantes a los items, con telefono clickeable y enlace directo a WhatsApp.',
+      },
+      {
+        type: 'improvement',
+        title: 'Busqueda de precios mejorada',
+        description:
+          'El AI ahora prioriza suplidores de Puerto Rico y incluye numeros de telefono locales en las notas cuando estan disponibles.',
+      },
+    ],
+  },
+  {
     version: '1.22.0',
     date: '2026-02-18',
     headline: 'Licitaciones ya no desaparecen automaticamente',
