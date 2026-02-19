@@ -66,6 +66,12 @@ export function CotizacionWorksheet({ licitacionId }: CotizacionWorksheetProps) 
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // PDF description panel
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
+
+  // AI original values for correction detection
+  const [aiOriginals, setAiOriginals] = useState<Map<string, { item_name: string; qty: number; unit: string }>>(new Map());
+
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; itemId: string; itemName: string }>({
     open: false,
@@ -162,6 +168,25 @@ export function CotizacionWorksheet({ licitacionId }: CotizacionWorksheetProps) 
       const result = await res.json();
       if (result.success && result.data) {
         setItems((prev) => prev.map((i) => (i.id === itemId ? result.data : i)));
+
+        // Fire correction if this field was AI-extracted and user changed it
+        const AI_CORRECTABLE: EditableField[] = ['item_name', 'qty', 'unit'];
+        const orig = aiOriginals.get(itemId);
+        if (orig && AI_CORRECTABLE.includes(field)) {
+          const origValue = String(orig[field as keyof typeof orig]);
+          if (origValue !== String(parsedValue)) {
+            fetch('/api/settings/ai/correction', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                field: 'item_extraction',
+                original: origValue,
+                corrected: String(parsedValue),
+                context: lic?.description?.slice(0, 500) || undefined,
+              }),
+            }).catch(() => {});
+          }
+        }
       }
     } catch {
       // Revert on failure
@@ -264,6 +289,14 @@ export function CotizacionWorksheet({ licitacionId }: CotizacionWorksheetProps) 
         } else {
           setItems((prev) => [...prev, ...result.data]);
         }
+
+        // Track AI originals for correction detection
+        const newOriginals = new Map(replace ? [] : aiOriginals);
+        for (const item of result.data as CotizacionItem[]) {
+          newOriginals.set(item.id, { item_name: item.item_name, qty: item.qty, unit: item.unit });
+        }
+        setAiOriginals(newOriginals);
+
         toast.success(`${result.data.length} items agregados`);
       }
     } catch {
@@ -328,6 +361,23 @@ export function CotizacionWorksheet({ licitacionId }: CotizacionWorksheetProps) 
           </div>
         </div>
       </div>
+
+      {/* PDF Description Panel */}
+      {lic?.description && lic.description !== 'No disponible' && (
+        <div className="max-w-7xl mx-auto px-4 pt-3">
+          <button
+            onClick={() => setDescriptionOpen(!descriptionOpen)}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {descriptionOpen ? '📄 Ocultar texto' : '📄 Ver texto del PDF'}
+          </button>
+          {descriptionOpen && (
+            <div className="mt-2 rounded-md border bg-muted/50 p-4 text-sm whitespace-pre-wrap max-h-64 overflow-y-auto">
+              {lic.description}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-4">

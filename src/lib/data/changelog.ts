@@ -51,6 +51,18 @@ export const CHANGELOG: ChangelogRelease[] = [
         description:
           'El AI ahora prioriza suplidores de Puerto Rico y incluye numeros de telefono locales en las notas cuando estan disponibles.',
       },
+      {
+        type: 'improvement',
+        title: 'Correccion inteligente de items',
+        description:
+          'Cuando corriges un item extraido por AI en la cotizacion, el sistema aprende de la correccion para mejorar futuras extracciones.',
+      },
+      {
+        type: 'improvement',
+        title: 'Texto del PDF en cotizacion',
+        description:
+          'Boton para ver el texto completo del PDF mientras trabajas en la cotizacion, sin tener que abrir el documento.',
+      },
     ],
   },
   {

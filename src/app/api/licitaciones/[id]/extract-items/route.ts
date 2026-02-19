@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import LicitacionesService from '@/lib/services/licitaciones.service';
+import { getItemCorrectionExamples } from '@/lib/services/supabase.service';
 import { getOrgDbId } from '@/lib/auth';
 
 let _openai: OpenAI | null = null;
@@ -43,6 +44,16 @@ export async function POST(
       );
     }
 
+    // Load past item corrections to teach the AI user preferences
+    const corrections = await getItemCorrectionExamples(orgId, 10);
+    let correctionsBlock = '';
+    if (corrections.length > 0) {
+      const lines = corrections.map(
+        (c) => `- "${c.original}" → should be "${c.corrected}"`
+      );
+      correctionsBlock = `\n\n**Learn from these past corrections by the user:**\n${lines.join('\n')}`;
+    }
+
     const response = await getOpenAI().responses.create({
       model: 'gpt-4o-mini',
       instructions: `You are a procurement document parser. Extract ALL items/materials/services from the licitación description with their quantities.
@@ -66,7 +77,7 @@ IMPORTANT:
 - Group identical items, sum their quantities
 - If the description is vague (e.g. "servicio de limpieza"), still list it as 1 lot
 - QUANTITY AND UNIT are often on the FAR RIGHT side of the text (e.g. "100 CS" at the end of a line means 100 cases). Common unit codes: CS=cases, EA=each, BX=boxes, GL=gallons, PK=packs, BG=bags, DR=drums, RL=rolls, LB=pounds, CF=cubic feet
-- The number before the unit code is the quantity, NOT part of the item name`,
+- The number before the unit code is the quantity, NOT part of the item name${correctionsBlock}`,
       input: description,
     });
 

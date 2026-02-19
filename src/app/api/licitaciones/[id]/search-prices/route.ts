@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { getOrgDbId } from '@/lib/auth';
+import { savePriceResults } from '@/lib/services/supabase.service';
 import type { PriceResult, QuoteItem } from '@/lib/types';
 
 export const maxDuration = 30;
@@ -12,8 +14,13 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   try {
+    const orgId = await getOrgDbId();
     const body = await request.json().catch(() => ({}));
     const items: QuoteItem[] = body.items;
 
@@ -39,12 +46,21 @@ Given a list of items with quantities, search the web IN ENGLISH and find a real
 SEARCH ONLY on US and Puerto Rico websites. All prices must be in USD and available for purchase/shipping to Puerto Rico.
 
 PRIORITIZE these sources in order:
-1. Puerto Rico suppliers and distributors (e.g. PR-based Home Depot, Walmart PR, local hardware)
+1. Puerto Rico suppliers and distributors — CHECK THESE FIRST:
+   - Grainger Caribe (787-275-3500, Catano)
+   - Home Depot PR (Bayamon 787-778-2580, Caguas 787-703-1400, Carolina 787-776-1000)
+   - National Lumber & Hardware (787-765-1830, San Juan)
+   - Fastenal PR (Caguas 787-745-3444, Rio Grande 787-809-0055)
+   - United Electrical Supply (787-763-0779, San Juan)
+   - Bayamon Plumbing & Industrial (787-798-3130)
+   - Fast Office Supply (787-766-0067, San Juan)
 2. Major US distributors that ship to Puerto Rico: Grainger, Home Depot, HD Supply, Lowe's, Amazon, Uline, Ferguson, MSC Industrial, Fastenal
 3. Government procurement databases (GSA Advantage, GSA schedules)
 4. US manufacturer websites with MSRP
 
 DO NOT use prices from websites outside the United States or Puerto Rico (no alibaba, no aliexpress, no international sites).
+
+When available, include Puerto Rico supplier contact info (phone 787-XXX-XXXX) in the notes field so the buyer can call directly.
 
 RESPOND ONLY with a JSON array with one object per item, in the same order as the input list:
 [
@@ -55,7 +71,7 @@ RESPOND ONLY with a JSON array with one object per item, in the same order as th
     "price": "$X,XXX.XX per <unit>",
     "sourceUrl": "https://actual-url-found",
     "sourceName": "Name of the supplier/website",
-    "notes": "brief relevance note"
+    "notes": "brief relevance note, include PR supplier phone if found"
   }
 ]
 
@@ -66,8 +82,9 @@ IMPORTANT:
 - Include the actual product page URL where the price was found
 - Price should be per-unit cost in USD (not total), include the unit
 - If an exact item isn't found, find the closest equivalent and note it
-- Keep notes brief (under 60 chars)
-- Prefer prices that include shipping to Puerto Rico when available`,
+- Keep notes brief (under 80 chars)
+- Prefer prices that include shipping to Puerto Rico when available
+- When a PR supplier carries the item, mention their phone in the notes field`,
       input: itemList,
     });
 
@@ -107,6 +124,11 @@ IMPORTANT:
         };
       });
     }
+
+    // Persist results to DB (fire-and-forget — don't block the response)
+    savePriceResults(orgId, id, items, results).catch((err) => {
+      console.warn('[search-prices] Failed to persist price results:', err);
+    });
 
     return NextResponse.json({
       success: true,

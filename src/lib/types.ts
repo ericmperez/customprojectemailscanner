@@ -180,6 +180,28 @@ export interface CotizacionItem {
   created_at: string;
 }
 
+export interface SavedPriceResult {
+  id: string;
+  item_name: string;
+  qty: number;
+  unit: string;
+  unit_price: string;
+  source_url: string;
+  source_name: string;
+  notes: string | null;
+  sort_order: number;
+  searched_at: string;
+}
+
+export interface PRSupplier {
+  name: string;
+  phone: string;
+  email?: string;
+  website?: string;
+  categories: string[];
+  town: string;
+}
+
 export interface CorrectionExample {
   field: string;
   original: string;

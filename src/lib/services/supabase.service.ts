@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample, CotizacionItem, LicitacionAttachment, OrgDocument } from '@/lib/types';
+import type { ChecklistItem, ConfidenceFieldSettings, CorrectionExample, CotizacionItem, LicitacionAttachment, OrgDocument, SavedPriceResult, PriceResult, QuoteItem } from '@/lib/types';
 
 function getClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
@@ -431,6 +431,30 @@ export async function deleteCorrectionExample(orgId: string, id: string): Promis
     console.error('Error deleting correction example:', error);
     throw error;
   }
+}
+
+/**
+ * Get recent item-extraction correction examples for an org (used to inject into AI prompts).
+ */
+export async function getItemCorrectionExamples(
+  orgId: string,
+  limit = 10
+): Promise<{ original: string; corrected: string }[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('correction_examples')
+    .select('original, corrected')
+    .eq('org_id', orgId)
+    .eq('field', 'item_extraction')
+    .order('saved_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching item correction examples:', error);
+    return [];
+  }
+
+  return (data ?? []) as { original: string; corrected: string }[];
 }
 
 /**
@@ -1212,6 +1236,88 @@ export async function deleteAllCotizacionItems(orgId: string, licitacionId: stri
 
   if (error) {
     console.error('Error deleting all cotizacion items:', error);
+    throw error;
+  }
+}
+
+// ── Price Results ────────────────────────────────────────────────────
+
+/**
+ * Get saved price results for a licitacion, ordered by sort_order.
+ */
+export async function getPriceResults(orgId: string, licitacionId: string): Promise<SavedPriceResult[]> {
+  const supabase = getClient();
+  const { data, error } = await supabase
+    .from('price_results')
+    .select('id, item_name, qty, unit, unit_price, source_url, source_name, notes, sort_order, searched_at')
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId)
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching price results:', error);
+    return [];
+  }
+
+  return (data ?? []) as SavedPriceResult[];
+}
+
+/**
+ * Save price results for a licitacion (delete existing + bulk insert).
+ */
+export async function savePriceResults(
+  orgId: string,
+  licitacionId: string,
+  items: QuoteItem[],
+  results: PriceResult[]
+): Promise<void> {
+  const supabase = getClient();
+
+  // Delete existing results for this licitacion
+  await supabase
+    .from('price_results')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId);
+
+  if (results.length === 0) return;
+
+  const now = new Date().toISOString();
+  const rows = results.map((r, i) => ({
+    org_id: orgId,
+    licitacion_id: licitacionId,
+    item_name: r.item || items[i]?.item || '',
+    qty: r.qty || items[i]?.qty || 1,
+    unit: r.unit || items[i]?.unit || 'units',
+    unit_price: r.price || null,
+    source_url: r.sourceUrl || null,
+    source_name: r.sourceName || null,
+    notes: r.notes || null,
+    sort_order: i,
+    searched_at: now,
+  }));
+
+  const { error } = await supabase.from('price_results').insert(rows);
+
+  if (error) {
+    console.error('Error saving price results:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete all price results for a licitacion.
+ */
+export async function deletePriceResults(orgId: string, licitacionId: string): Promise<void> {
+  const supabase = getClient();
+  const { error } = await supabase
+    .from('price_results')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('licitacion_id', licitacionId);
+
+  if (error) {
+    console.error('Error deleting price results:', error);
     throw error;
   }
 }
