@@ -30,6 +30,10 @@ class LicitacionesService {
     return result;
   }
 
+  async autoDeleteExpired(orgId: string): Promise<number> {
+    return service.autoDeleteExpired(orgId);
+  }
+
   async deleteLicitacion(orgId: string, id: string): Promise<{ success: boolean; id: string; subject: string }> {
     const result = await service.deleteLicitacion(orgId, id);
     console.log(`Deleted licitación ${id}`);

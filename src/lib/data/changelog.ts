@@ -16,6 +16,19 @@ export interface ChangelogRelease {
 
 export const CHANGELOG: ChangelogRelease[] = [
   {
+    version: '1.25.0',
+    date: '2026-02-27',
+    headline: 'Eliminación automática de licitaciones vencidas',
+    features: [
+      {
+        type: 'feature',
+        title: 'Auto-eliminar licitaciones vencidas',
+        description:
+          'Las licitaciones pendientes cuya fecha de cierre de propuestas ya pasó se eliminan automáticamente al cargar el listado, manteniendo la lista limpia y actualizada.',
+      },
+    ],
+  },
+  {
     version: '1.24.0',
     date: '2026-02-18',
     headline: 'Filtro "Vencidas" para licitaciones con cierre pasado',
