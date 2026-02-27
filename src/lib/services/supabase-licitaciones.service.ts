@@ -244,6 +244,50 @@ export class SupabaseLicitacionesService {
     return { updated: data ? rowToLicitacion(data) : null, oldValues };
   }
 
+  async autoDeleteExpired(orgId: string): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data, error } = await this.supabase
+      .from('licitaciones')
+      .select('id, bidding_close_date')
+      .eq('org_id', orgId)
+      .eq('approval_status', 'pending')
+      .not('bidding_close_date', 'is', null)
+      .neq('bidding_close_date', '')
+      .neq('bidding_close_date', 'No disponible');
+
+    if (error) {
+      console.error(`Error fetching licitaciones for auto-delete (org: ${orgId}):`, error);
+      return 0;
+    }
+
+    const expiredIds = (data || [])
+      .filter((row) => {
+        const closeDate = new Date(row.bidding_close_date as string);
+        if (isNaN(closeDate.getTime())) return false;
+        const closeDateNorm = new Date(closeDate.getFullYear(), closeDate.getMonth(), closeDate.getDate());
+        return closeDateNorm < today;
+      })
+      .map((row) => row.id as string);
+
+    if (expiredIds.length === 0) return 0;
+
+    const { error: deleteError } = await this.supabase
+      .from('licitaciones')
+      .delete()
+      .eq('org_id', orgId)
+      .in('id', expiredIds);
+
+    if (deleteError) {
+      console.error(`Error auto-deleting ${expiredIds.length} expired licitaciones (org: ${orgId}):`, deleteError);
+      return 0;
+    }
+
+    console.log(`Auto-deleted ${expiredIds.length} expired licitación(es) for org ${orgId}`);
+    return expiredIds.length;
+  }
+
   async deleteLicitacion(orgId: string, id: string): Promise<{ success: boolean; id: string; subject: string }> {
     const current = await this.getLicitacionById(orgId, id);
     if (!current) throw new Error(`Licitación ${id} not found`);

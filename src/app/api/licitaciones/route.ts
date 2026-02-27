@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
     if (!filters.visitLocation?.length) delete filters.visitLocation;
     if (!filters.town?.length) delete filters.town;
 
+    // Fire-and-forget: auto-delete pending licitaciones whose bidding close date has passed
+    licitacionesService.autoDeleteExpired(orgId).catch(console.error);
+
     const licitaciones = await licitacionesService.getAllLicitaciones(orgId, filters);
     return NextResponse.json({ success: true, data: licitaciones });
   } catch (error) {
